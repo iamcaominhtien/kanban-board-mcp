@@ -1,0 +1,488 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "table",
+      "attrs": {
+        "blockId": "b-000016",
+        "style": "striped",
+        "width": "full"
+      },
+      "content": [
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000007"
+          },
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "background": "sand",
+                "blockId": "b-000002"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000001"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Name"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": "center",
+                "blockId": "b-000004"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000003"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Owner"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": "right",
+                "blockId": "b-000006"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000005"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Due"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-00000e"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "background": "#cfe3f5",
+                "blockId": "b-000009",
+                "verticalAlign": "middle"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000008"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Design"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": "center",
+                "blockId": "b-00000b"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00000a"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Ana"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": "right",
+                "blockId": "b-00000d"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00000c"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "May 2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000015"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000010"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00000f"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Build"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": "center",
+                "blockId": "b-000012"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000011"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Bo | Cy"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": "right",
+                "blockId": "b-000014"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000013"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000032"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Merged:"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "attrs": {
+        "blockId": "b-000028",
+        "style": "boxed"
+      },
+      "content": [
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-00001b"
+          },
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-000018"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000017"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Quarter"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-00001a",
+                "colspan": 2
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000019"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Plan"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000022"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00001d",
+                "rowspan": 2
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00001c"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Q1"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00001f"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00001e"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Hire"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000021"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000020"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Ship"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000027"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000024"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000023"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Train"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000026"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000025"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Review"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "attrs": {
+        "blockId": "b-000031"
+      },
+      "content": [
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-00002b"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00002a",
+                "colspan": 2
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000029"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000030"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00002d"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00002c"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "a"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00002f"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00002e"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "b"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

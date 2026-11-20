@@ -1,0 +1,59 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "The team",
+        "blockId": "b-000001",
+        "border": "thin",
+        "caption": "Planning night",
+        "crop": {
+          "h": 0.8,
+          "w": 0.9,
+          "x": 0.05,
+          "y": 0.1
+        },
+        "href": "https://example.com/team",
+        "placement": "floatRight",
+        "radius": 8,
+        "shadow": true,
+        "src": "/uploads/team.png",
+        "widthPct": 40,
+        "wrapGap": 24
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Text that wraps around the picture."
+        }
+      ]
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "Wide",
+        "blockId": "b-000003",
+        "caption": "A caption only in text",
+        "placement": "center",
+        "src": "/uploads/wide.png",
+        "width": 640
+      }
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "blockId": "b-000004",
+        "placement": "floatLeft",
+        "src": "/uploads/plain.png",
+        "title": "Hover title"
+      }
+    }
+  ]
+}

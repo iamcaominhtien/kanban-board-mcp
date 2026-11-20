@@ -120,7 +120,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"posted\": true,\n  \"to\": \"An Nguyen\",\n  \"next\": \"Stop now and end your turn. The board resumes this run with the answer.\"\n}"
+        "text": "{\"posted\":true,\"to\":\"An Nguyen\",\"next\":\"Stop now and end your turn. The board resumes this run with the answer.\"}"
       }
     ],
     "isError": false
@@ -129,7 +129,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"posted\": true,\n  \"to\": \"An Nguyen\",\n  \"next\": \"Stop now and end your turn. The board resumes this run with the answer.\"\n}"
+        "text": "{\"posted\":true,\"to\":\"An Nguyen\",\"next\":\"Stop now and end your turn. The board resumes this run with the answer.\"}"
       }
     ],
     "isError": false
@@ -138,7 +138,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"posted\": true,\n  \"to\": \"An Nguyen\",\n  \"next\": \"Stop now and end your turn. The board resumes this run with the answer.\"\n}"
+        "text": "{\"posted\":true,\"to\":\"An Nguyen\",\"next\":\"Stop now and end your turn. The board resumes this run with the answer.\"}"
       }
     ],
     "isError": false
@@ -210,7 +210,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"delivered\": \"queued\",\n  \"run_id\": \"run_helper\"\n}"
+        "text": "{\"delivered\":\"queued\",\"run_id\":\"run_helper\"}"
       }
     ],
     "isError": false
@@ -237,7 +237,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"ticket_id\": \"RUN-1\",\n  \"conversations\": []\n}"
+        "text": "{\"ticket_id\":\"RUN-1\",\"conversations\":[]}"
       }
     ],
     "isError": false
@@ -264,7 +264,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"ticket_id\": \"RUN-2\",\n  \"conversations\": []\n}"
+        "text": "{\"ticket_id\":\"RUN-2\",\"conversations\":[]}"
       }
     ],
     "isError": false
@@ -273,7 +273,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"ticket_id\": \"RUN-99\",\n  \"conversations\": []\n}"
+        "text": "{\"ticket_id\":\"RUN-99\",\"conversations\":[]}"
       }
     ],
     "isError": false
@@ -282,7 +282,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"ticket_id\": \"RUN-1\",\n  \"conversations\": [\n    {\n      \"id\": \"hist_1\",\n      \"ticket_id\": \"RUN-1\",\n      \"member_id\": \"mem_dev\",\n      \"title\": \"Login work\",\n      \"summary\": \"Fixed the form\",\n      \"session_ids\": [\n        \"s1\"\n      ],\n      \"run_ids\": [\n        \"run_dev\"\n      ],\n      \"started_at\": \"<time>\",\n      \"ended_at\": \"<time>\",\n      \"created_by\": \"An Nguyen\",\n      \"summarised_by\": \"person\"\n    }\n  ]\n}"
+        "text": "{\"ticket_id\":\"RUN-1\",\"conversations\":[{\"id\":\"hist_1\",\"ticket_id\":\"RUN-1\",\"member_id\":\"mem_dev\",\"title\":\"Login work\",\"summary\":\"Fixed the form\",\"session_ids\":[\"s1\"],\"run_ids\":[\"run_dev\"],\"started_at\":\"<time>\",\"ended_at\":\"<time>\",\"created_by\":\"An Nguyen\",\"summarised_by\":\"person\"}]}"
       }
     ],
     "isError": false
@@ -327,7 +327,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"mem_dev\",\n  \"name\": \"Dev An\",\n  \"pack_key\": null,\n  \"roles\": [\n    {\n      \"key\": \"dev\",\n      \"name\": \"Dev (TDD)\",\n      \"description\": \"A failing test before the fix\",\n      \"prompt\": \"You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\n      \"model\": \"sonnet\",\n      \"effort\": \"medium\",\n      \"tools\": null,\n      \"writes\": \"worktree\"\n    },\n    {\n      \"key\": \"reviewer\",\n      \"name\": \"Reviewer\",\n      \"description\": \"Reads the diff, never the transcript\",\n      \"prompt\": \"You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\n      \"model\": \"sonnet\",\n      \"effort\": \"medium\",\n      \"tools\": null,\n      \"writes\": \"nothing\"\n    },\n    {\n      \"key\": \"qa\",\n      \"name\": \"QA\",\n      \"description\": \"Runs it, does not read it\",\n      \"prompt\": \"You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\n      \"model\": \"sonnet\",\n      \"effort\": \"low\",\n      \"tools\": null,\n      \"writes\": \"tests\"\n    }\n  ],\n  \"model\": \"stand-in\",\n  \"effort\": null,\n  \"status\": {\n    \"code\": \"running\",\n    \"label\": \"Running\",\n    \"detail\": \"RUN-1\",\n    \"ticket_id\": \"RUN-1\"\n  }\n}"
+        "text": "{\"id\":\"mem_dev\",\"name\":\"Dev An\",\"pack_key\":null,\"roles\":[{\"key\":\"dev\",\"name\":\"Dev (TDD)\",\"description\":\"A failing test before the fix\",\"prompt\":\"You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\"model\":\"sonnet\",\"effort\":\"medium\",\"tools\":null,\"writes\":\"worktree\"},{\"key\":\"reviewer\",\"name\":\"Reviewer\",\"description\":\"Reads the diff, never the transcript\",\"prompt\":\"You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\"model\":\"sonnet\",\"effort\":\"medium\",\"tools\":null,\"writes\":\"nothing\"},{\"key\":\"qa\",\"name\":\"QA\",\"description\":\"Runs it, does not read it\",\"prompt\":\"You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\"model\":\"sonnet\",\"effort\":\"low\",\"tools\":null,\"writes\":\"tests\"}],\"model\":\"stand-in\",\"effort\":null,\"status\":{\"code\":\"running\",\"label\":\"Running\",\"detail\":\"RUN-1\",\"ticket_id\":\"RUN-1\"}}"
       }
     ],
     "isError": false
@@ -336,7 +336,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"mem_helper\",\n  \"name\": \"Helper\",\n  \"pack_key\": null,\n  \"roles\": [\n    {\n      \"key\": \"dev\",\n      \"name\": \"Dev (TDD)\",\n      \"description\": \"A failing test before the fix\",\n      \"prompt\": \"You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\n      \"model\": \"sonnet\",\n      \"effort\": \"medium\",\n      \"tools\": null,\n      \"writes\": \"worktree\"\n    },\n    {\n      \"key\": \"reviewer\",\n      \"name\": \"Reviewer\",\n      \"description\": \"Reads the diff, never the transcript\",\n      \"prompt\": \"You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\n      \"model\": \"sonnet\",\n      \"effort\": \"medium\",\n      \"tools\": null,\n      \"writes\": \"nothing\"\n    },\n    {\n      \"key\": \"qa\",\n      \"name\": \"QA\",\n      \"description\": \"Runs it, does not read it\",\n      \"prompt\": \"You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\n      \"model\": \"sonnet\",\n      \"effort\": \"low\",\n      \"tools\": null,\n      \"writes\": \"tests\"\n    }\n  ],\n  \"model\": \"stand-in\",\n  \"effort\": null,\n  \"status\": {\n    \"code\": \"running\",\n    \"label\": \"Running\",\n    \"detail\": \"RUN-2\",\n    \"ticket_id\": \"RUN-2\"\n  }\n}"
+        "text": "{\"id\":\"mem_helper\",\"name\":\"Helper\",\"pack_key\":null,\"roles\":[{\"key\":\"dev\",\"name\":\"Dev (TDD)\",\"description\":\"A failing test before the fix\",\"prompt\":\"You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\"model\":\"sonnet\",\"effort\":\"medium\",\"tools\":null,\"writes\":\"worktree\"},{\"key\":\"reviewer\",\"name\":\"Reviewer\",\"description\":\"Reads the diff, never the transcript\",\"prompt\":\"You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\"model\":\"sonnet\",\"effort\":\"medium\",\"tools\":null,\"writes\":\"nothing\"},{\"key\":\"qa\",\"name\":\"QA\",\"description\":\"Runs it, does not read it\",\"prompt\":\"You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\"model\":\"sonnet\",\"effort\":\"low\",\"tools\":null,\"writes\":\"tests\"}],\"model\":\"stand-in\",\"effort\":null,\"status\":{\"code\":\"running\",\"label\":\"Running\",\"detail\":\"RUN-2\",\"ticket_id\":\"RUN-2\"}}"
       }
     ],
     "isError": false
@@ -345,7 +345,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"mem_dev\",\n  \"name\": \"Dev An\",\n  \"pack_key\": null,\n  \"roles\": [\n    {\n      \"key\": \"dev\",\n      \"name\": \"Dev (TDD)\",\n      \"description\": \"A failing test before the fix\",\n      \"prompt\": \"You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\n      \"model\": \"sonnet\",\n      \"effort\": \"medium\",\n      \"tools\": null,\n      \"writes\": \"worktree\"\n    },\n    {\n      \"key\": \"reviewer\",\n      \"name\": \"Reviewer\",\n      \"description\": \"Reads the diff, never the transcript\",\n      \"prompt\": \"You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\n      \"model\": \"sonnet\",\n      \"effort\": \"medium\",\n      \"tools\": null,\n      \"writes\": \"nothing\"\n    },\n    {\n      \"key\": \"qa\",\n      \"name\": \"QA\",\n      \"description\": \"Runs it, does not read it\",\n      \"prompt\": \"You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\n      \"model\": \"sonnet\",\n      \"effort\": \"low\",\n      \"tools\": null,\n      \"writes\": \"tests\"\n    }\n  ],\n  \"model\": \"stand-in\",\n  \"effort\": null,\n  \"status\": {\n    \"code\": \"running\",\n    \"label\": \"Running\",\n    \"detail\": \"RUN-1\",\n    \"ticket_id\": \"RUN-1\"\n  }\n}"
+        "text": "{\"id\":\"mem_dev\",\"name\":\"Dev An\",\"pack_key\":null,\"roles\":[{\"key\":\"dev\",\"name\":\"Dev (TDD)\",\"description\":\"A failing test before the fix\",\"prompt\":\"You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\"model\":\"sonnet\",\"effort\":\"medium\",\"tools\":null,\"writes\":\"worktree\"},{\"key\":\"reviewer\",\"name\":\"Reviewer\",\"description\":\"Reads the diff, never the transcript\",\"prompt\":\"You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\"model\":\"sonnet\",\"effort\":\"medium\",\"tools\":null,\"writes\":\"nothing\"},{\"key\":\"qa\",\"name\":\"QA\",\"description\":\"Runs it, does not read it\",\"prompt\":\"You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).\",\"model\":\"sonnet\",\"effort\":\"low\",\"tools\":null,\"writes\":\"tests\"}],\"model\":\"stand-in\",\"effort\":null,\"status\":{\"code\":\"running\",\"label\":\"Running\",\"detail\":\"RUN-1\",\"ticket_id\":\"RUN-1\"}}"
       }
     ],
     "isError": false
@@ -354,7 +354,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"runs\": [\n    {\n      \"id\": \"run_dev\",\n      \"ticket_id\": \"RUN-1\",\n      \"state\": \"running\",\n      \"number\": 1\n    },\n    {\n      \"id\": \"run_deep\",\n      \"ticket_id\": \"RUN-1\",\n      \"state\": \"running\",\n      \"number\": 1\n    },\n    {\n      \"id\": \"run_assistant\",\n      \"ticket_id\": \"RUN-1\",\n      \"state\": \"running\",\n      \"number\": 1\n    },\n    {\n      \"id\": \"run_noticket\",\n      \"ticket_id\": null,\n      \"state\": \"running\",\n      \"number\": 1\n    },\n    {\n      \"id\": \"chat_1\",\n      \"ticket_id\": \"RUN-1\",\n      \"state\": \"running\",\n      \"number\": 1\n    }\n  ]\n}"
+        "text": "{\"runs\":[{\"id\":\"run_dev\",\"ticket_id\":\"RUN-1\",\"state\":\"running\",\"number\":1},{\"id\":\"run_deep\",\"ticket_id\":\"RUN-1\",\"state\":\"running\",\"number\":1},{\"id\":\"run_assistant\",\"ticket_id\":\"RUN-1\",\"state\":\"running\",\"number\":1},{\"id\":\"run_noticket\",\"ticket_id\":null,\"state\":\"running\",\"number\":1},{\"id\":\"chat_1\",\"ticket_id\":\"RUN-1\",\"state\":\"running\",\"number\":1}]}"
       }
     ],
     "isError": false
@@ -363,7 +363,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"runs\": [\n    {\n      \"id\": \"run_helper\",\n      \"ticket_id\": \"RUN-2\",\n      \"state\": \"running\",\n      \"number\": 1\n    }\n  ]\n}"
+        "text": "{\"runs\":[{\"id\":\"run_helper\",\"ticket_id\":\"RUN-2\",\"state\":\"running\",\"number\":1}]}"
       }
     ],
     "isError": false
@@ -381,7 +381,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"recorded\": true\n}"
+        "text": "{\"recorded\":true}"
       }
     ],
     "isError": false
@@ -390,7 +390,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"recorded\": true\n}"
+        "text": "{\"recorded\":true}"
       }
     ],
     "isError": false
@@ -399,7 +399,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"recorded\": true\n}"
+        "text": "{\"recorded\":true}"
       }
     ],
     "isError": false

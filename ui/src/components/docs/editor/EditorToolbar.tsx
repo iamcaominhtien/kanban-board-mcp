@@ -1,8 +1,9 @@
 import type { Editor } from '@tiptap/react';
-import { useEditorState } from '@tiptap/react';
-import type { CSSProperties, ReactNode } from 'react';
-import { Icon } from '../Icon';
-import { LineIcon } from '../../ui/LineIcon';
+import { PhoneBar } from './ribbon/PhoneBar';
+import { Ribbon, type RibbonActions } from './ribbon/Ribbon';
+import './ribbon/ribbon.css';
+
+export { HighlightGlyph, keyLabel } from './ribbon/parts';
 
 interface Props {
   editor: Editor | null;
@@ -18,43 +19,31 @@ interface Props {
   ticketPrefix: string;
   /** Board AI "Ask AI" button (A6). */
   onAskAi?: () => void;
+  /** Opens the insert menu ("/"); typing "/" is the same entry point. */
+  onInsert?: () => void;
+  /** Opens Find (`false`) or Find and replace (`true`). */
+  onFind?: (replace: boolean) => void;
+  /** Focus mode on or off. */
+  onFocusMode?: () => void;
+  /** Opens the keyboard shortcut sheet. */
+  onShortcuts?: () => void;
+  /** The page colour, for colour swatches and the contrast of a custom colour (default white). */
+  pageHex?: string;
+  /** The text is stored as Markdown (an idea page): colours, fonts, sizes and paragraph attributes are left out. */
+  markdownOnly?: boolean;
+  /**
+   * Where the bar sits: `top` (desktop, the two-row ribbon), `strip` (tablet: one row that scrolls sideways, 44 px
+   * targets, Undo, Redo and Insert pinned) or `bottom` (phone: the bar above the on-screen keyboard; see `--dk-kb`).
+   */
+  variant?: ToolbarVariant;
 }
 
-const ACTIVE: CSSProperties = { background: '#EAF0EC', color: '#1E2A22' };
-
-const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-
-/** "Mod+Shift+H" as the person's keyboard writes it: "Ctrl+Shift+H", or "⌘⇧H" on a Mac. */
-export function keyLabel(keys: string, mac = IS_MAC): string {
-  if (!mac) return keys.replace(/Mod/g, 'Ctrl');
-  const sym: Record<string, string> = { Mod: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃' };
-  return keys
-    .split('+')
-    .map((k) => sym[k] ?? k)
-    .join('');
-}
-
-/** A marker pen over a yellow stroke: the Highlight button. */
-export function HighlightGlyph() {
-  return (
-    <svg
-      aria-hidden="true"
-      width={16}
-      height={16}
-      viewBox="0 0 24 24"
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M4 21h16" stroke="#E8B93A" strokeWidth={3} />
-      <path d="M14.5 4.5l4 4L11 16H7v-4z" stroke="currentColor" strokeWidth={1.9} />
-      <path d="M12.5 6.5l4 4" stroke="currentColor" strokeWidth={1.9} />
-    </svg>
-  );
-}
+/** Where the formatting bar sits (see EditorToolbar's `variant`). */
+export type ToolbarVariant = 'top' | 'strip' | 'bottom';
 
 /**
- * 44px formatting toolbar (DocsEditor board A).
+ * The editor's formatting bar (Rich Docs editor, boards B and C): the two-row ribbon on a desktop, a scrolling strip
+ * on a tablet, the bar above the keyboard on a phone.
  * @param props.editor - Editor the buttons act on, or `null`.
  * @param props.disabled - Disable all buttons.
  * @param props.onLink - Called by the link button.
@@ -64,6 +53,13 @@ export function HighlightGlyph() {
  * @param props.onCanvas - Called by the Canvas button (hidden when missing).
  * @param props.ticketPrefix - Ticket key prefix used by the reference button.
  * @param props.onAskAi - Shows the Board AI "Ask AI" button.
+ * @param props.onInsert - Opens the insert menu.
+ * @param props.onFind - Opens Find and replace (the button is hidden without it).
+ * @param props.onFocusMode - Turns focus mode on (the button is hidden without it).
+ * @param props.onShortcuts - Opens the shortcut sheet (the button is hidden without it).
+ * @param props.pageHex - The page colour.
+ * @param props.markdownOnly - Leave out the controls Markdown cannot keep.
+ * @param props.variant - `top`, `strip` (scrolls sideways, 44 px targets) or `bottom` (above the keyboard).
  */
 export function EditorToolbar({
   editor,
@@ -75,208 +71,47 @@ export function EditorToolbar({
   onCanvas,
   ticketPrefix,
   onAskAi,
+  onInsert,
+  onFind,
+  onFocusMode,
+  onShortcuts,
+  pageHex = '#FFFFFF',
+  markdownOnly,
+  variant = 'top',
 }: Props) {
-  const st = useEditorState({
-    editor,
-    selector: ({ editor: e }) => ({
-      bold: !!e?.isActive('bold'),
-      italic: !!e?.isActive('italic'),
-      strike: !!e?.isActive('strike'),
-      code: !!e?.isActive('code'),
-      highlight: !!e?.isActive('highlight'),
-      h1: !!e?.isActive('heading', { level: 1 }),
-      h2: !!e?.isActive('heading', { level: 2 }),
-      h3: !!e?.isActive('heading', { level: 3 }),
-      bullet: !!e?.isActive('bulletList'),
-      ordered: !!e?.isActive('orderedList'),
-      task: !!e?.isActive('taskList'),
-      quote: !!e?.isActive('blockquote'),
-      table: !!e?.isActive('table'),
-      codeBlock: !!e?.isActive('codeBlock'),
-      callout: !!e?.isActive('callout'),
-      link: !!e?.isActive('link'),
-      canUndo: !!e?.can().undo(),
-      canRedo: !!e?.can().redo(),
-    }),
-  });
-
-  const Btn = ({
-    label,
-    on,
-    onClick,
-    children,
-    off,
-    keys,
-  }: {
-    label: string;
-    on?: boolean;
-    onClick: () => void;
-    children: ReactNode;
-    off?: boolean;
-    /** The keyboard shortcut, shown in the tooltip ("Mod" reads Ctrl, or ⌘ on a Mac). */
-    keys?: string;
-  }) => (
-    <button
-      type="button"
-      className="dk-tb"
-      aria-label={label}
-      aria-keyshortcuts={keys ? keys.replace(/Mod/g, IS_MAC ? 'Meta' : 'Control') : undefined}
-      title={keys ? `${label} (${keyLabel(keys)})` : label}
-      aria-pressed={on}
-      disabled={disabled || !editor || off}
-      style={{ ...(on ? ACTIVE : null), ...(off || disabled ? { opacity: 0.45, cursor: 'default' } : null) }}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-  const c = () => editor!.chain().focus();
-  const s = st ?? ({} as NonNullable<typeof st>);
-
+  const actions: RibbonActions = {
+    onLink,
+    onPickImage,
+    onPickFile,
+    onSketch,
+    onCanvas,
+    onAskAi,
+    onFind,
+    onFocusMode,
+    onShortcuts,
+    ticketPrefix,
+    onInsert: onInsert ?? (() => editor?.chain().focus().insertContent('/').run()),
+  };
   return (
     <div
       role="toolbar"
       aria-label="Formatting"
       data-testid="editor-toolbar"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        height: 44,
-        padding: '0 24px',
-        borderBottom: '1px solid #E3E8E5',
-        background: '#F6FAF7',
-        boxSizing: 'border-box',
-        flexShrink: 0,
-      }}
+      data-variant={variant}
+      className={`dk-ribbon dk-ribbon-${variant}${variant === 'bottom' ? ' dk-toolbar-bottom' : ''}`}
     >
-      <Btn label="Bold" keys="Mod+B" on={s.bold} onClick={() => c().toggleBold().run()}>
-        <span style={{ fontSize: 14, fontWeight: 800 }}>B</span>
-      </Btn>
-      <Btn label="Italic" keys="Mod+I" on={s.italic} onClick={() => c().toggleItalic().run()}>
-        <span style={{ fontSize: 14, fontStyle: 'italic', fontWeight: 600, fontFamily: 'Georgia,serif' }}>i</span>
-      </Btn>
-      <Btn label="Strikethrough" keys="Mod+Shift+X" on={s.strike} onClick={() => c().toggleStrike().run()}>
-        <Icon name="i47" size={16} />
-      </Btn>
-      <Btn label="Inline code" keys="Mod+E" on={s.code} onClick={() => c().toggleCode().run()}>
-        <Icon name="i33" size={16} />
-      </Btn>
-      <Btn label="Highlight" keys="Mod+Shift+H" on={s.highlight} onClick={() => c().toggleHighlight().run()}>
-        <HighlightGlyph />
-      </Btn>
-      <span className="dk-sep" />
-      <Btn label="H1" keys="Mod+Alt+1" on={s.h1} onClick={() => c().toggleHeading({ level: 1 }).run()}>
-        H1
-      </Btn>
-      <Btn label="H2" keys="Mod+Alt+2" on={s.h2} onClick={() => c().toggleHeading({ level: 2 }).run()}>
-        H2
-      </Btn>
-      <Btn label="H3" keys="Mod+Alt+3" on={s.h3} onClick={() => c().toggleHeading({ level: 3 }).run()}>
-        H3
-      </Btn>
-      <span className="dk-sep" />
-      <Btn label="Bulleted list" keys="Mod+Shift+8" on={s.bullet} onClick={() => c().toggleBulletList().run()}>
-        <Icon name="i48" size={16} />
-      </Btn>
-      <Btn label="Numbered list" keys="Mod+Shift+7" on={s.ordered} onClick={() => c().toggleOrderedList().run()}>
-        <Icon name="i49" size={16} />
-      </Btn>
-      <Btn label="Task list" keys="Mod+Shift+9" on={s.task} onClick={() => c().toggleTaskList().run()}>
-        <Icon name="i50" size={16} />
-      </Btn>
-      <Btn label="Quote" keys="Mod+Shift+B" on={s.quote} onClick={() => c().toggleBlockquote().run()}>
-        <Icon name="i51" size={16} />
-      </Btn>
-      <span className="dk-sep" />
-      <Btn
-        label="Table"
-        on={s.table}
-        off={s.table}
-        onClick={() => c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-      >
-        <Icon name="i52" size={16} />
-      </Btn>
-      <Btn label="Code block" keys="Mod+Alt+C" on={s.codeBlock} onClick={() => c().toggleCodeBlock().run()}>
-        <Icon name="i53" size={16} />
-      </Btn>
-      <Btn label="Callout" on={s.callout} onClick={() => c().toggleCallout('info').run()}>
-        <Icon name="i31" size={16} />
-      </Btn>
-      <span className="dk-sep" />
-      <Btn label="Link" keys="Mod+K" on={s.link} onClick={onLink}>
-        <Icon name="i11" size={16} />
-      </Btn>
-      <Btn label="Reference a page or section" onClick={() => c().insertContent('[[').run()}>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>[[</span>
-      </Btn>
-      <Btn label="Ticket" onClick={() => c().insertContent(`[[${ticketPrefix}-`).run()}>
-        <Icon name="i13" size={16} />
-      </Btn>
-      <Btn label="Image" onClick={onPickImage}>
-        <Icon name="i54" size={16} />
-      </Btn>
-      {onPickFile && (
-        <Btn label="Attach a file (Excel, Word, PDF…)" onClick={onPickFile}>
-          <Icon name="attach" size={16} />
-        </Btn>
+      {variant === 'bottom' ? (
+        <PhoneBar editor={editor} disabled={disabled} pageHex={pageHex} actions={actions} plain={markdownOnly} />
+      ) : (
+        <Ribbon
+          editor={editor}
+          disabled={disabled}
+          variant={variant}
+          pageHex={pageHex}
+          actions={actions}
+          plain={markdownOnly}
+        />
       )}
-      {onSketch && (
-        <Btn label="Sketch (/draw)" onClick={onSketch}>
-          <Icon name="sketch" size={16} />
-        </Btn>
-      )}
-      {onCanvas && (
-        <Btn label="Canvas (/canvas)" onClick={onCanvas}>
-          <Icon name="canvas" size={16} />
-        </Btn>
-      )}
-      <div style={{ flex: 1 }} />
-      {onAskAi && (
-        <button
-          type="button"
-          onClick={onAskAi}
-          data-testid="docs-ask-ai"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '5px 11px',
-            marginRight: 8,
-            border: '1.5px solid #2E6F40',
-            borderRadius: 8,
-            background: '#FFFFFF',
-            fontFamily: 'inherit',
-            fontSize: 12.5,
-            fontWeight: 600,
-            color: '#1E2A22',
-            cursor: 'pointer',
-          }}
-        >
-          <LineIcon name="sparkle" size={12} /> Ask AI
-        </button>
-      )}
-      <Btn label="Undo" keys="Mod+Z" off={!s.canUndo} onClick={() => c().undo().run()}>
-        <Icon name="i19" size={16} />
-      </Btn>
-      <Btn label="Redo" keys="Mod+Shift+Z" off={!s.canRedo} onClick={() => c().redo().run()}>
-        <Icon name="i62" size={16} />
-      </Btn>
-      <span className="dk-sep" />
-      <span
-        style={{
-          fontSize: 12,
-          color: '#5B6B60',
-          whiteSpace: 'nowrap',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-        }}
-      >
-        <Icon name="i63" size={15} strokeWidth={1.7} />
-        Type<span className="dk-kbd">/</span>for blocks
-      </span>
     </div>
   );
 }

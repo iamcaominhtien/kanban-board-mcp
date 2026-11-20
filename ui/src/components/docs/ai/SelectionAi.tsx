@@ -11,17 +11,20 @@ import { LineIcon } from '../../ui/LineIcon';
  * @param props.pageId - The page the selection is on.
  * @param props.view - The page's AI view state, where the answer shows up.
  * @param props.done - Called after a button is used (the bar closes).
+ * @param props.noAsk - Leave Ask… out ("Ask the team" takes its place, suggestions/AskTeam.tsx).
  */
 export function SelectionAi({
   pick,
   pageId,
   view,
   done,
+  noAsk,
 }: {
   pick: Pick;
   pageId: string;
   view: PageAiView;
   done: () => void;
+  noAsk?: boolean;
 }) {
   const assist = useAssist();
   const text = pick.anchor.quote;
@@ -48,7 +51,7 @@ export function SelectionAi({
       >
         Summarise
       </button>
-      {assist && (
+      {assist && !noAsk && (
         <button
           type="button"
           data-testid="selection-ask"

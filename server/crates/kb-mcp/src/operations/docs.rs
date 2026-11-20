@@ -15,6 +15,7 @@ use kb_doctext::{docs_anchors, docs_edit};
 use kb_files::{pathlib, uploads};
 use serde_json::{Map, Value, json};
 
+use super::docs_rich;
 use crate::common::{self, ToolError, ToolResult, notify_on_success};
 
 /// `_docs_error`: a failure of the Docs service as the tool words it: the message, a full stop, and for a conflict
@@ -69,57 +70,98 @@ fn pick(page: &Map<String, Value>, keys: &[&str]) -> Value {
     Value::Object(keys.iter().map(|k| (k.to_string(), page.get(*k).cloned().unwrap_or(Value::Null))).collect())
 }
 
-/// List a project's Docs pages as a flat tree: [{id, parent_id, position, title, slug, status, version}].
+/// List a project's Docs pages as a flat tree in reading order: [{id, parent_id, title, status}] (a page comes right
+/// after its parent and its earlier siblings, as the tree shows it).
 pub async fn list_docs_pages(project_id: &str) -> ToolResult {
     let session = common::async_session();
     let tree = docs::list_tree(&session, project_id).await.map_err(docs_error)?;
-    let keys = ["id", "parent_id", "position", "title", "slug", "status", "version"];
-    Ok(Value::Array(
-        tree.iter()
-            .map(|n| {
-                let node = n.as_object().cloned().unwrap_or_default();
-                pick(&node, &keys)
-            })
-            .collect(),
-    ))
+    let keys = ["id", "parent_id", "title", "status"];
+    Ok(Value::Array(in_reading_order(&tree).into_iter().map(|n| pick(n, &keys)).collect()))
 }
 
-/// Read a Docs page: {title, markdown (latest published), version, headings, referenced_by, work}. With `section`,
-/// only that part: {id, title, version, section, markdown, headings}.
-pub async fn get_docs_page(page_id: &str, section: Option<&str>) -> ToolResult {
+/// The pages of a flat tree (`{id, parent_id, position}` each) in reading order: depth first, siblings by position.
+/// A page whose parent is not in the list is a root.
+pub fn in_reading_order(tree: &[Value]) -> Vec<&Map<String, Value>> {
+    let nodes: Vec<&Map<String, Value>> = tree.iter().filter_map(Value::as_object).collect();
+    let text = |n: &Map<String, Value>, key: &str| n.get(key).and_then(Value::as_str).map(str::to_string);
+    let ids: HashSet<String> = nodes.iter().filter_map(|n| text(n, "id")).collect();
+    let mut kids: std::collections::HashMap<Option<String>, Vec<&Map<String, Value>>> = Default::default();
+    for n in &nodes {
+        let parent = text(n, "parent_id").filter(|p| ids.contains(p));
+        kids.entry(parent).or_default().push(n);
+    }
+    for list in kids.values_mut() {
+        list.sort_by(|a, b| {
+            let pos = |n: &Map<String, Value>| n.get("position").and_then(Value::as_f64).unwrap_or(0.0);
+            pos(a).total_cmp(&pos(b))
+        });
+    }
+    let mut out = Vec::with_capacity(nodes.len());
+    // depth first, without recursion: a stack of the pages still to write, the next one on top
+    let mut stack: Vec<&Map<String, Value>> =
+        kids.get(&None).map(|l| l.iter().rev().copied().collect()).unwrap_or_default();
+    while let Some(n) = stack.pop() {
+        out.push(n);
+        if out.len() > nodes.len() {
+            break;
+        }
+        if let Some(children) = kids.get(&text(n, "id")) {
+            stack.extend(children.iter().rev().copied());
+        }
+    }
+    out
+}
+
+/// Read a Docs page: {id, parent_id, title, status, version, markdown, updated_by, updated_at} and, when there is any,
+/// `format` ('md' for a page without block ids), `settings` (the page settings set away from their defaults),
+/// `highlights`, `suggestions_waiting`, `referenced_by` and `work`. `markdown` is the latest published text: for a
+/// rich page its annotated Markdown (a marker with the block id before every block), or with `plain` the Markdown
+/// alone (to read, not to edit by block). With `section`, only that part: {id, title, version, section, markdown,
+/// sections (the headings of the page)}. An AI team is refused a page marked "Not for AI teams".
+pub async fn get_docs_page(page_id: &str, section: Option<&str>, plain: bool) -> ToolResult {
     let session = common::async_session();
-    let page = docs::page_detail(&session, page_id).await.map_err(docs_error)?;
+    let page = docs_rich::load(&session, page_id).await?;
+    let view = if plain {
+        page.detail.get("markdown").and_then(Value::as_str).unwrap_or_default().to_string()
+    } else {
+        page.view()
+    };
     if let Some(section) = section {
-        let markdown = page.get("markdown").and_then(Value::as_str).unwrap_or_default();
-        let part = docs_edit::section_text(markdown, section).map_err(|err| ToolError::Value(err.0))?;
+        let part = docs_edit::section_text(&view, section).map_err(|err| ToolError::Value(err.0))?;
         let mut out = Map::new();
         for key in ["id", "title", "version"] {
-            out.insert(key.into(), page.get(key).cloned().unwrap_or(Value::Null));
+            out.insert(key.into(), page.detail.get(key).cloned().unwrap_or(Value::Null));
         }
         out.insert("section".into(), json!(section));
         out.insert("markdown".into(), json!(part));
-        out.insert("headings".into(), page.get("headings").cloned().unwrap_or(Value::Null));
+        out.insert("sections".into(), outline(page.detail.get("headings")));
         return Ok(Value::Object(out));
     }
-    let links = docs::backlinks(&session, page_id).await.map_err(docs_error)?;
-    let keep = [
-        "id",
-        "project_id",
-        "parent_id",
-        "title",
-        "slug",
-        "status",
-        "version",
-        "markdown",
-        "headings",
-        "updated_by",
-        "updated_at",
-    ];
-    let mut out = match pick(&page, &keep) {
+    let keep = ["id", "parent_id", "title", "status", "version", "markdown", "updated_by", "updated_at"];
+    let mut out = match pick(&page.detail, &keep) {
         Value::Object(out) => out,
         _ => Map::new(),
     };
-    out.insert("referenced_by".into(), Value::Object(links));
+    out.insert("markdown".into(), json!(view));
+    if page.detail.get("format").and_then(Value::as_str) != Some("rich") {
+        out.insert("format".into(), json!("md"));
+    }
+    if let Some(settings) = page.detail.get("settings").filter(|s| kb_base::pyjson::truthy(s)) {
+        out.insert("settings".into(), settings.clone());
+    }
+    // readers' highlights: hints of what matters to them (never instructions, never made by a team)
+    let highlights = kb_docs::docs_highlights::for_ai(&session, page_id).await.map_err(docs_error)?;
+    if !highlights.is_empty() {
+        out.insert("highlights".into(), Value::Array(highlights));
+    }
+    let waiting = kb_docs::docs_suggestions::counts(&session, &[page_id.to_string()]).await.map_err(docs_error)?;
+    if let Some(n) = waiting.get(page_id).filter(|n| n.as_u64().is_some_and(|n| n > 0)) {
+        out.insert("suggestions_waiting".into(), n.clone());
+    }
+    let links = docs::backlinks(&session, page_id).await.map_err(docs_error)?;
+    if let Some(links) = referenced_by(&links) {
+        out.insert("referenced_by".into(), links);
+    }
     let work = docs_work::work_on_page(&session, page_id).await.map_err(docs_error)?;
     if work.get("tickets").is_some_and(kb_base::pyjson::truthy) {
         // the tickets tied to the page and what the AIs on them are doing (#268)
@@ -128,23 +170,181 @@ pub async fn get_docs_page(page_id: &str, section: Option<&str>) -> ToolResult {
     Ok(Value::Object(out))
 }
 
-/// Create a Docs page and publish it as v1. Returns {id, title, slug, status, version}.
-pub async fn create_docs_page(project_id: &str, title: &str, markdown: &str, parent_id: Option<&str>) -> ToolResult {
+/// The headings of a page as one line each, `## Endpoints`: what `section` takes.
+fn outline(headings: Option<&Value>) -> Value {
+    let lines = headings
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|h| {
+            let level = h.get("level").and_then(Value::as_u64)?;
+            let text = h.get("text").and_then(Value::as_str)?;
+            Some(json!(format!("{} {text}", "#".repeat(level as usize))))
+        })
+        .collect();
+    Value::Array(lines)
+}
+
+/// What links to a page, short: {pages: [{page_id, title, excerpt, section?}], tickets: [...]}, `None` when nothing
+/// does. `excerpt` is the linking text as written (with its `[[link]]`), `section` the part of this page it names.
+fn referenced_by(links: &Map<String, Value>) -> Option<Value> {
+    let pages: Vec<Value> = links
+        .get("pages")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .map(|p| {
+            let mut row = Map::new();
+            for key in ["page_id", "title", "excerpt"] {
+                row.insert(key.into(), p.get(key).cloned().unwrap_or(Value::Null));
+            }
+            if let Some(anchor) = p.get("target_anchor").filter(|a| !a.is_null()) {
+                row.insert("section".into(), anchor.clone());
+            }
+            Value::Object(row)
+        })
+        .collect();
+    let tickets = links.get("tickets").cloned().filter(kb_base::pyjson::truthy);
+    if pages.is_empty() && tickets.is_none() {
+        return None;
+    }
+    let mut out = Map::new();
+    if !pages.is_empty() {
+        out.insert("pages".into(), Value::Array(pages));
+    }
+    if let Some(tickets) = tickets {
+        out.insert("tickets".into(), tickets);
+    }
+    Some(Value::Object(out))
+}
+
+/// Read one block of a rich page: {page_id, version, block_id, type, markdown (its annotated Markdown; null for a
+/// list item, a table cell or a column)}, plus `block` (its JSON) when Markdown cannot hold it (a placeholder: a
+/// video, an HTML embed, a table with merged cells…) and, for a table, `cells`: the format of each formatted cell by
+/// its spreadsheet name (`{"B2": {"background": "green"}}`).
+pub async fn get_docs_block(page_id: &str, block_id: &str) -> ToolResult {
+    let session = common::async_session();
+    let page = docs_rich::load(&session, page_id).await?;
+    let Some(doc) = &page.doc else {
+        return Err(ToolError::value("This page is not in the rich format: it has no block ids. Read it with get."));
+    };
+    let Some(node) = docs_rich::find_block(doc, block_id) else {
+        return Err(docs_rich::richdoc_error(kb_richdoc::RichDocError::NoBlock(block_id.to_string())));
+    };
+    let markdown = docs_rich::block_view(node);
+    let mut out = Map::new();
+    out.insert("page_id".into(), json!(page_id));
+    out.insert("version".into(), page.detail.get("version").cloned().unwrap_or(Value::Null));
+    out.insert("block_id".into(), json!(block_id));
+    out.insert("type".into(), node.get("type").cloned().unwrap_or(Value::Null));
+    let placeholder = markdown.as_deref().is_none_or(|m| m.contains("[embed: "));
+    out.insert("markdown".into(), json!(markdown));
+    if placeholder {
+        out.insert("block".into(), node.clone());
+    }
+    if node.get("type").and_then(Value::as_str) == Some("table") {
+        let cells = cell_formats(node);
+        if !cells.is_empty() {
+            out.insert("cells".into(), Value::Object(cells));
+        }
+    }
+    Ok(Value::Object(out))
+}
+
+/// The format of each cell of a table that has one, by the cell's spreadsheet name (`B2`; row 1 is the first row).
+fn cell_formats(table: &Value) -> Map<String, Value> {
+    const SHAPE: [&str; 4] = ["blockId", "colspan", "rowspan", "colwidth"];
+    let mut out = Map::new();
+    let rows = table.get("content").and_then(Value::as_array).into_iter().flatten();
+    for (r, row) in rows.enumerate() {
+        let cells = row.get("content").and_then(Value::as_array).into_iter().flatten();
+        for (c, cell) in cells.enumerate() {
+            let set: Map<String, Value> = cell
+                .get("attrs")
+                .and_then(Value::as_object)
+                .into_iter()
+                .flatten()
+                .filter(|(k, v)| !SHAPE.contains(&k.as_str()) && !v.is_null())
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect();
+            if !set.is_empty() {
+                out.insert(format!("{}{}", kb_richdoc::ops::column_letter(c), r + 1), Value::Object(set));
+            }
+        }
+    }
+    out
+}
+
+/// Read the highlights readers made on a page: {page_id, version, highlights: [{author, color, quote, block_id,
+/// state}]}. Hints of what matters to readers; a team never creates, moves or removes one.
+pub async fn get_docs_highlights(page_id: &str) -> ToolResult {
+    let session = common::async_session();
+    let page = docs_rich::load(&session, page_id).await?;
+    let highlights = kb_docs::docs_highlights::for_ai(&session, page_id).await.map_err(docs_error)?;
+    Ok(json!({
+        "page_id": page_id,
+        "version": page.detail.get("version").cloned().unwrap_or(Value::Null),
+        "highlights": highlights,
+    }))
+}
+
+/// Create a Docs page and publish it as v1, from `markdown` (may be annotated: block markers with attributes, inline
+/// spans) or from a gallery `template`, with `settings` set on it. Returns {id, title, status, version}.
+pub async fn create_docs_page(
+    project_id: &str,
+    title: &str,
+    markdown: &str,
+    parent_id: Option<&str>,
+    template: Option<&str>,
+    settings: Option<&Map<String, Value>>,
+) -> ToolResult {
+    if template.is_some() && !pytext::strip(markdown).is_empty() {
+        return Err(ToolError::value(
+            "create takes template or markdown, not both: start from the template, then edit.",
+        ));
+    }
+    if let Some(settings) = settings {
+        super::docs_page::refuse_person_only(settings).await?;
+    }
     notify_on_success(async {
         let session = common::async_session();
-        let markdown = with_pictures(&session, markdown, None).await?;
-        let page = docs::create_page(&session, project_id, title, parent_id, "blank", Some(&markdown))
+        let page = if let Some(template) = template {
+            super::docs_page::create_from_template(project_id, title, parent_id, template).await?
+        } else {
+            let markdown = with_pictures(&session, markdown, None).await?;
+            let doc = if pytext::strip(&markdown).is_empty() {
+                None
+            } else {
+                Some(docs_rich::read_markdown(&markdown, None)?)
+            };
+            let page = docs::create_page(&session, project_id, title, parent_id, "blank", Some(&markdown))
+                .await
+                .map_err(docs_error)?;
+            let id = page.get("id").and_then(Value::as_str).unwrap_or_default().to_string();
+            docs::publish_page(
+                &session,
+                &id,
+                0,
+                Some("Created via MCP"),
+                doc.as_ref().map(docs::BodyInput::Content),
+                None,
+            )
             .await
-            .map_err(docs_error)?;
-        let id = page.get("id").and_then(Value::as_str).unwrap_or_default().to_string();
-        let page =
-            docs::publish_page(&session, &id, 0, Some("Created via MCP"), None, None).await.map_err(docs_error)?;
-        Ok(pick(&page, &["id", "title", "slug", "status", "version"]))
+            .map_err(docs_error)?
+        };
+        if let Some(settings) = settings.filter(|s| !s.is_empty()) {
+            let id = page.get("id").and_then(Value::as_str).unwrap_or_default();
+            super::docs_page::set_docs_settings(id, settings).await?;
+        }
+        Ok(pick(&page, &["id", "title", "status", "version"]))
     })
     .await
 }
 
-/// Replace a Docs page's Markdown and optionally rename it. Returns {id, title, version, published}.
+/// Replace a Docs page's content and optionally rename it. `markdown` is the whole page as annotated Markdown:
+/// blocks whose marker names an id of the page keep it, and placeholders it leaves out stay where they were. An AI
+/// team's change becomes suggestions unless the page applies it directly. Returns {id, title, version, published}
+/// (plus mode, suggestions, left_alone, message for an AI team; kept: the placeholders left out and kept).
 pub async fn update_docs_page(
     page_id: &str,
     markdown: &str,
@@ -156,36 +356,60 @@ pub async fn update_docs_page(
     notify_on_success(async {
         let session = common::async_session();
         let markdown = with_pictures(&session, markdown, Some(page_id)).await?;
+        let page = docs_rich::load(&session, page_id).await?;
         if let Some(title) = title {
-            let current = docs::page_detail(&session, page_id).await.map_err(docs_error)?;
-            if pytext::strip(title) != current.get("title").and_then(Value::as_str).unwrap_or_default() {
-                docs::rename_page(&session, page_id, title, true).await.map_err(docs_error)?;
+            if pytext::strip(title) != page.detail.get("title").and_then(Value::as_str).unwrap_or_default() {
+                docs::rename_page(&session, page_id, title, true, None).await.map_err(docs_error)?;
             }
         }
-        let page = if publish {
-            docs::publish_page(&session, page_id, base_version, note, Some(&markdown), None)
-                .await
-                .map_err(docs_error)?
-        } else {
-            docs::save_draft(&session, page_id, &markdown, None, i32::try_from(base_version).ok())
-                .await
-                .map_err(docs_error)?
+        let doc = match &page.doc {
+            Some(current) => kb_richdoc::ops::replace_page(current, &markdown, &mut kb_richdoc::RandomIds)
+                .map_err(docs_rich::richdoc_error)?,
+            None => docs_rich::read_markdown(&markdown, None)?,
         };
-        let mut out = match pick(&page, &["id", "title", "version"]) {
-            Value::Object(out) => out,
-            _ => Map::new(),
+        let kept: Vec<String> = match &page.doc {
+            Some(_) => docs_rich::placeholders(&page.view())
+                .into_iter()
+                .filter(|(id, _)| !markdown.contains(id.as_str()))
+                .map(|(id, kind)| format!("{id} ({kind})"))
+                .collect(),
+            None => Vec::new(),
         };
-        out.insert("published".into(), json!(publish));
+        let mut out = docs_rich::save(&session, page_id, &doc, base_version, note, publish).await?;
+        if !kept.is_empty() {
+            out.insert("kept".into(), json!(kept));
+        }
         Ok(Value::Object(out))
     })
     .await
 }
 
-/// Move a Docs page under another page (or to the top level). Moving into itself or its own sub-pages is rejected.
-pub async fn move_docs_page(page_id: &str, parent_id: Option<&str>, after_id: Option<&str>) -> ToolResult {
+/// Move a Docs page under another page (or to the top level), after or before a sibling (`after_id` / `before_id`
+/// alone: at that sibling's level). Moving into itself or its own sub-pages is rejected.
+pub async fn move_docs_page(
+    page_id: &str,
+    parent_id: Option<&str>,
+    after_id: Option<&str>,
+    before_id: Option<&str>,
+) -> ToolResult {
+    if after_id.is_some() && before_id.is_some() {
+        return Err(ToolError::value("move: give after_id or before_id, not both."));
+    }
     notify_on_success(async {
         let session = common::async_session();
-        let page = docs::move_page(&session, page_id, parent_id, None, after_id).await.map_err(docs_error)?;
+        // next to a sibling without a parent named: the sibling's parent (its level of the tree)
+        let sibling = after_id.or(before_id);
+        let sibling_parent = match (parent_id, sibling) {
+            (None, Some(sibling)) => docs::page_detail(&session, sibling)
+                .await
+                .map_err(docs_error)?
+                .get("parent_id")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            _ => None,
+        };
+        let parent_id = parent_id.or(sibling_parent.as_deref());
+        let page = docs::move_page(&session, page_id, parent_id, before_id, after_id).await.map_err(docs_error)?;
         Ok(pick(&page, &["id", "title", "parent_id"]))
     })
     .await
@@ -227,19 +451,65 @@ pub async fn list_docs_recycle_bin(project_id: &str) -> ToolResult {
 }
 
 /// List a Docs page's published versions, newest first: [{version, author, note, created_at, words}].
-pub async fn list_docs_versions(page_id: &str) -> ToolResult {
+pub async fn list_docs_versions(page_id: &str, limit: Option<i64>) -> ToolResult {
     let session = common::async_session();
-    Ok(Value::Array(docs::list_versions(&session, page_id).await.map_err(docs_error)?))
+    let mut all = docs::list_versions(&session, page_id).await.map_err(docs_error)?;
+    all.truncate(usize::try_from(limit.unwrap_or(20).max(1)).unwrap_or(20));
+    Ok(Value::Array(all))
 }
 
-/// Read one old version of a Docs page (markdown), or a line diff between two versions.
+/// Read one old version of a Docs page (markdown), or what changed between two versions: {from, to, added, removed,
+/// diff}, `diff` being the changed lines (`-` old, `+` new) with one line of context, parts apart by `…`.
 pub async fn get_docs_version(page_id: &str, version: i64, compare_to: Option<i64>) -> ToolResult {
     let session = common::async_session();
     let out = match compare_to {
-        Some(other) => docs::diff_versions(&session, page_id, version, other).await,
-        None => docs::get_version(&session, page_id, version).await,
+        Some(other) => docs::diff_versions(&session, page_id, version, other).await.map(|d| short_diff(&d)),
+        // the Markdown is what an agent reads; the rich JSON beside it is the app's
+        None => docs::get_version(&session, page_id, version).await.map(|mut v| {
+            v.remove("content");
+            v
+        }),
     };
     Ok(Value::Object(out.map_err(docs_error)?))
+}
+
+/// A line diff as the changed lines with one line of context around each run of changes.
+fn short_diff(diff: &Map<String, Value>) -> Map<String, Value> {
+    let rows: Vec<(&str, &str)> = diff
+        .get("rows")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .map(|r| {
+            (
+                r.get("type").and_then(Value::as_str).unwrap_or("same"),
+                r.get("text").and_then(Value::as_str).unwrap_or(""),
+            )
+        })
+        .collect();
+    let changed = |i: usize| rows.get(i).is_some_and(|(t, _)| *t != "same");
+    let shown: Vec<bool> = (0..rows.len()).map(|i| changed(i) || (i > 0 && changed(i - 1)) || changed(i + 1)).collect();
+    let mut lines: Vec<String> = Vec::new();
+    for (i, (kind, text)) in rows.iter().enumerate() {
+        if !shown[i] {
+            continue;
+        }
+        if i > 0 && !shown[i - 1] && !lines.is_empty() {
+            lines.push("…".into());
+        }
+        let mark = match *kind {
+            "add" => '+',
+            "del" => '-',
+            _ => ' ',
+        };
+        lines.push(format!("{mark} {text}"));
+    }
+    let mut out = Map::new();
+    for key in ["from", "to", "added", "removed"] {
+        out.insert(key.into(), diff.get(key).cloned().unwrap_or(Value::Null));
+    }
+    out.insert("diff".into(), json!(lines.join("\n")));
+    out
 }
 
 /// Publish an old version of a Docs page again as a new version (history is kept). Returns {id, title, version}.
@@ -282,7 +552,24 @@ pub async fn search_docs(project_id: &str, query: &str, scope: &str, limit: i64)
             out.insert(key.into(), value.clone());
         }
     }
+    // the block of each match (the UI opens a result at it) is not part of the tool's answer
+    if let Some(Value::Array(pages)) = out.get_mut("pages") {
+        for page in pages {
+            without_keys(page.get_mut("matches"), &["block_id", "kind", "field", "row", "cells"]);
+        }
+    }
     Ok(Value::Object(out))
+}
+
+/// Removes `keys` from each object of a JSON array (anything else is left as it is).
+fn without_keys(rows: Option<&mut Value>, keys: &[&str]) {
+    if let Some(Value::Array(rows)) = rows {
+        for row in rows.iter_mut().filter_map(Value::as_object_mut) {
+            for key in keys {
+                row.remove(*key);
+            }
+        }
+    }
 }
 
 /// The Markdown files below `root`, as `sorted(root.rglob("*"))` lists them (by path parts), as `(relative name,
@@ -457,7 +744,8 @@ pub async fn add_docs_comment(page_id: &str, body: &str, quote: Option<&str>) ->
                  within one paragraph, list item or table cell), or omit quote to comment on the page.",
             ));
         };
-        let anchor = Anchor { quote: hit.quote, prefix: hit.prefix, suffix: hit.suffix, section: hit.section };
+        let anchor =
+            Anchor { quote: hit.quote, prefix: hit.prefix, suffix: hit.suffix, section: hit.section, block_id: None };
         comment_call(docs_comments::create_thread(&session, page_id, "inline", body, Some(&anchor), None).await)
     })
     .await

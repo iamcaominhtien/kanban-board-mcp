@@ -119,15 +119,26 @@ export async function newDocPage(s, title, { parent } = {}) {
   await p.getByRole('textbox', { name: 'Page title' }).waitFor();
 }
 
-// In the editor: put Markdown text in the source pane and wait for the autosave.
+// In the editor: replace the page with this Markdown and wait for the autosave. The page is rich JSON now (no
+// Markdown pane): the Markdown goes through the editor's own reader, as an edit (the same path as pasting it).
 export async function setMarkdown(s, md) {
   const p = s.page;
-  const src = p.getByRole('textbox', { name: 'Markdown source' });
-  if (!(await src.count())) await p.getByRole('button', { name: 'Markdown', exact: true }).click();
-  await src.fill(md);
+  const surface = p.getByTestId('docs-editor-surface');
+  await surface.waitFor();
+  await surface.evaluate((el, text) => {
+    // a real edit, not the load-time normalisation the screen ignores
+    el.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText' }));
+    el.editor.commands.setContent(text, { contentType: 'markdown', emitUpdate: true });
+  }, md);
+  await p.waitForTimeout(400);
   await p.getByText(/^Saved/).waitFor();
   await p.waitForTimeout(2300);
   await s.settle();
+}
+
+// In the editor: the page as plain Markdown, as the editor writes it (what the Markdown pane used to show).
+export async function getMarkdown(s) {
+  return s.page.getByTestId('docs-editor-surface').evaluate((el) => el.editor.getMarkdown());
 }
 
 export async function publishDoc(s, note) {

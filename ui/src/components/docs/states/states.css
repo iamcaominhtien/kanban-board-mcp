@@ -1,0 +1,1097 @@
+/* The states of the new Docs (RichDocsStates 1-4): the bars under the editor header, the save status, the dialogs
+   of saving, merging and choosing, the page size and the viewer note. Values copied from the boards' frame code. */
+
+/* ---- bars (frames 15, 21, 25, 30, 49): pad 11 16, gap 12, 18 px icon, 13.5/700 title, 12.5/1.45 text ---- */
+.dst-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #dce6df;
+  background: #f1f3f1;
+  flex: none;
+  font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
+}
+.dst-bar-icon {
+  display: flex;
+  flex: none;
+  color: #5b6b60;
+}
+.dst-bar-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dst-bar-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dst-bar-text {
+  font-size: 12.5px;
+  color: #3a4a3e;
+  line-height: 1.45;
+}
+.dst-bar-acts {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: none;
+}
+.dst-bar-red {
+  background: #fdf1ee;
+  border-bottom-color: #f0c4b8;
+}
+.dst-bar-red .dst-bar-icon {
+  color: #c4432a;
+}
+.dst-bar-amber {
+  background: #fcefd9;
+  border-bottom-color: #ebd3a6;
+}
+.dst-bar-amber .dst-bar-icon {
+  color: #b4791e;
+}
+.dst-bar-blue {
+  background: #e8f1fb;
+  border-bottom-color: #b9d3ee;
+}
+.dst-bar-blue .dst-bar-icon {
+  color: #2f6fb0;
+}
+.dst-bar-green {
+  background: #dceee1;
+  border-bottom-color: #bfddc6;
+}
+.dst-bar-green .dst-bar-icon {
+  color: #2e6f40;
+}
+/* "Back online · Merging…": blue with the green icon and rule of the board (25, first row) */
+.dst-bar-merging {
+  background: #e8f1fb;
+  border-bottom-color: #bfddc6;
+}
+.dst-bar-merging .dst-bar-icon {
+  color: #2e6f40;
+}
+.dst-x {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  cursor: pointer;
+  padding: 0;
+}
+.dst-x:hover {
+  background: rgba(30, 42, 34, 0.06);
+}
+/* phone: the bar is a slim overlay above the page (frames 17, 22), pad 10 14 */
+.dst-overlay {
+  position: relative;
+  height: 0;
+  z-index: 12;
+  flex: none;
+}
+.dst-overlay > div {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  box-shadow: 0 8px 18px rgba(30, 42, 34, 0.12);
+}
+.dst-overlay .dst-bar {
+  padding: 10px 14px;
+}
+
+/* ---- the save status in the bar (frame 13): 12.5px, gap 6, 13 px icons ---- */
+.dst-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: #5b6b60;
+  font-family: inherit;
+}
+.dst-save-saved {
+  font-weight: 600;
+  color: #2e6f40;
+}
+.dst-save-time {
+  font-weight: 500;
+  color: #5b6b60;
+}
+.dst-save-error {
+  font-weight: 700;
+  color: #c4432a;
+}
+.dst-save-offline {
+  font-weight: 600;
+  color: #5b6b60;
+}
+.dst-save-waiting {
+  font-weight: 500;
+  color: #3a4a3e;
+}
+.dst-save-paused {
+  font-weight: 700;
+  color: #8a5a00;
+}
+.dst-save-link {
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+button.dst-save {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ---- dialogs (frames 18, 19, 26, 33): r16, 1px rule, shadow 0 24 60 .22, scrim rgba(30,42,34,.42) ---- */
+.dst-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1150;
+  background: rgba(30, 42, 34, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.dst-dialog {
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  box-shadow: 0 24px 60px rgba(30, 42, 34, 0.22);
+  overflow: hidden;
+  color: #1e2a22;
+  font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
+}
+.dst-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e3e8e5;
+  flex: none;
+}
+.dst-dialog-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.dst-dialog-sub {
+  font-size: 12px;
+  color: #5b6b60;
+}
+.dst-dialog-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  cursor: pointer;
+  padding: 0;
+}
+.dst-dialog-body {
+  padding: 18px 20px 20px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.dst-dialog-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+  flex: none;
+}
+.dst-p {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #3a4a3e;
+  margin: 0;
+}
+.dst-p-sm {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #3a4a3e;
+  margin: 0;
+}
+/* phone sheet (frame 20): r18 18 0 0, grab 40x4, title 17/700, 44 px close, 48 px full-width buttons */
+.dst-sheet-wrap {
+  align-items: flex-end;
+  padding: 0;
+}
+.dst-sheet {
+  width: 100%;
+  border-radius: 18px 18px 0 0;
+  border: none;
+  box-shadow: 0 -10px 30px rgba(30, 42, 34, 0.3);
+  max-height: 85vh;
+}
+.dst-sheet-grab {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 0;
+  flex: none;
+}
+.dst-sheet-grab span {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: #c7d2cb;
+}
+.dst-sheet .dst-dialog-head {
+  padding: 2px 8px 6px 18px;
+  border-bottom: none;
+}
+.dst-sheet .dst-dialog-title {
+  font-size: 17px;
+}
+.dst-sheet .dst-dialog-close {
+  width: 44px;
+  height: 44px;
+}
+.dst-sheet .dst-dialog-body {
+  padding: 4px 18px 8px;
+}
+.dst-sheet .dst-dialog-foot {
+  border-top: none;
+  background: #fff;
+  padding: 8px 18px 18px;
+}
+.dst-sheet .st-btn {
+  min-height: 48px;
+  justify-content: center;
+  width: 100%;
+}
+
+/* the phone chooser (frame 36): Yours / theirs / Both share the width as 42 px segments; the foot keeps a rule
+   over one 48 px button (14.5) with the board's 10 18 30 */
+.dst-sheet .dst-seg button {
+  flex: 1;
+  height: 42px;
+}
+.dst-sheet[data-testid='conflict-chooser'] .dst-dialog-foot {
+  border-top: 1px solid #e3e8e5;
+  padding: 10px 18px 30px;
+}
+.dst-sheet[data-testid='conflict-chooser'] .dst-dialog-foot .st-btn {
+  font-size: 14.5px;
+}
+
+/* choice cards (frame 18): 2px link border on the chosen one, r12, pad 11 13, gap 12, 18 px icon */
+.dst-choice {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #dce3de;
+  background: #fff;
+  border-radius: 12px;
+  padding: 11px 13px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+}
+.dst-choice[aria-pressed='true'] {
+  border: 2px solid #2e6f40;
+  background: #f6faf7;
+  padding: 10px 12px;
+}
+.dst-choice > svg {
+  color: #2e6f40;
+}
+.dst-choice-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.dst-choice-sub {
+  font-size: 12px;
+  color: #5b6b60;
+  line-height: 1.4;
+}
+
+/* ---- popovers (frames 24, 49): the .dk-menu card with pad 14 16 ---- */
+.dst-menu {
+  position: absolute;
+  z-index: 40;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.16);
+  padding: 14px 16px;
+  box-sizing: border-box;
+  color: #1e2a22;
+  text-align: left;
+  white-space: normal;
+  font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
+}
+.dst-menu-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+}
+.dst-menu-sub {
+  font-size: 12px;
+  color: #5b6b60;
+  margin: 2px 0 6px;
+}
+.dst-row {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 9px 0;
+  border-top: 1px solid #eef3ef;
+}
+.dst-row-center {
+  align-items: center;
+}
+.dst-row-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #eef3ef;
+  color: #3a4a3e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.dst-row-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.dst-row-sub {
+  font-size: 12px;
+  color: #5b6b60;
+  line-height: 1.4;
+}
+.dst-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #f1f3f1;
+  color: #5b6b60;
+  border: 1px solid #dce3de;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+  box-sizing: border-box;
+}
+.dst-meter {
+  height: 6px;
+  border-radius: 3px;
+  background: #e3eae5;
+  overflow: hidden;
+  width: 100%;
+}
+.dst-meter > i {
+  display: block;
+  height: 100%;
+  background: #2e6f40;
+  border-radius: 3px;
+}
+.dst-meter-full > i {
+  background: #c4432a;
+}
+
+/* .ai-chip of the boards: 22h, pad 0 9, 11px 700 */
+.dst-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 1px solid #cfe6d6;
+  background: #f6faf7;
+  color: #2e6f40;
+}
+.dst-chip-blue {
+  background: #e8f1fa;
+  color: #244e78;
+  border-color: #c9ddf0;
+}
+.dst-chip-amber {
+  background: #fdf3e3;
+  color: #8a5a00;
+  border-color: #ebd3a4;
+}
+.dst-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e1eefb;
+  color: #1f5a8e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ---- choosing block by block (frames 31, 32) ---- */
+.dst-choose {
+  width: 1000px;
+}
+.dst-choose-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px 12px;
+}
+.dst-choose-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fdf3e3;
+  color: #8a5a00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.dst-choose-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.dst-choose-sub {
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.dst-tabs {
+  display: flex;
+  padding: 0 22px;
+  border-bottom: 1px solid #e3e8e5;
+  overflow-x: auto;
+  flex: none;
+}
+.dst-tab {
+  padding: 0 2px 10px;
+  margin-right: 18px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5b6b60;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dst-tab[aria-selected='true'] {
+  font-weight: 700;
+  color: #1e2a22;
+  border-bottom-color: #2e6f40;
+}
+.dst-choose-body {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.dst-sides {
+  display: flex;
+  gap: 14px;
+}
+.dst-side {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #dce3de;
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.dst-side[aria-checked='true'] {
+  border: 2px solid #2e6f40;
+}
+.dst-side-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #eef3ef;
+  background: #fbfcfb;
+}
+.dst-side[aria-checked='true'] .dst-side-head {
+  background: #f6faf7;
+}
+.dst-side-head .dst-avatar {
+  width: 24px;
+  height: 24px;
+}
+.dst-side-who {
+  font-size: 13px;
+  font-weight: 700;
+}
+.dst-side-when {
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.dst-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #9aa8a0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-sizing: border-box;
+}
+.dst-side[aria-checked='true'] .dst-radio {
+  border-color: #2e6f40;
+}
+.dst-side[aria-checked='true'] .dst-radio::after {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2e6f40;
+}
+.dst-side-text {
+  padding: 14px;
+  font-family: 'Source Serif 4', 'Lora', Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #2b332d;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.dst-side-text ins {
+  background: #dceee1;
+  color: #1f5a31;
+  text-decoration: underline;
+  text-decoration-color: #2e6f40;
+  border-radius: 2px;
+}
+.dst-side-text del {
+  background: #fdf1ee;
+  color: #c4432a;
+  border-radius: 2px;
+}
+.dst-side-text img {
+  display: block;
+  max-width: 100%;
+  height: 62px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+.dst-side-cap {
+  font: 500 10px var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
+  color: #5b6b60;
+  margin-top: 3px;
+}
+.dst-side-empty {
+  font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-size: 13px;
+  font-style: italic;
+  color: #5b6b60;
+}
+.dst-side-chips {
+  padding: 0 12px 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dst-seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eef3ef;
+  box-sizing: border-box;
+}
+.dst-seg button {
+  flex: none;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #5b6b60;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+.dst-seg button[aria-checked='true'] {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.14);
+}
+.dst-joined {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  font-size: 12.5px;
+  background: #fbfcfb;
+}
+.dst-choose-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+  flex: none;
+}
+/* tablet (35): the versions stack, 44 px buttons; phone (36): one side at a time */
+@media (max-width: 1040px) {
+  .dst-choose .dst-sides {
+    flex-direction: column;
+  }
+  .dst-choose .st-btn,
+  .dst-choose .dst-seg button {
+    min-height: 44px;
+  }
+}
+
+/* ---- the "Joined" card (frame 34): 420 wide, r14, pad 12 14, gap 12, 34 px green disc ---- */
+.dst-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1200;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.2);
+  font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
+  color: #1e2a22;
+}
+.dst-toast-disc {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e6f2ea;
+  color: #2e6f40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+/* ---- the "too large to save" dialog (frame 50): 52 px red disc, 17/700 title ---- */
+.dst-big-disc {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fdf1ee;
+  color: #c4432a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+/* ---- the viewer chip and its note (frame 57) ---- */
+.dst-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #e8f1fa;
+  color: #244e78;
+  border: 1px solid #c9ddf0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* ---- skip link and regions (frame 69): shows on the first Tab ---- */
+.dst-skip {
+  position: absolute;
+  left: 12px;
+  top: 8px;
+  z-index: 2000;
+  transform: translateY(-200%);
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #1e2a22;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.dst-skip:focus,
+.dst-skip:focus-visible {
+  transform: none;
+  outline: 2px solid #2e6f40;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dst-save .mc-spin {
+    animation: none;
+  }
+}
+
+/* ---- "Changes since you last viewed" (AI board H 43, 45): chips name the blocks, two 26 px buttons ---- */
+.dsv-banner {
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: #e8f1fb;
+  border: 1px solid #b9d3ee;
+  box-sizing: border-box;
+}
+.dsv-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.dsv-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dsv-line {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #1e2a22;
+}
+.dsv-line b {
+  font-weight: 700;
+}
+.dsv-sum {
+  color: #5b6b60;
+}
+.dsv-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dsv-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #b9d3ee;
+  color: #1f5a8e;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.dsv-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12.5px;
+  color: #1e2a22;
+  border-top: 1px solid #cfe0f2;
+}
+.dsv-btns {
+  display: flex;
+  gap: 8px;
+}
+.dsv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: #fff;
+  color: #1e2a22;
+  border: 1px solid #d5ddd8;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+.dsv-btn-primary {
+  background: #2e6f40;
+  color: #fff;
+  border-color: #2e6f40;
+}
+.dsv-ico {
+  display: none;
+  flex: none;
+}
+/* phone (45): the info mark, the summary on its own line, 44 px buttons sharing the row; the block chips and the
+   markers switch stay on larger screens */
+@media (max-width: 600px) {
+  .dsv-ico {
+    display: block;
+    margin-top: 1px;
+  }
+  .dsv-dot,
+  .dsv-chips,
+  .dsv-marks {
+    display: none;
+  }
+  .dsv-banner .dk-icobtn {
+    width: 26px !important;
+    height: 26px !important;
+  }
+  .dsv-banner {
+    padding: 10px 12px;
+  }
+  .dsv-row {
+    gap: 8px;
+  }
+  .dsv-line {
+    line-height: 1.4;
+  }
+  .dsv-sum {
+    display: block;
+    font-size: 12px;
+  }
+  .dsv-btn {
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 14.5px;
+    flex: 1;
+  }
+  .dsv-btn-primary {
+    background: #fff;
+    color: #1e2a22;
+    border-color: #d5ddd8;
+  }
+}
+
+/* full-page states on a phone (Docs states 45-48, 82): the buttons full width and 44 px */
+@media (max-width: 600px) {
+  .dst-state-btns {
+    flex-direction: column;
+    align-items: stretch !important;
+    width: 100%;
+  }
+  .dst-state-btns .st-btn {
+    min-height: 44px;
+    justify-content: center;
+    font-size: 14.5px;
+  }
+}
+
+/* session ended (F 38): centred column gap 14, 52 px amber circle, 17/700 title, 13.5 lh1.55 text, hint 12 */
+.dst-session {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+.dst-session-icon {
+  align-self: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fdf3e3;
+  color: #8a5a00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dst-session-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+.dst-session-text {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #3a4a3e;
+  margin-top: 4px;
+}
+.dst-session-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.dst-session-hint {
+  font-size: 12px;
+  line-height: 1.5;
+}
+/* phone (F 44): the text centred, then two 48 px full-width buttons, gap 10 */
+.dst-session-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dst-session-sheet .dst-session-text {
+  text-align: center;
+  margin-top: 0;
+}
+/* frame 24: the picture row's tag */
+.dst-needs-net {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #f1f3f1;
+  color: #5b6b60;
+  border: 1px solid #dce3de;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+  box-sizing: border-box;
+}
+
+/* readability check (J 74): 420 wide, pad 14 16; title 14/700; amber tag 22 h; rows pad 10 0 under #EEF3EF,
+   28 px amber tile r8, title 13/700, line 12 #5B6B60 lh1.4 */
+.dst-read {
+  padding: 14px 16px;
+}
+.dst-read-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+}
+.dst-read-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #fdf3e3;
+  color: #8a5a00;
+  border: 1px solid #ebd3a4;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+  box-sizing: border-box;
+}
+.dst-read-tag-ok {
+  background: #e4f3e8;
+  color: #1f5a31;
+  border-color: #bfdcc7;
+}
+.dst-read-sub {
+  font-size: 12px;
+  color: #5b6b60;
+  margin: 2px 0 4px;
+}
+.dst-read-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-top: 1px solid #eef3ef;
+}
+.dst-read-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #fcefd9;
+  color: #b4791e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.dst-read-row-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.dst-read-row-sub {
+  font-size: 12px;
+  color: #5b6b60;
+  line-height: 1.4;
+}
+/* the header button that opens it: only there when something is to look at */
+.dst-read-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #fdf3e3;
+  color: #8a5a00;
+  border: 1px solid #ebd3a4;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-sizing: border-box;
+}

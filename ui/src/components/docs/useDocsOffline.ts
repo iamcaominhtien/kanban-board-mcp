@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { DocsHeading, DocsPage, DocsTreeNode } from '../../types/docs';
+import type { DocsFormat, DocsHeading, DocsPage, DocsTreeNode, RichDoc } from '../../types/docs';
 import type { DocsSearchMatch, DocsSearchPage, DocsSearchResponse } from '../../types/docsFx';
 
 /** Max number of pages kept in the offline cache per project (most recent first). */
@@ -10,6 +10,9 @@ export interface CachedDocsPage {
   id: string;
   title: string;
   markdown: string;
+  /** `rich` when `content` holds the page (missing in copies saved before Rich Docs). */
+  format?: DocsFormat;
+  content?: RichDoc | null;
   version: number;
   savedAt: string;
   headings: DocsHeading[];
@@ -76,6 +79,8 @@ export function cacheDocsPage(projectId: string, page: DocsPage) {
     id: page.id,
     title: page.title,
     markdown: page.markdown,
+    format: page.format,
+    content: page.format === 'rich' ? (page.content ?? null) : null,
     version: page.version,
     savedAt: new Date().toISOString(),
     headings: page.headings ?? [],

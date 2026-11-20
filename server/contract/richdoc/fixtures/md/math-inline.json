@@ -1,0 +1,47 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Inline "
+        },
+        {
+          "type": "mathInline",
+          "attrs": {
+            "latex": "x^2"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "mathInline",
+          "attrs": {
+            "latex": "\\frac{a}{b}"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "mathInline",
+          "attrs": {
+            "latex": "a_i + b_i"
+          }
+        },
+        {
+          "type": "text",
+          "text": " math."
+        }
+      ]
+    }
+  ]
+}

@@ -8,8 +8,13 @@
 pub mod api;
 pub mod docs;
 pub mod docs_comments;
+pub mod docs_convert;
+pub mod docs_embeds;
+pub mod docs_export;
+pub mod docs_highlights;
 pub mod docs_import;
 pub mod docs_search;
+pub mod docs_suggestions;
 pub mod docs_work;
 pub mod hooks;
 pub mod schemas;

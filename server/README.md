@@ -34,7 +34,7 @@ crate and registered in `crates/kb-app/src/hooks.rs`.
 | `kb-base` | What every area shares: configuration, time and JSON in the stored formats, errors as the REST API answers them, the router (`routes`), the actor context, the event bus, secrets, the API secret |
 | `kb-log` | The application log (a size-rotating file) and its export |
 | `kb-fuzzy` | The fuzzy-search scores (`ratio`, `partial_ratio`, `token_sort_ratio`, `WRatio`) |
-| `kb-db` | The database: targets and engine, sessions, the 77 entities, the schema per engine, the 80 migrations, the change log |
+| `kb-db` | The database: targets and engine, sessions, the 82 entities, the schema per engine, the 82 migrations, the change log |
 | `kb-files` | The uploads folder, the draw.io editor that ships with the app, file responses |
 | `kb-dbkit` | Probing a database, copying between databases, the `kanban-db` command, the database routes |
 | `kb-notify` | The notification centre and its loop |
@@ -122,7 +122,7 @@ and, for two of them, part of the build:
 - `schema-sqlite.sql`, `schema-postgres.sql`, `schema-mysql.sql`, `alembic-head.txt`: the schema at the newest revision.
 - `golden/`: recorded answers (HTTP and MCP), and the output of pure functions (scores, slugs, anchors, Markdown and HTML
   handling, schedule slots across clock changes, `pyjson`). The tests assert against them.
-- `migrations/`: a database at each of the 80 revisions (`fixtures/`) and what upgrading it must give (`expected/`).
+- `migrations/`: a database at each of the 82 revisions (`fixtures/`) and what upgrading it must give (`expected/`).
 
 The Python server and the scripts that generated these files (`gen_*.py`, `export_contract.py`) are gone, and so is the
 `PARITY_TARGET=python` mode of `testkit`. The recorded files stay as the regression baseline: do not regenerate them to
@@ -155,6 +155,7 @@ npm run build`) and Playwright installed globally (`NODE_PATH`).
 | 41 | PostgreSQL and MariaDB for real: the move wizard SQLite → PostgreSQL → MariaDB with each card's fields, refused connections, copy, verify, switch; Edit connection; the reconnect screen while the server is down. Skipped unless `KANBAN_TEST_POSTGRES_URL` and `KANBAN_TEST_MYSQL_URL` are set (`scripts/dev-databases.sh start`) |
 | 42 | tablet widths (1024×768, 768×1024) and both looks (Color, Black & white): no sideways page scroll, the key controls reachable, text contrast (WCAG AA) on the main screens |
 | 43 | accessibility: axe (WCAG 2.1 A/AA) on nine screens, a keyboard-only walk (ticket, Docs page, Settings, every dialog with Esc), focus visible, returned and in order |
+| 44–46 | rich Docs: highlights (select and highlight, the bubble, the list, Undo, limits, tablet and phone), links (to headings and blocks, the block hover card, the arrival mark, a gone block, Referenced by per block, `[[Page#` headings and blocks, search markers), states (save status, offline queue, merge and conflict by block, save failed, viewer) |
 
 Not covered: the real draw.io editor (not in the checkout), a real Claude sign-in. The desktop-only parts (OS
 notifications, the dock/taskbar badge, the update flow) have their own check in `desktop/e2e`, run with

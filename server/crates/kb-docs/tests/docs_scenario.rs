@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use common::{id, member, mk, new_ticket, pid, publish};
 use regex::Regex;
 use serde_json::{Map, Value, json};
-use testkit::{Server, skip_unless_available, target};
+use testkit::{Server, skip_unless_available};
 
 fn canonical(dump: &Value, names: &HashMap<String, String>, keep: &dyn Fn(&str) -> bool) -> Value {
     let uuid = Regex::new(r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b").expect("pattern");
@@ -47,6 +47,10 @@ fn canonical(dump: &Value, names: &HashMap<String, String>, keep: &dyn Fn(&str) 
                     let value = match value {
                         // the row's own id (random) is not compared; a page's id is its slug
                         Value::String(s) if column == "id" && table != "docs_page" => json!("<id>"),
+                        // format 1: the block ids inside a rich page are random
+                        Value::String(s) if column == "content" => json!(tidy(&block_ids(s))),
+                        // the block a link sits in or points at (`docs_link`): random as well
+                        Value::String(_) if column.ends_with("_block_id") => json!("<bid>"),
                         Value::String(s) => json!(tidy(s)),
                         other => other.clone(),
                     };
@@ -59,6 +63,20 @@ fn canonical(dump: &Value, names: &HashMap<String, String>, keep: &dyn Fn(&str) 
         tables.insert(table.clone(), Value::Array(rows));
     }
     Value::Object(tables)
+}
+
+/// A rich page's JSON with its random block ids replaced by `<bid>`.
+fn block_ids(json_text: &str) -> String {
+    let mut out = String::with_capacity(json_text.len());
+    let mut rest = json_text;
+    while let Some(at) = rest.find("\"blockId\":\"b-") {
+        let (head, tail) = rest.split_at(at);
+        out.push_str(head);
+        out.push_str("\"blockId\":\"<bid>\"");
+        rest = tail.get(20..).unwrap_or("");
+    }
+    out.push_str(rest);
+    out
 }
 
 #[tokio::test]
@@ -126,7 +144,7 @@ async fn the_docs_tables_hold_the_same_after_one_scenario() {
 
     let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../contract/golden/docs_scenario.json");
     if std::env::var("DOCS_SCENARIO_RECORD").is_ok_and(|v| v == "1") {
-        assert_eq!(format!("{:?}", target()), "Python", "record from the Python server");
+        // since 5.0 the Rust server is the contract: a deliberate change is recorded from it and its diff reviewed
         std::fs::write(&path, serde_json::to_string_pretty(&got).expect("json") + "\n").expect("write the golden file");
         return;
     }
@@ -281,7 +299,7 @@ async fn the_docs_and_notification_tables_hold_the_same_after_comments_and_an_im
     let path =
         std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../contract/golden/docs_scenario_comments.json");
     if std::env::var("DOCS_SCENARIO_RECORD").is_ok_and(|v| v == "1") {
-        assert_eq!(format!("{:?}", target()), "Python", "record from the Python server");
+        // since 5.0 the Rust server is the contract: a deliberate change is recorded from it and its diff reviewed
         std::fs::write(&path, serde_json::to_string_pretty(&got).expect("json") + "\n").expect("write the golden file");
         return;
     }

@@ -1,0 +1,436 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Use case: <goal, as a verb phrase>"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000003"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000004"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "Primary actor:"
+                },
+                {
+                  "type": "text",
+                  "text": " who wants the goal."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000005"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000006"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "Other actors / systems:"
+                },
+                {
+                  "type": "text",
+                  "text": " who else takes part."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000007"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000008"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "Level:"
+                },
+                {
+                  "type": "text",
+                  "text": " user goal (one sitting) · summary · sub-function."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000009"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00000a"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "Trigger:"
+                },
+                {
+                  "type": "text",
+                  "text": " what starts it."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00000b"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00000c"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "Preconditions:"
+                },
+                {
+                  "type": "text",
+                  "text": " what is true before."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00000d"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00000e"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "Success guarantee:"
+                },
+                {
+                  "type": "text",
+                  "text": " what is true after it succeeds."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-00000f",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Main success scenario"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000010"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "3 to 9 steps, each \"<actor> <does something>\", no buttons or screens named unless they matter."
+        }
+      ]
+    },
+    {
+      "type": "orderedList",
+      "attrs": {
+        "blockId": "b-000011"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000012"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000013"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<actor> …"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000014"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000015"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "The system …"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000016"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000017"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "…"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000018",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Extensions"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000019"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Everything that can go differently, numbered by the step it branches from:"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-00001a"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00001b"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00001c"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "2a."
+                },
+                {
+                  "type": "text",
+                  "text": " <condition the system detects>: <what happens>; returns to step 3 / the use case ends."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00001d"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00001e"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "3a."
+                },
+                {
+                  "type": "text",
+                  "text": " …"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-00001f",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Open questions"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000020"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000021"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000022"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "[NEEDS CLARIFICATION: …]"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000023"
+      }
+    }
+  ]
+}

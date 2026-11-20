@@ -32,14 +32,11 @@ async fn test_test_cases_are_added_in_order_and_a_bad_one_does_not_stop_the_rest
     let oks: Vec<&serde_json::Value> = out["results"].as_array().expect("results").iter().map(|r| &r["ok"]).collect();
     assert_eq!(oks, [&json!(true), &json!(false), &json!(true)]);
     assert!(out["results"][1]["error"].as_str().expect("an error").contains("title"), "{out}");
-    // the ticket comes back once, with both test cases in order
-    let titles: Vec<&str> = out["ticket"]["test_cases"]
-        .as_array()
-        .expect("test cases")
-        .iter()
-        .filter_map(|t| t["title"].as_str())
-        .collect();
-    assert_eq!(titles, ["First", "Third"]);
+    // each row has the test case it added; the ticket in brief comes back once
+    assert_eq!(out["results"][0]["result"]["test_case"]["title"], "First", "{out}");
+    assert_eq!(out["results"][2]["result"]["test_case"]["title"], "Third", "{out}");
+    assert!(out["results"][0]["result"].get("ticket").is_none(), "{out}");
+    assert_eq!(out["ticket"]["test_cases"], json!({"passed": 1, "total": 2}), "{out}");
     let got = c.get(&format!("/tickets/{tid}")).await.json();
     let titles: Vec<&str> =
         got["test_cases"].as_array().expect("test cases").iter().filter_map(|t| t["title"].as_str()).collect();
@@ -67,9 +64,7 @@ async fn test_only_light_actions_take_items_and_a_batch_has_a_size_limit() {
     let one =
         call(&mcp, "ticket_items", json!({"ticket_id": tid, "item": "test_case", "action": "add", "title": "Solo"}))
             .await;
-    let titles: Vec<&str> =
-        one["test_cases"].as_array().expect("test cases").iter().filter_map(|t| t["title"].as_str()).collect();
-    assert_eq!(titles, ["Solo"]);
+    assert_eq!(one["test_case"]["title"], "Solo", "{one}");
 }
 
 /// `DOC` of `tests/test_docs_comments.py`.

@@ -1,0 +1,107 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "See "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "page": "Page"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "page": "Page",
+            "section": "Section"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "label": "label",
+            "page": "Page"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "label": "label",
+            "page": "Page",
+            "section": "Section"
+          }
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Spaces: "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "label": "spaced label",
+            "page": "Spaced Page",
+            "section": "Spaced Section"
+          }
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000003"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Not closed "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "page": "Page and empty [["
+          }
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    }
+  ]
+}

@@ -3,13 +3,15 @@
 use serde_json::{Map, Value};
 
 use super::checked_read;
+use super::reply;
 use super::routing::{Op, dispatch, params_of};
 use crate::common::{ToolResult, arg_bool, arg_f64, arg_int, arg_list, arg_str, arg_strings, arg_text};
 use crate::operations as ops;
 use crate::operations::tickets::{CreateTicket, GetTicket, ListTickets};
 
 /// List a project's tickets as compact summaries (id, title, type, status, priority, assignee, parent_id, tags,
-/// estimate, dates, blocked_by, and counts of acceptance criteria / test cases / comments / branches).
+/// estimate, dates, blocked_by, and counts of acceptance criteria / test cases / comments / branches); fields that
+/// are empty, false or 0 are left out.
 /// Call get_ticket for the description, comments, work log and the rest.
 /// Returns {total, count, offset, has_more, tickets}: when has_more is true, call again with offset=offset+count.
 pub async fn list_tickets(args: Map<String, Value>) -> ToolResult {
@@ -341,10 +343,12 @@ pub const TICKET_OPS: &[(&str, Op)] = &[
 
 /// Create, change, relate or delete a ticket (a ticket's checklists, comments, work log and branches have their own
 /// tools). `action`: create, update, delete, reopen, pend, resume, workspace, block, unblock, link, unlink,
-/// link_doc, unlink_doc (the tool's description says what each takes).
+/// link_doc, unlink_doc (the tool's description says what each takes). A changed ticket answers as its card: the
+/// ticket in brief, without its lists (get_ticket has them).
 pub async fn manage_ticket(args: Map<String, Value>) -> ToolResult {
     let action = arg_text(&args, "action");
-    dispatch("manage_ticket", TICKET_OPS, &action, params_of(args)).await
+    let out = dispatch("manage_ticket", TICKET_OPS, &action, params_of(args)).await?;
+    Ok(reply::ticket_answer(out, &action))
 }
 
 #[cfg(test)]

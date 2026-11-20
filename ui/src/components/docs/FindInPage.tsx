@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './docs.css';
 import { Icon } from './Icon';
-import { useToast } from '../Toast';
+import { getActiveReplaceAdapter } from './editorReplace';
+import { DOCS_PHONE_BELOW, useKeyboardInset, useNarrowWindow } from '../../hooks/useDocsLayout';
 
 export interface FindReplaceOptions {
   /** true for Replace all; false replaces only the current match (`index`). */
@@ -16,8 +17,13 @@ export interface FindReplaceOptions {
 export interface FindReplaceAdapter {
   /** Replaces and returns the number of replacements. */
   replace(find: string, replaceWith: string, opts: FindReplaceOptions): number;
-  /** Optional undo of the last replace (the toast's Undo button); falls back to `document.execCommand('undo')`. */
+  /** Optional undo of the last replace (the Undo button); falls back to `document.execCommand('undo')`. */
   undo?: () => void;
+  /**
+   * The matches as page ranges, in the order `replace` counts them (so the current match is the one replaced). The
+   * bar uses them instead of searching the page's DOM when given.
+   */
+  find?: (find: string, opts: { matchCase: boolean; wholeWord: boolean }) => Range[];
 }
 
 export interface FindInPageProps {
@@ -28,14 +34,31 @@ export interface FindInPageProps {
   onClose: () => void;
   replaceAdapter?: FindReplaceAdapter;
   onReplace?: (from: string, to: string, all: boolean) => void;
+  /** Open with the replace row (Ctrl/Cmd+H); Ctrl/Cmd+H or the bar's toggle shows it later. */
+  replaceOpen?: boolean;
 }
 
 const OPT_KEY = 'docsFindOptions';
 
+/** The event the editor's Find button sends to open the bar (`detail.replace` asks for the replace row). */
+export const OPEN_FIND_EVENT = 'docs-open-find';
+
+/** Whether the next bar opens with its replace row (set by Ctrl+H or the editor's Find and replace button). */
+let replaceNext = false;
+
+/**
+ * Opens the find bar of the Docs space (from the editor's ribbon or the phone's More sheet).
+ * @param replace - Open with the replace row.
+ */
+export function openDocsFind(replace: boolean) {
+  window.dispatchEvent(new CustomEvent(OPEN_FIND_EVENT, { detail: { replace } }));
+}
+
 /**
  * Ctrl/Cmd+F opens the bar; a second Ctrl/Cmd+F lets the browser's own find run (we stop intercepting while open).
- * Pass `isOpen` so the hook knows. Mount only while a page is shown.
- * @param onOpen - Called when Ctrl/Cmd+F is pressed while the bar is closed.
+ * Ctrl/Cmd+H opens it with the replace row while a page is being edited. Pass `isOpen` so the hook knows. Mount only
+ * while a page is shown.
+ * @param onOpen - Called when Ctrl/Cmd+F or H is pressed while the bar is closed.
  * @param isOpen - Whether the bar is open; interception stops while true.
  */
 export function useDocsFindHotkey(onOpen: () => void, isOpen: boolean) {
@@ -43,16 +66,38 @@ export function useDocsFindHotkey(onOpen: () => void, isOpen: boolean) {
   ref.current = { onOpen, isOpen };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === 'f') {
         if (ref.current.isOpen) return; // second press: native browser find
         e.preventDefault();
+        replaceNext = false;
         ref.current.onOpen();
+      } else if (k === 'h' && getActiveReplaceAdapter()) {
+        e.preventDefault();
+        replaceNext = true;
+        if (ref.current.isOpen) window.dispatchEvent(new CustomEvent(SHOW_REPLACE_EVENT));
+        else ref.current.onOpen();
       }
     };
+    const onEvent = (e: Event) => {
+      const replace = !!(e as CustomEvent<{ replace?: boolean }>).detail?.replace;
+      replaceNext = replace;
+      if (ref.current.isOpen) {
+        if (replace) window.dispatchEvent(new CustomEvent(SHOW_REPLACE_EVENT));
+      } else ref.current.onOpen();
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener(OPEN_FIND_EVENT, onEvent);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener(OPEN_FIND_EVENT, onEvent);
+    };
   }, []);
 }
+
+/** Shows the replace row of an open bar. */
+const SHOW_REPLACE_EVENT = 'docs-find-show-replace';
 
 function loadOpts(): { matchCase: boolean; wholeWord: boolean } {
   try {
@@ -68,7 +113,13 @@ const HL =
   'highlights' in CSS &&
   typeof (window as unknown as { Highlight?: unknown }).Highlight === 'function';
 
-function buildRegex(q: string, matchCase: boolean, wholeWord: boolean): RegExp | null {
+/**
+ * The search as a regular expression (global, Unicode): a whole word is not touched by a letter, digit or `_`.
+ * @param q - The text searched for.
+ * @param matchCase - Match upper and lower case as typed.
+ * @param wholeWord - Match whole words only.
+ */
+export function buildRegex(q: string, matchCase: boolean, wholeWord: boolean): RegExp | null {
   if (!q) return null;
   const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(wholeWord ? `(?<![\\p{L}\\p{N}_])${esc}(?![\\p{L}\\p{N}_])` : esc, matchCase ? 'gu' : 'giu');
@@ -111,8 +162,14 @@ function unwrapMarks(root: HTMLElement) {
  * @param props.replaceAdapter - Replaces matches inside an editor.
  * @param props.onReplace - Called with the search text, the replacement and whether to replace all.
  */
-export function FindInPage({ root, editable = false, onClose, replaceAdapter, onReplace }: FindInPageProps) {
-  const toast = useToast();
+export function FindInPage({
+  root,
+  editable = false,
+  onClose,
+  replaceAdapter,
+  onReplace,
+  replaceOpen,
+}: FindInPageProps) {
   const [q, setQ] = useState(() => {
     const s = window.getSelection()?.toString().trim();
     return s && s.length < 80 && !s.includes('\n') ? s : '';
@@ -122,14 +179,26 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
   const [replaceWith, setReplaceWith] = useState('');
   const [count, setCount] = useState(0);
   const [cur, setCur] = useState(0);
+  const [showReplace, setShowReplace] = useState(() => replaceOpen ?? replaceNext);
+  // after Replace all: how many were changed (shown with Undo until the next search)
+  const [replaced, setReplaced] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  // reading on a phone (Reader 51): the field takes the place of the header, the count and next / previous sit in a
+  // bar above the keyboard
+  const phoneRead = useNarrowWindow(DOCS_PHONE_BELOW) && !editable;
+  const kb = useKeyboardInset(phoneRead);
+  useEffect(() => {
+    const show = () => setShowReplace(true);
+    window.addEventListener(SHOW_REPLACE_EVENT, show);
+    return () => window.removeEventListener(SHOW_REPLACE_EVENT, show);
+  }, []);
 
   // The bar takes room above the page instead of covering its header (Share, Edit, ···): while it is open, the
   // space it sits in is marked, and the page view and the editor are pushed down by the bar's height (docs.css)
   useLayoutEffect(() => {
     const bar = barRef.current;
     const host = bar?.parentElement;
-    if (!bar || !host) return;
+    if (!bar || !host || phoneRead) return;
     const sync = () => host.style.setProperty('--dk-find-h', `${Math.ceil(bar.getBoundingClientRect().height)}px`);
     sync();
     host.classList.add('dk-find-open');
@@ -140,7 +209,7 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
       host.classList.remove('dk-find-open');
       host.style.removeProperty('--dk-find-h');
     };
-  }, []);
+  }, [phoneRead]);
   const inputRef = useRef<HTMLInputElement>(null);
   const ranges = useRef<Range[]>([]);
   const marksRef = useRef<HTMLElement[]>([]);
@@ -182,17 +251,21 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
       return;
     }
     const found: Range[] = [];
-    for (const node of textNodes(root, barRef.current)) {
-      const text = node.nodeValue ?? '';
-      re.lastIndex = 0;
-      for (const m of text.matchAll(re)) {
-        if (!m[0]) continue;
-        const r = document.createRange();
-        r.setStart(node, m.index ?? 0);
-        r.setEnd(node, (m.index ?? 0) + m[0].length);
-        found.push(r);
+    if (editable && replaceAdapter?.find) {
+      // the editor's own matches: the same ones, in the same order, that Replace changes
+      found.push(...replaceAdapter.find(dq, { matchCase: opts.matchCase, wholeWord: opts.wholeWord }));
+    } else
+      for (const node of textNodes(root, barRef.current)) {
+        const text = node.nodeValue ?? '';
+        re.lastIndex = 0;
+        for (const m of text.matchAll(re)) {
+          if (!m[0]) continue;
+          const r = document.createRange();
+          r.setStart(node, m.index ?? 0);
+          r.setEnd(node, (m.index ?? 0) + m[0].length);
+          found.push(r);
+        }
       }
-    }
     if (useMarks) {
       // no CSS Custom Highlight API: wrap matches (read mode only), last to first so earlier ranges stay valid
       const marks: HTMLElement[] = [];
@@ -221,7 +294,7 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
     }
     setCount(ranges.current.length);
     setCur((c) => (ranges.current.length ? Math.min(c, ranges.current.length - 1) : 0));
-  }, [dq, opts.matchCase, opts.wholeWord, root, useMarks, clearHighlights]);
+  }, [dq, opts.matchCase, opts.wholeWord, root, useMarks, clearHighlights, editable, replaceAdapter]);
 
   useLayoutEffect(() => {
     scan();
@@ -278,17 +351,15 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
       n = all ? count : 1;
     }
     window.setTimeout(scan, 0);
-    if (all && n > 0) {
-      toast.success(`Replaced ${n} ${n === 1 ? 'match' : 'matches'}`, `“${dq}” is now “${replaceWith}”.`, 8000, {
-        label: 'Undo',
-        onClick: () => {
-          if (replaceAdapter?.undo) replaceAdapter.undo();
-          else document.execCommand('undo');
-          window.setTimeout(scan, 50);
-        },
-      });
-    }
+    if (all && n > 0) setReplaced(n);
   };
+  const undoReplaceAll = () => {
+    if (replaceAdapter?.undo) replaceAdapter.undo();
+    else document.execCommand('undo');
+    setReplaced(null);
+    window.setTimeout(scan, 50);
+  };
+  useEffect(() => setReplaced(null), [dq]);
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -301,8 +372,23 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
     }
   };
 
-  const none = dq !== '' && count === 0;
-  const counter = useMemo(() => (dq === '' ? '' : `${count ? cur + 1 : 0}/${count}`), [dq, count, cur]);
+  const none = dq !== '' && count === 0 && replaced === null;
+  const counter = useMemo(
+    // the editor's bar says "3 of 7" (Editor board, frame 46); reading keeps "3/7"
+    () =>
+      dq === ''
+        ? ''
+        : count
+          ? editable
+            ? `${cur + 1} of ${count}`
+            : `${cur + 1}/${count}`
+          : replaced !== null
+            ? editable
+              ? '0 of 0'
+              : '0/0'
+            : 'No results',
+    [dq, count, cur, replaced, editable],
+  );
 
   const tbtn = (label: string, on: boolean, onClick: () => void, child: React.ReactNode) => (
     <button
@@ -317,6 +403,43 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
     </button>
   );
 
+  if (phoneRead)
+    return (
+      <div ref={barRef} className="docs-root fx-find-phone" role="search" aria-label="Find in page">
+        <div className="fx-find-phone-top">
+          <button type="button" aria-label="Close" className="fx-find-phone-btn" onClick={onClose}>
+            <Icon name="i08" size={20} strokeWidth={1.9} />
+          </button>
+          <div className={`fx-find-phone-field${none ? ' fx-find-phone-none' : ''}`}>
+            <Icon name="search" size={15} strokeWidth={2} style={{ color: '#5B6B60', flex: 'none' }} />
+            <input
+              ref={inputRef}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={onKey}
+              aria-label="Find"
+              placeholder="Find in page"
+              spellCheck={false}
+            />
+            {q && (
+              <button type="button" aria-label="Clear" onClick={() => setQ('')}>
+                <Icon name="close" size={15} strokeWidth={2} />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="fx-find-phone-bottom" style={{ bottom: kb }}>
+          <span aria-live="polite">{dq === '' ? '' : count ? `${cur + 1} of ${count}` : 'No results'}</span>
+          <button type="button" aria-label="Previous match" className="fx-find-phone-btn" onClick={() => step(-1)}>
+            <Icon name="i34" size={20} strokeWidth={1.9} />
+          </button>
+          <button type="button" aria-label="Next match" className="fx-find-phone-btn" onClick={() => step(1)}>
+            <Icon name="i06" size={20} strokeWidth={1.9} />
+          </button>
+        </div>
+      </div>
+    );
+
   return (
     <div
       ref={barRef}
@@ -326,9 +449,10 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
       aria-label="Find in page"
     >
       <div
-        className="dk-menu"
+        // reading (Reader boards, F: frame 47): a 430 px card, 12 px corners, a 36 px field and 36 px buttons
+        className={editable ? 'dk-menu fx-find-edit' : 'dk-menu fx-find-read'}
         style={{
-          width: 460,
+          width: editable ? 560 : 430,
           maxWidth: 'calc(100vw - 32px)',
           padding: 8,
           display: 'flex',
@@ -336,23 +460,28 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
           gap: 6,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: editable ? 6 : 2 }}>
           <div
             style={{
               flex: 1,
               minWidth: 0,
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              padding: '0 9px',
-              height: 30,
-              borderRadius: 7,
-              border: `1px solid ${none ? '#C4432A' : '#2E6F40'}`,
+              gap: editable ? 8 : 7,
+              padding: '0 10px',
+              height: editable ? 34 : 36,
+              borderRadius: 8,
+              border: `${editable ? 1.5 : 1}px solid ${none ? '#C4432A' : '#2E6F40'}`,
               background: '#FFFFFF',
               boxSizing: 'border-box',
-              boxShadow: none ? '0 0 0 3px rgba(196,67,42,0.14)' : '0 0 0 3px rgba(46,111,64,0.18)',
+              boxShadow: editable
+                ? undefined
+                : none
+                  ? '0 0 0 3px rgba(196,67,42,0.14)'
+                  : '0 0 0 3px rgba(46,111,64,0.14)',
             }}
           >
+            <Icon name="search" size={14} strokeWidth={editable ? 2 : 1.9} style={{ color: '#5B6B60', flex: 'none' }} />
             <input
               ref={inputRef}
               value={q}
@@ -367,7 +496,7 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
                 border: 'none',
                 outline: 'none',
                 background: 'transparent',
-                fontSize: 13,
+                fontSize: 13.5,
                 fontWeight: 500,
                 color: '#1E2A22',
                 fontFamily: 'inherit',
@@ -376,9 +505,9 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
             />
             <span
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11.5,
-                fontWeight: 500,
+                fontFamily: editable ? 'inherit' : "'JetBrains Mono', monospace",
+                fontSize: editable ? 12 : 11.5,
+                fontWeight: editable ? 600 : 500,
                 color: none ? '#C4432A' : '#5B6B60',
                 whiteSpace: 'nowrap',
               }}
@@ -393,7 +522,23 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
             className="fx-findbtn"
             onClick={() => step(-1)}
           >
-            <Icon name="i34" size={15} strokeWidth={1.9} />
+            {editable ? (
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 19V5M6 11l6-6 6 6" />
+              </svg>
+            ) : (
+              <Icon name="i34" size={15} strokeWidth={1.9} />
+            )}
           </button>
           <button
             type="button"
@@ -402,9 +547,25 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
             className="fx-findbtn"
             onClick={() => step(1)}
           >
-            <Icon name="i06" size={15} strokeWidth={1.9} />
+            {editable ? (
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 5v14M6 13l6 6 6-6" />
+              </svg>
+            ) : (
+              <Icon name="i06" size={15} strokeWidth={1.9} />
+            )}
           </button>
-          <div style={{ width: 1, height: 16, background: '#DCE6DF', margin: '0 3px' }} />
+          {!editable && <div style={{ width: 1, height: 16, background: '#DCE6DF', margin: '0 3px' }} />}
           {tbtn('Match case', opts.matchCase, () => setOpts((o) => ({ ...o, matchCase: !o.matchCase })), 'Aa')}
           {tbtn(
             'Whole word',
@@ -424,11 +585,25 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
               ab
             </span>,
           )}
-          <button type="button" aria-label="Close" title="Close (Esc)" className="fx-findbtn" onClick={onClose}>
-            <Icon name="i08" size={15} strokeWidth={1.9} />
+          {canReplace &&
+            !(editable && showReplace) &&
+            tbtn(
+              showReplace ? 'Hide replace' : 'Replace',
+              showReplace,
+              () => setShowReplace((v) => !v),
+              <Icon name={showReplace ? 'chevronDown' : 'chevronRight'} size={14} strokeWidth={2} />,
+            )}
+          <button
+            type="button"
+            aria-label="Close"
+            title="Close (Esc)"
+            className="fx-findbtn fx-findbtn-x"
+            onClick={onClose}
+          >
+            <Icon name="i08" size={editable ? 16 : 15} strokeWidth={editable ? 2 : 1.9} />
           </button>
         </div>
-        {canReplace && (
+        {canReplace && showReplace && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div
               style={{
@@ -436,15 +611,29 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
                 minWidth: 0,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '0 9px',
-                height: 30,
-                borderRadius: 7,
-                border: '1px solid #C7D2CB',
+                gap: 8,
+                padding: '0 10px',
+                height: 34,
+                borderRadius: 8,
+                border: '1px solid #E3E8E5',
                 background: '#FFFFFF',
                 boxSizing: 'border-box',
               }}
             >
+              <svg
+                aria-hidden="true"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#5B6B60"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flex: 'none' }}
+              >
+                <path d="M4 8h13l-3-3M20 16H7l3 3" />
+              </svg>
               <input
                 value={replaceWith}
                 onChange={(e) => setReplaceWith(e.target.value)}
@@ -463,7 +652,7 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
                   border: 'none',
                   outline: 'none',
                   background: 'transparent',
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: 500,
                   color: '#1E2A22',
                   fontFamily: 'inherit',
@@ -482,12 +671,26 @@ export function FindInPage({ root, editable = false, onClose, replaceAdapter, on
             </button>
             <button
               type="button"
-              className="st-btn st-btn-sm"
+              className="st-btn st-btn-sm st-btn-primary"
               style={{ height: 30, padding: '0 10px' }}
               disabled={!count}
               onClick={() => doReplace(true)}
             >
               Replace all
+            </button>
+          </div>
+        )}
+        {replaced !== null && (
+          <div
+            role="status"
+            data-testid="find-replaced"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: '#2E6F40' }}
+          >
+            <span style={{ flex: 1 }}>
+              Replaced {replaced} {replaced === 1 ? 'match' : 'matches'}
+            </span>
+            <button type="button" className="st-btn st-btn-sm" onClick={undoReplaceAll}>
+              Undo
             </button>
           </div>
         )}

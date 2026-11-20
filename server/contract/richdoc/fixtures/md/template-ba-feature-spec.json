@@ -1,0 +1,725 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Summary"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "One or two sentences: who gets what, and why it matters now. Link the ticket ("
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "KAN-12"
+          }
+        },
+        {
+          "type": "text",
+          "text": ") and any Story."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000003",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "User stories"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000004"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Ordered by priority. Each one can be built and tested on its own: P1 alone is already worth shipping."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000005",
+        "level": 3
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "P1 · <title>"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000006"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "As a <who>, I want <what>, so that <why>."
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000007"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000008"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000009"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "Test on its own:"
+                },
+                {
+                  "type": "text",
+                  "text": " how a tester sees that this story works, without the others."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00000a"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00000b"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "Acceptance scenarios:"
+                }
+              ]
+            },
+            {
+              "type": "orderedList",
+              "attrs": {
+                "blockId": "b-00000c"
+              },
+              "content": [
+                {
+                  "type": "listItem",
+                  "attrs": {
+                    "blockId": "b-00000d"
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "blockId": "b-00000e"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ],
+                          "text": "Given"
+                        },
+                        {
+                          "type": "text",
+                          "text": " <starting state>, "
+                        },
+                        {
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ],
+                          "text": "when"
+                        },
+                        {
+                          "type": "text",
+                          "text": " <action>, "
+                        },
+                        {
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ],
+                          "text": "then"
+                        },
+                        {
+                          "type": "text",
+                          "text": " <what the user sees or gets>."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "listItem",
+                  "attrs": {
+                    "blockId": "b-00000f"
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "blockId": "b-000010"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ],
+                          "text": "Given"
+                        },
+                        {
+                          "type": "text",
+                          "text": " …, "
+                        },
+                        {
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ],
+                          "text": "when"
+                        },
+                        {
+                          "type": "text",
+                          "text": " …, "
+                        },
+                        {
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ],
+                          "text": "then"
+                        },
+                        {
+                          "type": "text",
+                          "text": " …"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000011",
+        "level": 3
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "P2 · <title>"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000012"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "…"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000013",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Edge cases"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000014"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000015"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000016"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Empty, zero, the largest value, wrong input: what happens?"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000017"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000018"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "First time (empty state), offline, permission refused, the server fails."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000019"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00001a"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Time: midnight, another time zone. Language and number format."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-00001b",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Functional requirements"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00001c"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Numbered, one behaviour each, observable. The ticket's acceptance criteria carry the same numbers."
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-00001d"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00001e"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00001f"
+              },
+              "content": [
+                {
+                  "type": "ticketRef",
+                  "attrs": {
+                    "key": "FR-001"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": " The system shall <behaviour>."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000020"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000021"
+              },
+              "content": [
+                {
+                  "type": "ticketRef",
+                  "attrs": {
+                    "key": "FR-002"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": " When <event>, the system shall <response>."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000022"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000023"
+              },
+              "content": [
+                {
+                  "type": "ticketRef",
+                  "attrs": {
+                    "key": "FR-003"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": " While <state>, the system shall <behaviour>."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000024"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000025"
+              },
+              "content": [
+                {
+                  "type": "ticketRef",
+                  "attrs": {
+                    "key": "FR-004"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": " If <unwanted condition>, then the system shall <response>."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000026"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000027"
+              },
+              "content": [
+                {
+                  "type": "ticketRef",
+                  "attrs": {
+                    "key": "FR-005"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": " <something not decided yet> "
+                },
+                {
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ],
+                  "text": "[NEEDS CLARIFICATION: the question, and who decides]"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000028",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Rules and data"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000029"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Business rules (limits, numbers, who may do what) and the data the feature reads or writes. Many conditions\ntogether: a decision table. New fields: a data dictionary."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-00002a",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Copy"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00002b"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "The exact words of buttons, messages, empty states and errors, in the product's language."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-00002c",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Success criteria"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00002d"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Measurable and free of technology: "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "SC-001"
+          }
+        },
+        {
+          "type": "text",
+          "text": " \"A first-time user reserves a book in under 30 seconds.\""
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-00002e",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Out of scope"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00002f"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "What this does not do, so nobody builds it."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000030",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Assumptions and open questions"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000031"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000032"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000033"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Assumption: <what you assumed because nobody decided it>; who can correct it."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000034"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000035"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Question: <question> · options · recommendation · who decides."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000036"
+      }
+    }
+  ]
+}

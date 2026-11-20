@@ -10,6 +10,7 @@ import type { SuggestMember } from '../RefSuggester';
 import { aiCostLabel, aiReplyKind, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
 import { LineIcon } from '../../ui/LineIcon';
 import { ThreadSendButton } from './SendToAi';
+import type { ThreadPlace } from './blockAnchor';
 
 type Actions = ReturnType<typeof useCommentActions>;
 
@@ -28,6 +29,10 @@ interface Props {
   onReattach: (id: string | null) => void;
   /** Members offered after `@` (people, and AI members while Docs AI is on). */
   suggestMembers: SuggestMember[];
+  /** Where the thread stands on a rich page (quote edited, block deleted) and what its block is called. */
+  place?: ThreadPlace;
+  /** The phone's full-screen thread (History3 frame 27): the reply field is a bar docked at the bottom with @ and send. */
+  dockedReply?: boolean;
 }
 
 const FOLD_AFTER = 4;
@@ -131,7 +136,7 @@ const AI_RUN_FOLD: React.CSSProperties = {
   fontWeight: 700,
 };
 
-function Avatar({ p, size = 28 }: { p: CommentPerson; size?: number }) {
+function Avatar({ p, size = 24 }: { p: CommentPerson; size?: number }) {
   return (
     <span
       className="dc-avatar"
@@ -141,12 +146,39 @@ function Avatar({ p, size = 28 }: { p: CommentPerson; size?: number }) {
         height: size,
         background: p.bg,
         color: p.color,
-        fontSize: size < 26 ? 10 : 11,
+        fontSize: size < 24 ? 9 : size < 26 ? 10 : 11,
         borderRadius: p.ai ? Math.round(size / 4) : undefined,
       }}
     >
       {p.initials}
     </span>
+  );
+}
+
+/** The small picture of a commented block's kind: an image, a table, an embed. */
+function blockThumb(kind: string): { icon: string; cls: string } {
+  const k = kind.toLowerCase();
+  if (k.startsWith('table')) return { icon: 'i52', cls: 'is-table' };
+  if (k.startsWith('image') || k.startsWith('picture')) return { icon: 'i54', cls: 'is-image' };
+  return { icon: 'i53', cls: 'is-embed' };
+}
+
+/** What a whole-block comment is on: a small picture of the block, its kind in bold and where ("Image · Float right"). */
+function BlockLabel({ label }: { label: string }) {
+  const at = label.indexOf(' · ');
+  const kind = at < 0 ? label : label.slice(0, at);
+  const rest = at < 0 ? '' : label.slice(at);
+  const t = blockThumb(kind);
+  return (
+    <div className="dc-block" data-testid="thread-block">
+      <span className={`dc-block-thumb ${t.cls}`} aria-hidden="true">
+        <Icon name={t.icon} size={14} strokeWidth={2} />
+      </span>
+      <span className="dc-block-label">
+        <b>{kind}</b>
+        {rest && <span>{rest}</span>}
+      </span>
+    </div>
   );
 }
 
@@ -164,6 +196,8 @@ function Avatar({ p, size = 28 }: { p: CommentPerson; size?: number }) {
  * @param props.onActivate - Called with the thread id when the card is clicked.
  * @param props.onReattach - Start (id) or cancel (null) re-attaching to a new selection.
  * @param props.suggestMembers - Members offered after `@`.
+ * @param props.place - On a rich page: the thread's state against the page ("quote edited", "block deleted") and the
+ *   name of the block a whole-block comment is on.
  */
 export function ThreadCard({
   thread,
@@ -177,6 +211,8 @@ export function ThreadCard({
   onActivate,
   onReattach,
   suggestMembers,
+  place,
+  dockedReply,
 }: Props) {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -192,7 +228,9 @@ export function ThreadCard({
   const ai = useThreadAiActions(thread.pageId);
   const replyMembers = useMemo(() => threadMembers(thread, suggestMembers), [thread, suggestMembers]);
   const working = thinking(thread);
-  const orphaned = thread.anchor?.state === 'orphaned';
+  const blockGone = place?.state === 'blockDeleted';
+  const quoteEdited = place?.state === 'quoteEdited';
+  const orphaned = thread.anchor?.state === 'orphaned' || blockGone;
   const resolved = thread.status === 'resolved';
 
   useEffect(() => {
@@ -484,24 +522,33 @@ export function ThreadCard({
       className={`dc-card${active ? ' is-active' : ''}${resolved ? ' is-resolved' : ''}${orphaned ? ' is-orphaned' : ''}`}
       data-testid="thread-card"
       data-thread={thread.id}
-      data-state={orphaned ? 'orphaned' : thread.status}
+      data-state={blockGone ? 'blockDeleted' : orphaned ? 'orphaned' : quoteEdited ? 'quoteEdited' : thread.status}
       onClick={() => onActivate(thread.id)}
     >
       {!page && (
         <header className="dc-card-head">
           {orphaned && !resolved ? (
-            <span className="dc-chip dc-chip-red">Text removed</span>
-          ) : resolved ? (
-            <span className="dc-chip dc-chip-green">
-              <Icon name="check" size={12} strokeWidth={2.4} /> Resolved
-            </span>
+            <span className="dc-chip dc-chip-amber">{blockGone ? 'Block deleted' : 'Text removed'}</span>
           ) : (
             <span className="dc-num" data-testid="thread-number">
               {thread.number ?? '·'}
             </span>
           )}
+          {quoteEdited && !resolved && <span className="dc-chip dc-chip-amber">Quote edited</span>}
           {thread.unread && <span className="dc-unread" data-testid="unread-dot" title="Unread" />}
-          <span style={{ flex: 1 }} />
+          {/* what the thread is on sits in the head, beside its number (design D 18, 22) */}
+          <div className="dc-head-what">
+            {place?.label ? (
+              <BlockLabel label={place.label} />
+            ) : (
+              thread.anchor?.quote && (
+                <div className={`dc-quote${quoteEdited ? ' is-edited' : ''}`} data-testid="thread-quote">
+                  <Icon name="comment" size={12} strokeWidth={2} />
+                  <span>“{thread.anchor.quote}”</span>
+                </div>
+              )
+            )}
+          </div>
           {resolved && thread.canResolve && (
             <button
               type="button"
@@ -512,7 +559,7 @@ export function ThreadCard({
                 void run(actions.setStatus.mutateAsync({ threadId: thread.id, status: 'open' }));
               }}
             >
-              <Icon name="reopen" size={13} strokeWidth={1.9} /> Reopen
+              Reopen
             </button>
           )}
           {!resolved && !orphaned && thread.canResolve && (
@@ -532,10 +579,10 @@ export function ThreadCard({
           )}
         </header>
       )}
-      {!page && thread.anchor?.quote && (
-        <div className="dc-quote" data-testid="thread-quote">
-          <Icon name="comment" size={13} strokeWidth={1.8} />
-          <span>“{thread.anchor.quote}”</span>
+      {quoteEdited && !resolved && (
+        <div className="dc-state-note" data-testid="thread-quote-edited">
+          <Icon name="i28" size={13} strokeWidth={2} />
+          <span>The text changed since. The thread follows its block and keeps the words it was written on.</span>
         </div>
       )}
       {thread.aiSummary && (
@@ -601,8 +648,8 @@ export function ThreadCard({
       ))}
       {orphaned && !resolved && (
         <div className="dc-orphan" data-testid="orphan-notice">
-          <p>
-            The text this comment was attached to was edited or deleted
+          <p data-testid={blockGone ? 'thread-block-deleted' : undefined}>
+            {blockGone ? 'The block was removed' : 'The text this comment was attached to was edited or deleted'}
             {version > 0 ? (
               <>
                 {' '}
@@ -630,7 +677,7 @@ export function ThreadCard({
                     onReattach(thread.id);
                   }}
                 >
-                  <Icon name="link" size={13} strokeWidth={1.9} /> Re-attach to selection
+                  Re-attach to selection
                 </button>
               )}
               {thread.canResolve && (
@@ -652,8 +699,7 @@ export function ThreadCard({
       )}
       {resolved && thread.resolvedBy && (
         <div className="dc-resolved-by" data-testid="resolved-by">
-          <Icon name="i17" size={14} strokeWidth={1.8} /> Resolved by{' '}
-          <b>{personOf(thread.resolvedBy, members, me).name}</b>
+          Resolved by {personOf(thread.resolvedBy, members, me).name}
           {thread.resolvedAt && <> · {relativeTime(thread.resolvedAt)}</>}
         </div>
       )}
@@ -664,15 +710,20 @@ export function ThreadCard({
       )}
       {!resolved && thread.canReply && <ThreadSendButton pageId={thread.pageId} threadId={thread.id} />}
       {!resolved && (
-        <div id={`dc-reply-${thread.id}`} className="dc-reply" onClick={(e) => e.stopPropagation()}>
+        <div
+          id={`dc-reply-${thread.id}`}
+          className={dockedReply ? 'dc-reply dc-reply-docked' : 'dc-reply'}
+          onClick={(e) => e.stopPropagation()}
+        >
           {thread.canReply ? (
             <>
-              <Avatar p={personOf(me, members, me)} size={26} />
+              <Avatar p={personOf(me, members, me)} size={22} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <CommentBox
                   projectId={projectId}
                   members={replyMembers}
                   compact
+                  docked={dockedReply}
                   placeholder="Reply…"
                   submitLabel="Reply"
                   testId="reply-input"

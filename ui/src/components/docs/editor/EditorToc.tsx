@@ -57,14 +57,14 @@ export function EditorToc({ editor, markdown }: { editor: Editor | null; markdow
           fontSize: 11,
           fontWeight: 700,
           textTransform: 'uppercase',
-          letterSpacing: '0.06em',
+          letterSpacing: '0.08em',
           color: '#5B6B60',
-          marginBottom: 10,
+          paddingBottom: 10,
         }}
       >
         On this page
       </span>
-      <div style={{ borderLeft: '1px solid #E3E8E5', marginLeft: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
         {heads.map((h) => (
           <a
             key={h.slug}
@@ -73,14 +73,15 @@ export function EditorToc({ editor, markdown }: { editor: Editor | null; markdow
               el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
             style={{
-              display: 'block',
-              padding: `5px 0 5px ${12 + (h.level - 2 > 0 ? (h.level - 2) * 10 : 0)}px`,
-              marginLeft: -1,
-              borderLeft: `2px solid ${h.slug === on ? '#2E6F40' : 'transparent'}`,
-              fontSize: 12.5,
+              display: 'flex',
+              alignItems: 'center',
+              minHeight: 28,
+              padding: `0 12px 0 ${12 + (h.level - 2 > 0 ? (h.level - 2) * 10 : 0)}px`,
+              borderLeft: `2px solid ${h.slug === on ? '#2E6F40' : '#E3E8E5'}`,
+              fontSize: 13,
               fontWeight: h.slug === on ? 700 : 500,
               color: h.slug === on ? '#1E2A22' : '#5B6B60',
-              lineHeight: 1.35,
+              lineHeight: 1.3,
               cursor: 'pointer',
             }}
           >

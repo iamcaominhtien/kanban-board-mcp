@@ -1,0 +1,7 @@
+Context
+What made this decision necessary?
+Options
+- Option A
+- Option B
+Outcome
+The chosen option and why.

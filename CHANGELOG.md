@@ -8,6 +8,38 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [5.1.0] - (release date)
+
+**Docs become rich documents.** A page is no longer a Markdown text: it is stored as blocks (headings, tables with merged and coloured cells, columns, callouts, pull quotes, equations, code, pictures, videos, HTML embeds, drawings, page and ticket cards), each with its own id. People write it in a new editor drawn to the design boards, and AI teams read and change it block by block over MCP. A page exports to PDF, Word, HTML and Markdown that look like the page, up to a printed book. The MCP tools answer in far fewer tokens. The format's contract: `server/contract/richdoc/`.
+
+### Before you upgrade
+- **Two migrations** add the rich format: `d2f4a6c8e0b1` (the rich columns of versions, drafts, pages, comment threads and links) and `e4b6d8f0a2c3` (templates, public links, highlights, suggestions, exports, and a project's Docs settings). The head is `e4b6d8f0a2c3`. Nothing is removed: each page keeps its Markdown and is converted to the rich format by a background job after the upgrade.
+- **5.0.x refuses a database that 5.1.0 has migrated** (it is newer than it knows). Make a backup first if you may need to go back.
+
+### Added: Docs
+- **The rich editor**: a ribbon with menus placed under their button, a slash menu, a selection bar with colours, tables (merge, colour, banded rows, column widths), columns (2 to 6), callouts, pull quotes, drop caps, dividers, equations (LaTeX), code with its colours, pictures with frames and captions, videos with a poster, HTML embeds that run, link cards, and diagrams, sketches and canvases placed in the page. Focus mode, find and replace, and tablet and phone layouts.
+- **Page settings**: width, fonts, title style and eyebrow, cover, the page's tone, text alignment, paragraph indents, a header and footer; Docs settings per project.
+- **Reading**: highlights in colours with a bubble and a list, links to a heading or a block with a hover card and an arrival mark, "Referenced by" per block, `[[Page#heading]]` and `[[Page#block]]`, search markers, a reading view, a public link for a page, print.
+- **Templates**: a gallery, Save as template, hidden or deleted templates fall back to Blank.
+- **History block by block**: versions compared block by block (blocks pair by their words when their ids changed), AI suggestions per block, the Ask the team bar.
+- **States**: save status, an offline queue in the browser, merge and conflict by block when someone else published meanwhile, "save failed", the viewer's read-only page.
+- **Export**: PDF (A4, A3, Letter; portrait or landscape; margins; header with page numbers; the page's colour as the sheet's), Word, HTML (one file or a folder) and Markdown; a book from a page and its children (cover, title page, contents, chapters, in the book's language); diagrams, sketches and canvases drawn as they look; equations typeset (MathML in HTML and PDF, numbered, pictures in Word); tables that break between rows with their header repeated; a heading never ends a page alone. An HTML export carries its videos and files: the video plays in place and a link to slides downloads from the file.
+
+### Added: MCP
+- **Docs over MCP, block by block**: `docs_read` gives the page with block ids (or `plain=true`), one block, highlights, guides by need; `docs_write` edits one block, a section or a found text (up to 100 edits in one atomic call), replaces an HTML embed in place, sets attributes and table cells, uploads with alt text, moves before a sibling, sets page settings, exports with a page setup (`print`), and makes, updates, deletes and restores diagrams, sketches and canvases (`canvas_delete`, `canvas_restore`; a canvas frame resized from its `frame.json`).
+- **Pictures for checking work**: `picture` of a diagram, sketch, canvas (all frames on one plane, taken in the browser), a frame or an HTML page, uploaded with the Markdown to show it.
+- **Fewer tokens**: the Docs tools describe each action on one line with the details in `docs_guide`; a change to a ticket answers in brief (what changed, the ticket's card); every tool writes compact JSON. Measured on a live run: the answers of `ticket_items` went from 539k to 59k characters, the ticket tools from 183k to 83k.
+- The Docs AI skills read pages with `plain=true` and write them block by block.
+
+### Changed
+- **The tool list** gained the rich Docs actions: 50,721 characters for the default list (was about 49,000).
+- e2e: scenarios 44 to 46 cover rich Docs (highlights, links, states).
+
+### Fixed
+- A diagram's picture (without a browser) follows the arrows' chosen connection points and draws swimlane headers.
+- An HTML page without a declared charset is read as UTF-8 when it is drawn (Vietnamese text was garbled).
+- `upload` with `find` no longer splits the line it was placed after.
+
 ## [5.0.0] - (release date)
 
 **The server is now a native program.** The backend, which was Python (FastAPI, the `mcp` SDK, SQLModel, Alembic) shipped in the desktop app as a PyInstaller bundle, is rewritten in Rust. The app carries no Python runtime any more. What you see and what an AI agent calls did not change: the same REST routes, the same event stream, the same MCP tools with the same names, descriptions and schemas. Plan and what was checked: `docs/specs/rust-migration.md`.

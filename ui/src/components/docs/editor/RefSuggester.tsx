@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useDocsPage } from '../../../api/docs';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useDocsLinkTargets, useDocsPage } from '../../../api/docs';
 import type { DocsTreeNode } from '../../../types/docs';
 import { relativeTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
@@ -8,6 +8,9 @@ import { TICKET_DOT, TICKET_STATUS_LABEL } from './constants';
 import type { MenuHost, MenuState } from './menuHost';
 import { Hint, MenuFooter, useMenuPosition } from './SlashMenu';
 import type { TicketLite } from './context';
+import { KindTile } from '../links/BlockKind';
+import { useDocsLayout, useKeyboardInset } from '../../../hooks/useDocsLayout';
+import '../links/links.css';
 
 const HEAD: React.CSSProperties = {
   display: 'flex',
@@ -28,9 +31,56 @@ const SUBHEAD: React.CSSProperties = {
   letterSpacing: 0,
 };
 const KEY_RE = /^[A-Za-z][A-Za-z0-9]{1,5}-\d*$/;
+/* `[[Page#` on a rich page (RichDocsLinks C 17): the page above, then headings and blocks */
+const PICK_HEAD: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '3px 8px 6px',
+  margin: '0 -6px 4px',
+  borderBottom: '1px solid #E3E8E5',
+  fontSize: 12,
+  color: '#5B6B60',
+  fontWeight: 600,
+};
+const ROW_TITLE: React.CSSProperties = {
+  fontSize: 13.5,
+  fontWeight: 600,
+  color: '#1E2A22',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+};
+const ROW_SUB: React.CSSProperties = {
+  fontSize: 11.5,
+  color: '#5B6B60',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+};
+const LEVEL: React.CSSProperties = {
+  width: 22,
+  flex: 'none',
+  textAlign: 'center',
+  fontSize: 10.5,
+  fontWeight: 800,
+  color: '#2E6F40',
+  fontFamily: "'JetBrains Mono', monospace",
+};
 
 export type RefPayload =
-  | { kind: 'page'; page: string; section: string | null; label: string | null }
+  | {
+      kind: 'page';
+      page: string;
+      section: string | null;
+      label: string | null;
+      /** The page's id: the link follows the page when it is renamed. */
+      pageId?: string;
+      /** A heading's or block's id (`[[Page#` → a heading or a block): the link follows it. */
+      targetBlockId?: string;
+      /** The heading's or block's name when the link is made: a chip whose block is gone still names it. */
+      targetLabel?: string;
+    }
   | { kind: 'ticket'; key: string }
   | { kind: 'create'; title: string; label: string | null }
   | { kind: 'text'; text: string };
@@ -48,7 +98,10 @@ type Row =
       indent: boolean;
       /** Page the section belongs to when it is listed under the page matches (not after a `#`). */
       node?: DocsTreeNode;
+      /** The heading's block id (a rich page). */
+      blockId?: string;
     }
+  | { id: string; type: 'block'; blockId: string; kind: string; label: string; detail: string }
   | { id: string; type: 'ticket'; ticket: TicketLite }
   | { id: string; type: 'create'; title: string }
   | { id: string; type: 'note'; text: string };
@@ -100,6 +153,8 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const { ref, pos } = useMenuPosition(state.rect, 436);
+  const layout = useDocsLayout(null);
+  const keyboard = useKeyboardInset(layout === 'phone');
 
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const currentNode = byId.get(currentPageId);
@@ -135,6 +190,9 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
   const targetPage = useDocsPage(
     mode === 'sections' && targetNode ? targetNode.id : mode === 'pages' && topNode ? topNode.id : null,
   );
+  // a rich page lists its headings and the blocks worth linking, by id (RichDocsLinks C 17)
+  const targets = useDocsLinkTargets(mode === 'sections' && targetNode ? targetNode.id : null);
+  const rich = !!targets.data && (targets.data.headings.length > 0 || targets.data.blocks.length > 0);
 
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
@@ -149,6 +207,48 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
     if (mode === 'sections') {
       if (!targetNode) {
         out.push({ id: 'none', type: 'note', text: `No page named "${pageQuery}".` });
+        return out;
+      }
+      if (rich && targets.data) {
+        const q = sectionQuery.toLowerCase();
+        out.push({
+          id: 'whole',
+          type: 'section',
+          text: 'Whole page',
+          level: 0,
+          sub: 'No heading, no block',
+          whole: true,
+          indent: false,
+        });
+        const hs = targets.data.headings.filter((h) => !q || h.text.toLowerCase().includes(q));
+        if (hs.length) out.push({ id: 'h-h', type: 'head', label: 'Headings' });
+        hs.forEach((h) =>
+          out.push({
+            id: `s-${h.blockId}`,
+            type: 'section',
+            text: h.text,
+            level: h.level,
+            sub: h.level > 2 && h.under ? `under ${h.under}` : '',
+            indent: h.level > 2,
+            blockId: h.blockId,
+          }),
+        );
+        const bs = targets.data.blocks.filter(
+          (b) => !q || b.label.toLowerCase().includes(q) || b.detail.toLowerCase().includes(q),
+        );
+        if (bs.length) out.push({ id: 'h-b', type: 'head', label: 'Blocks' });
+        bs.forEach((b) =>
+          out.push({
+            id: `b-${b.blockId}`,
+            type: 'block',
+            blockId: b.blockId,
+            kind: b.kind,
+            label: b.label,
+            detail: b.detail,
+          }),
+        );
+        if (!hs.length && !bs.length && q)
+          out.push({ id: 'none', type: 'note', text: `No heading or block matches "${sectionQuery}".` });
         return out;
       }
       out.push({ id: 'h-s', type: 'head', label: `Sections in ${targetNode.title}`, sub: 'headings, in page order' });
@@ -220,7 +320,20 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
       out.push({ id: 'create', type: 'create', title: pageQuery });
     }
     return out;
-  }, [mode, main, tickets, nodes, pageQuery, sectionQuery, targetNode, topNode, targetPage.data, targetPage.isLoading]);
+  }, [
+    mode,
+    main,
+    tickets,
+    nodes,
+    pageQuery,
+    sectionQuery,
+    targetNode,
+    topNode,
+    targetPage.data,
+    targetPage.isLoading,
+    rich,
+    targets.data,
+  ]);
 
   const selectable = useMemo(() => rows.filter((r) => r.type !== 'head' && r.type !== 'note'), [rows]);
   useEffect(() => setActive(0), [state.query]);
@@ -229,11 +342,30 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
 
   const payloadOf = (r: Row | undefined): RefPayload | null => {
     if (!r) return null;
-    if (r.type === 'page') return { kind: 'page', page: r.node.title, section: null, label };
+    if (r.type === 'page') return { kind: 'page', page: r.node.title, section: null, label, pageId: r.node.id };
     if (r.type === 'ticket') return { kind: 'ticket', key: r.ticket.id };
     if (r.type === 'create') return { kind: 'create', title: r.title, label };
-    if (r.type === 'section' && (r.node ?? targetNode))
-      return { kind: 'page', page: (r.node ?? targetNode)!.title, section: r.whole ? null : r.text, label };
+    if (r.type === 'block' && targetNode)
+      return {
+        kind: 'page',
+        page: targetNode.title,
+        section: null,
+        label,
+        pageId: targetNode.id,
+        targetBlockId: r.blockId,
+        targetLabel: r.label,
+      };
+    if (r.type === 'section' && (r.node ?? targetNode)) {
+      const n = (r.node ?? targetNode)!;
+      return {
+        kind: 'page',
+        page: n.title,
+        section: r.whole ? null : r.text,
+        label,
+        pageId: n.id,
+        ...(r.blockId && !r.whole ? { targetBlockId: r.blockId, targetLabel: r.text } : {}),
+      };
+    }
     return null;
   };
 
@@ -305,17 +437,32 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
     <div
       ref={ref}
       data-testid="ref-menu"
+      className={`rs-menu rs-${layout}`}
       onMouseDown={(e) => e.preventDefault()}
-      style={{
-        position: 'fixed',
-        zIndex: 60,
-        width: 436,
-        top: pos?.top ?? -9999,
-        left: pos?.left ?? -9999,
-        visibility: pos ? 'visible' : 'hidden',
-      }}
+      style={
+        layout === 'phone'
+          ? // RichDocsLinks C 20: on a phone the list docks above the keyboard, full width, 56 px rows
+            { position: 'fixed', zIndex: 60, left: 0, right: 0, bottom: keyboard }
+          : {
+              position: 'fixed',
+              zIndex: 60,
+              width: 436,
+              top: pos?.top ?? -9999,
+              left: pos?.left ?? -9999,
+              visibility: pos ? 'visible' : 'hidden',
+            }
+      }
     >
       <div className="dk-menu" style={{ width: '100%', padding: 6 }} role="listbox" aria-label="Link a page or ticket">
+        {mode === 'sections' && rich && targetNode && (
+          <div style={PICK_HEAD} data-testid="ref-pick-head">
+            <span className="dk-chip dk-chip-page" style={{ height: 22, fontSize: 12.5 }}>
+              <Icon name="i00" size={12} />
+              {targetNode.title}
+            </span>
+            <span>› choose a heading or a block</span>
+          </div>
+        )}
         <div ref={listRef} style={{ maxHeight: 360, overflowY: 'auto' }}>
           {rows.map((r) => {
             if (r.type === 'head')
@@ -424,6 +571,54 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
                         : 'At the top level'}
                     </span>
                   </span>
+                </div>
+              );
+            const enterKey = on && (
+              <span style={{ marginLeft: 'auto', paddingLeft: 6, display: 'inline-flex' }}>
+                <span className="dk-kbd">Enter</span>
+              </span>
+            );
+            const two = (title: ReactNode, sub: string) => (
+              <span style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                <span style={ROW_TITLE}>{title}</span>
+                {sub && <span style={ROW_SUB}>{sub}</span>}
+              </span>
+            );
+            if (r.type === 'block')
+              return (
+                <div
+                  key={r.id}
+                  {...common}
+                  data-testid="ref-block-row"
+                  style={{ ...common.style, minHeight: 38, padding: '3px 10px', boxSizing: 'border-box' }}
+                >
+                  <KindTile kind={r.kind} />
+                  {two(<Highlight text={r.label} q={sectionQuery} />, r.detail)}
+                  {enterKey}
+                </div>
+              );
+            if (r.type === 'section' && rich)
+              return (
+                <div
+                  key={r.id}
+                  {...common}
+                  data-testid={r.whole ? 'ref-whole-row' : 'ref-heading-row'}
+                  style={{
+                    ...common.style,
+                    minHeight: r.whole ? 34 : 32,
+                    padding: `3px 10px 3px ${r.indent ? 24 : 10}px`,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {r.whole ? (
+                    <span style={{ display: 'flex', color: '#2E6F40' }}>
+                      <Icon name="i00" size={16} strokeWidth={2} />
+                    </span>
+                  ) : (
+                    <span style={LEVEL}>H{r.level}</span>
+                  )}
+                  {two(r.whole ? r.text : <Highlight text={r.text} q={sectionQuery} />, r.sub)}
+                  {enterKey}
                 </div>
               );
             if (r.type === 'section')
@@ -551,6 +746,7 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
           {mode === 'pages' && <Hint k="Tab">complete</Hint>}
           {mode === 'tickets' && <Hint k="Tab">complete key</Hint>}
           {mode === 'sections' && <Hint k="|">display text</Hint>}
+          {mode === 'sections' && rich && <Hint k="Backspace">back to pages</Hint>}
           {mode === 'pages' && <Hint k="#">section</Hint>}
           {mode === 'pages' && <Hint k={`${tickets[0]?.id.split('-')[0] ?? 'KAN'}-`}>ticket</Hint>}
           <Hint k="Esc">{mode === 'pages' ? 'cancel' : 'close'}</Hint>

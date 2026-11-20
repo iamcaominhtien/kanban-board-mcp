@@ -1,0 +1,109 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "taskList",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-000002"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000003"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "open task"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-000004",
+            "checked": true
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000005"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "done task"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-000006",
+            "checked": true
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000007"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "done upper case"
+                }
+              ]
+            },
+            {
+              "type": "taskList",
+              "attrs": {
+                "blockId": "b-000008"
+              },
+              "content": [
+                {
+                  "type": "taskItem",
+                  "attrs": {
+                    "blockId": "b-000009"
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "blockId": "b-00000a"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "nested open"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00000b"
+      }
+    }
+  ]
+}

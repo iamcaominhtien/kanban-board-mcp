@@ -10,6 +10,9 @@ import { aiGate } from '../../utils/docsAiRules';
 import { TidyOptions } from './ai/TidyOptions';
 import type { DocsTreeNode } from '../../types/docs';
 import type { DocsImportConflict, DocsImportDryFile, DocsImportDryRun, DocsImportEntry } from '../../types/docsFx';
+import { ConvertImport } from './start/ConvertImport';
+import { ImportSourceTiles } from './start/ImportSources';
+import { sourceForFiles, sourceOfFile, type ImportSource } from './start/importConvert';
 
 export const IMPORT_MAX_FILES = 200;
 export const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
@@ -277,10 +280,59 @@ export interface ImportDialogProps {
   onDone: (created: string[]) => void;
   /** Shows the "Review links" action on the result toast when pages with unresolved links were created. */
   onReviewLinks?: (pageId: string) => void;
+  /** The tile the dialog opens on (default: from the files, else Markdown). */
+  initialSource?: ImportSource;
+  /** Text for the Paste tile (from the clipboard). */
+  initialText?: string;
+  /** Phone: the Word, HTML and Paste import is a full-screen sheet. */
+  phone?: boolean;
 }
 
 /**
- * Dialog to import Markdown files or folders as pages.
+ * Dialog to import pages: Markdown files or folders through the server's import, Word and HTML files and pasted
+ * text converted in the browser (start/ConvertImport). The tiles at the top switch between them.
+ * @param props.initialSource - The tile to open on; by default the chosen files say (all Markdown: Markdown).
+ */
+export function ImportDialog(props: ImportDialogProps) {
+  const { initialSource, initialFiles, initialEntries } = props;
+  const [source, setSource] = useState<ImportSource>(
+    () => initialSource ?? (initialEntries?.length ? 'markdown' : sourceForFiles(initialFiles ?? [])),
+  );
+  // files picked in the Markdown tile that are Word or HTML move to their tile
+  const [handoff, setHandoff] = useState<File[] | undefined>(() =>
+    initialFiles?.filter((f) => sourceOfFile(f.name) !== 'markdown'),
+  );
+  if (source !== 'markdown') {
+    return (
+      <ConvertImport
+        key={source}
+        projectId={props.projectId}
+        nodes={props.nodes}
+        source={source}
+        onSource={setSource}
+        initialFiles={handoff}
+        initialText={props.initialText}
+        initialParentId={props.initialParentId}
+        phone={props.phone}
+        onClose={props.onClose}
+        onDone={props.onDone}
+      />
+    );
+  }
+  return (
+    <MarkdownImport
+      {...props}
+      onSource={setSource}
+      onOtherFiles={(files) => {
+        setHandoff(files);
+        setSource(sourceForFiles(files));
+      }}
+    />
+  );
+}
+
+/**
+ * The Markdown tile of the Import dialog: Markdown files or folders as pages, through the server's import.
  * @param props.nodes - Page tree, used to pick the destination.
  * @param props.initialFiles - Files to import when the dialog opens.
  * @param props.initialEntries - Entries with relative paths (from `useDocsFileDrop` or folder drops).
@@ -289,7 +341,7 @@ export interface ImportDialogProps {
  * @param props.onDone - Called with the created page ids when the import finishes (also after the dialog was closed).
  * @param props.onReviewLinks - Shows "Review links" on the result toast when pages with unresolved links were created.
  */
-export function ImportDialog({
+function MarkdownImport({
   projectId,
   projectName,
   nodes,
@@ -299,7 +351,10 @@ export function ImportDialog({
   onClose,
   onDone,
   onReviewLinks,
-}: ImportDialogProps) {
+  onSource,
+  onOtherFiles,
+  phone = false,
+}: ImportDialogProps & { onSource: (s: ImportSource) => void; onOtherFiles: (files: File[]) => void }) {
   const toast = useToast();
   const [rawEntries, setEntries] = useState<DocsImportEntry[]>(
     () => initialEntries ?? entriesFromFileList(initialFiles ?? []),
@@ -556,7 +611,6 @@ export function ImportDialog({
   const doneN = Object.values(rowState).filter((s) => s === 'done' || s === 'failed').length;
   const totalN = Object.keys(rowState).length;
   const pct = totalN ? Math.floor((doneN / totalN) * 100) : 0;
-  const curN = Math.min(totalN, doneN + 1);
 
   const idle = entries.length === 0;
   const importing = phase === 'importing';
@@ -564,7 +618,11 @@ export function ImportDialog({
   const pickFiles = (e: React.ChangeEvent<HTMLInputElement>, folder: boolean) => {
     if (e.target.files) {
       const list = entriesFromFileList(e.target.files, folder);
-      if (!list.length) setNotice('No .md or .markdown files found in that selection.');
+      const other = Array.from(e.target.files).filter(
+        (f) => sourceOfFile(f.name) && sourceOfFile(f.name) !== 'markdown',
+      );
+      if (!list.length && other.length) onOtherFiles(other);
+      else if (!list.length) setNotice('No .md or .markdown files found in that selection.');
       else {
         setNotice(null);
         addEntries(list);
@@ -662,31 +720,29 @@ export function ImportDialog({
     };
   };
 
-  const progressOf = (r: DocsImportDryFile) => {
-    if (r.status === 'error') return resultOf(r);
-    const s = rowState[r.path] ?? 'waiting';
-    if (s === 'done')
-      return {
-        text: 'Imported',
-        color: '#5B6B60',
-        icon: <Icon name="i17" size={16} strokeWidth={1.9} style={{ color: '#2E6F40' }} />,
-      };
-    if (s === 'importing') return { text: 'Importing…', color: '#1E2A22', icon: <span className="mc-spin" /> };
-    if (s === 'failed')
-      return {
-        text: 'Failed',
-        color: '#A5321E',
-        icon: <Icon name="i22" size={16} strokeWidth={1.9} style={{ color: '#C4432A' }} />,
-      };
-    return {
-      text: 'Waiting',
-      color: '#9AA8A0',
-      icon: <Icon name="i20" size={16} strokeWidth={1.9} style={{ color: '#9AA8A0' }} />,
-    };
+  // a file while it imports (frame 29): a 20 px state mark, the name 13/600, the state on the right
+  const progressRow = (r: DocsImportDryFile) => {
+    const s = r.status === 'error' ? 'failed' : (rowState[r.path] ?? 'waiting');
+    const label = { done: 'Imported', importing: 'Importing…', failed: 'Not imported', waiting: 'Waiting' }[s];
+    return (
+      <div key={r.path} className="dk-imp-row" data-state={s}>
+        {s === 'importing' ? (
+          <span className="mc-spin dk-imp-spin" aria-hidden="true" />
+        ) : (
+          <span className="dk-imp-mark" aria-hidden="true">
+            {s === 'done' && <Icon name="check" size={12} strokeWidth={2.6} />}
+            {s === 'failed' && <Icon name="i08" size={11} strokeWidth={2.4} />}
+          </span>
+        )}
+        <div className="dk-imp-name">{r.path}</div>
+        <span className="dk-imp-state">{label}</span>
+      </div>
+    );
   };
 
   const fileRow = (r: DocsImportDryFile, last: boolean) => {
-    const res = importing ? progressOf(r) : resultOf(r);
+    if (importing) return progressRow(r);
+    const res = resultOf(r);
     return (
       <div
         key={r.path}
@@ -768,79 +824,48 @@ export function ImportDialog({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(37,61,44,0.5)',
+        background: 'rgba(30,42,34,0.42)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 16,
+        padding: phone ? 0 : 16,
         boxSizing: 'border-box',
       }}
     >
       <div
+        className={`dk-imp-shell${phone ? ' dk-imp-phone' : ''}`}
         style={{
           position: 'relative',
-          width: 612,
+          width: phone ? '100%' : 520,
+          height: phone ? '100%' : undefined,
           maxWidth: '100%',
           maxHeight: '100%',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 12,
-          border: '1px solid #E3E8E5',
-          boxShadow: '0 24px 64px rgba(30,42,34,0.28)',
+          borderRadius: phone ? 0 : 16,
+          border: phone ? 'none' : '1px solid #E3E8E5',
+          boxShadow: '0 24px 60px rgba(30,42,34,0.22)',
           background: '#FFFFFF',
           overflow: 'hidden',
           boxSizing: 'border-box',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 12,
-            padding: '16px 22px',
-            borderBottom: '1px solid #E3E8E5',
-          }}
-        >
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: '50%',
-              background: '#DCEEE1',
-              color: '#2E6F40',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="i26" size={16} strokeWidth={1.9} />
+        <div className="dk-np-head">
+          <div className="dk-np-badge">
+            <Icon name="i26" size={17} strokeWidth={1.9} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>Import Markdown</div>
-            <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 2 }}>
+            <div className="dk-np-title">
+              {phase === 'importing' ? 'Importing' : phone && idle ? 'Import' : 'Import Markdown'}
+            </div>
+            <div className="dk-np-sub">
+              {phase === 'importing' ? 'Markdown files into ' : ''}
               {projectName}
               {entries.length > 0 &&
                 ` · ${entries.length} ${entries.length === 1 ? 'file' : 'files'}, ${fmtSize(totalBytes)}`}
             </div>
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              border: 'none',
-              background: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: '#9AA8A0',
-            }}
-          >
+          <button type="button" aria-label="Close" onClick={onClose} className="dk-np-x">
             <Icon name="i08" size={16} strokeWidth={1.9} />
           </button>
         </div>
@@ -872,78 +897,92 @@ export function ImportDialog({
   if (idle) {
     return shell(
       <>
-        <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="dk-imp-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <ImportSourceTiles value="markdown" onChange={onSource} />
           <div
             style={{
               width: '100%',
-              height: 178,
+              minHeight: 178,
+              padding: '18px 16px',
               borderRadius: 12,
-              border: drag.dragging ? '2px dashed #2E6F40' : '1.5px dashed #C7D2CB',
-              background: drag.dragging ? '#F1F8F3' : '#FBFCFB',
+              border: drag.dragging ? '2px dashed #2E6F40' : '1.5px dashed #BFD2C5',
+              background: drag.dragging ? '#F1F8F3' : '#F6FAF7',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
+              gap: 10,
+              textAlign: 'center',
               boxSizing: 'border-box',
             }}
           >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: drag.dragging ? '#DCEEE1' : '#EEF3EF',
-                color: drag.dragging ? '#2E6F40' : '#5B6B60',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Icon name="i26" size={22} strokeWidth={1.9} />
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>
+            <span style={{ display: 'flex', color: drag.dragging ? '#2E6F40' : '#5B6B60' }}>
+              <Icon name="i26" size={24} strokeWidth={1.8} />
+            </span>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1E2A22' }}>
               {drag.dragging
                 ? drag.count
                   ? `Drop to add ${drag.count} ${drag.count === 1 ? 'file' : 'files'}`
                   : 'Drop to add files'
-                : 'Drag .md files or a folder here'}
+                : phone
+                  ? 'Choose from your device'
+                  : 'Drag .md files or a folder here'}
             </div>
             {!drag.dragging && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5B6B60' }}>
-                or
-                <button type="button" className="st-btn st-btn-sm" onClick={() => filesInput.current?.click()}>
+                {!phone && 'or'}
+                <button type="button" className="st-btn" onClick={() => filesInput.current?.click()}>
                   Choose files…
                 </button>
-                <button type="button" className="st-btn st-btn-sm" onClick={() => dirInput.current?.click()}>
+                <button type="button" className="st-btn" onClick={() => dirInput.current?.click()}>
                   Choose folder…
                 </button>
               </div>
             )}
-            <div style={{ fontSize: drag.dragging ? 12 : 11.5, color: drag.dragging ? '#2E6F40' : '#9AA8A0' }}>
-              {drag.dragging ? '' : `.md and .markdown, up to ${IMPORT_MAX_FILES} files, 2 MB each`}
+            <div style={{ fontSize: 12, lineHeight: 1.5, color: drag.dragging ? '#2E6F40' : '#5B6B60', maxWidth: 380 }}>
+              {drag.dragging ? (
+                ''
+              ) : phone ? (
+                // a phone has no dragging: the line says what the files become (Start 33)
+                <>
+                  Markdown files: .md and .markdown. Folders become a page tree and{' '}
+                  <span className="st-code">[[links]]</span> are resolved by title.
+                </>
+              ) : (
+                `.md and .markdown, up to ${IMPORT_MAX_FILES} files, 2 MB each`
+              )}
             </div>
           </div>
+          {phone && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <span className="st-field-label">Place under</span>
+              <div className="dk-imp-place">
+                {sel(
+                  'Place under',
+                  'i27',
+                  parentId ?? '',
+                  (v) => setParentId(v || null),
+                  placeOptions.map((o) => (o.value ? o : { ...o, label: 'Top level (no parent)' })),
+                  false,
+                )}
+              </div>
+            </div>
+          )}
           {notice && <div style={{ fontSize: 12, color: '#A5321E' }}>{notice}</div>}
         </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '14px 22px',
-            borderTop: '1px solid #E3E8E5',
-            background: '#FBFCFB',
-          }}
-        >
-          <span style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>
-            Imported pages start as drafts for you to review.
-          </span>
-          <div style={{ flex: 1 }} />
-          <button type="button" className="st-btn" onClick={onClose}>
-            Cancel
-          </button>
+        <div className="dk-np-foot">
+          <span className="dk-np-note">Imported pages start as drafts for you to review.</span>
+          {phone ? (
+            // one 48 px Import at the foot; it waits for the files (the close is at the top)
+            <button type="button" className="st-btn st-btn-primary" disabled data-testid="import-phone-go">
+              <Icon name="i26" size={15} strokeWidth={2} />
+              Import
+            </button>
+          ) : (
+            <button type="button" className="st-btn" onClick={onClose}>
+              Cancel
+            </button>
+          )}
         </div>
       </>,
     );
@@ -955,9 +994,8 @@ export function ImportDialog({
   return shell(
     <>
       <div
-        className="fx-scroll"
+        className="fx-scroll dk-imp-body"
         style={{
-          padding: '18px 22px',
           display: 'flex',
           flexDirection: 'column',
           gap: 14,
@@ -966,40 +1004,18 @@ export function ImportDialog({
         }}
       >
         {importing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#1E2A22' }}
-            >
-              Importing page {curN} of {totalN}
-              <span
-                style={{
-                  marginLeft: 'auto',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: '#5B6B60',
-                }}
-              >
-                {pct}%
-              </span>
+          // frame 29: a 6 px bar with "2 of 5", the files with their own state, a note under them
+          <div className="dk-imp-progress" data-testid="import-progress">
+            <div className="dk-imp-total" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+              <div style={{ width: `${pct}%` }} />
             </div>
-            <div style={{ height: 8, borderRadius: 999, background: '#E3E8E5', overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${pct}%`,
-                  height: '100%',
-                  borderRadius: 999,
-                  background: '#2E6F40',
-                  transition: 'width .2s',
-                }}
-              />
-            </div>
-            <div style={{ fontSize: 12, color: '#5B6B60' }}>
-              Links are resolved after the last page is saved. You can close this window; the import keeps running.
-            </div>
+            <span className="dk-imp-count">
+              {doneN} of {totalN}
+            </span>
           </div>
         ) : (
           <>
+            <ImportSourceTiles value="markdown" onChange={onSource} />
             <div
               style={{
                 display: 'flex',
@@ -1071,9 +1087,17 @@ export function ImportDialog({
               </span>
             </div>
           )}
-          <div style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}>
+          <div
+            className={importing ? 'dk-imp-list' : undefined}
+            style={importing ? undefined : { border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}
+          >
             {rows.map((r, i) => fileRow(r, i === rows.length - 1))}
           </div>
+          {importing && (
+            <div className="dk-imp-hint">
+              You can keep working. The tree fills in as pages arrive. Links are resolved after the last page is saved.
+            </div>
+          )}
           {tooMany && (
             <div style={{ fontSize: 12, color: '#A5321E' }}>
               Only the first {IMPORT_MAX_FILES} files are imported; the rest are skipped.
@@ -1145,19 +1169,20 @@ export function ImportDialog({
       >
         <span style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>
           {importing
-            ? 'Cancel stops after the current page. Pages already imported are kept.'
+            ? 'Stopping keeps the pages already imported.'
             : 'Imported pages start as drafts for you to review.'}
         </span>
         <div style={{ flex: 1 }} />
-        <button type="button" className="st-btn" onClick={cancel} disabled={importing && stopping}>
-          {importing && stopping ? 'Stopping…' : 'Cancel'}
-        </button>
         {importing ? (
-          <button type="button" className="st-btn st-btn-primary" disabled style={{ opacity: 0.7 }}>
-            <span className="mc-spin mc-spin-w" />
-            Importing…
+          <button type="button" className="st-btn st-btn-danger-outline" onClick={cancel} disabled={stopping}>
+            {stopping ? 'Stopping…' : 'Stop importing'}
           </button>
         ) : (
+          <button type="button" className="st-btn" onClick={cancel}>
+            Cancel
+          </button>
+        )}
+        {importing ? null : (
           <button
             type="button"
             className="st-btn st-btn-primary"

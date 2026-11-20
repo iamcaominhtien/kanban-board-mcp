@@ -1,0 +1,6 @@
+> Outer
+>
+> > Inner quote
+>
+> - a list in a quote
+> - second

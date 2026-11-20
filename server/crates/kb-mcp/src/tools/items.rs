@@ -3,6 +3,7 @@
 use futures::future::BoxFuture;
 use serde_json::{Map, Value};
 
+use super::reply;
 use super::routing::{Op, batch, params_of, route};
 use crate::common::{self, ToolError, ToolResult, arg_bool, arg_str, arg_text};
 use crate::operations as ops;
@@ -331,12 +332,31 @@ async fn run_one(item: String, action: String, given: Map<String, Value>) -> Too
     let call = move |g: Map<String, Value>| -> BoxFuture<'static, ToolResult> {
         Box::pin(async move { route(&label, &op, g).await })
     };
-    common::guarded("ticket_items", &format!("{item}.{action}"), given, Box::new(call)).await
+    let keys: Vec<String> = given.get("item_id").and_then(Value::as_str).map(str::to_string).into_iter().collect();
+    let out = common::guarded("ticket_items", &format!("{item}.{action}"), given, Box::new(call)).await?;
+    Ok(reply::item_answer(out, &item, &action, &keys))
+}
+
+/// A batch's answer with the ticket card once, as `ticket`, after the last item that worked, and each item's own
+/// part (the item it touched) in its row.
+fn one_card(mut out: Value) -> Value {
+    let mut card = None;
+    if let Some(rows) = out.get_mut("results").and_then(Value::as_array_mut) {
+        for row in rows {
+            if let Some(Value::Object(result)) = row.get_mut("result") {
+                card = result.shift_remove("ticket").or(card);
+            }
+        }
+    }
+    if let (Some(card), Value::Object(fields)) = (card, &mut out) {
+        fields.insert("ticket".into(), card);
+    }
+    out
 }
 
 /// Work on the lists inside a ticket. Pick `item`, then `action`; each combination takes only the parameters shown.
-/// Returns the updated ticket (without its activity log); new sub-item ids are in its lists. `items` runs many
-/// calls in one (max 25).
+/// Returns `{ticket, <item>}`: the ticket in brief and the item as it is now (`deleted` when it is gone). `items`
+/// runs many calls in one (max 25).
 pub async fn ticket_items(args: Map<String, Value>) -> ToolResult {
     let item = arg_text(&args, "item");
     let action = arg_str(&args, "action").filter(|a| !a.is_empty());
@@ -365,9 +385,10 @@ pub async fn ticket_items(args: Map<String, Value>) -> ToolResult {
                 Box::pin(run_one(item.clone(), act(&extra), merged))
             },
             &many,
-            false,
+            true,
         )
-        .await;
+        .await
+        .map(one_card);
     }
     let action = act(&Map::new());
     run_one(item, action, given).await

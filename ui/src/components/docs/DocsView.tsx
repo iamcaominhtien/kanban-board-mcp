@@ -1,13 +1,21 @@
+import { SkipLink } from './states/SkipLink';
+import { docToMarkdown } from '../../richdoc';
+import { convertLock, convertLockTip, publishedDoc, replaceSectionRefs } from './richPage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   docsErrorDetail,
   useDocsPage,
   useDocsRecycleBin,
   useDocsTree,
-  useMovePage,
+  useDocsVersion,
   usePublishPage,
   useRestorePage,
+  useRestoreVersion,
 } from '../../api/docs';
+import { bookOf } from './book';
+import { docsTone, readerThemeCss, useReaderPrefs } from './readerPrefs';
+import { openExport, type ExportFormat } from './docsExport';
+import { ExportHost } from './export/ExportHost';
 import { useRenameWithLinks } from '../../api/docsActions';
 import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
@@ -50,14 +58,36 @@ import { HistoryDrawer } from './HistoryDrawer';
 import { Icon } from './Icon';
 import { MoveToDialog } from './MoveToDialog';
 import { NewPageDialog } from './NewPageDialog';
+import type { GalleryChip } from './start/galleryRules';
+import type { ImportSource } from './start/importConvert';
+import { NewPageMenu } from './start/NewPageMenu';
+import { SaveTemplateDialog } from './start/SaveTemplateDialog';
+import { WhatsNewTour } from './start/WhatsNewTour';
 import { PageMenu, usePageShortcuts, type PageMenuAction } from './PageMenu';
 import { RenameDialog } from './RenameDialog';
 import { SearchResults } from './SearchResults';
 import { useDocsOffline } from './useDocsOffline';
 import './docs.css';
 import { useAppCommand } from '../../utils/appCommands';
+import { useDocsLayout, type DocsLayout } from '../../hooks/useDocsLayout';
+import { BottomSheet, DocsDrawer } from './DocsSheets';
+import { PageSettingsPanel, type SettingsTab } from './PageSettingsPanel';
+import { patchPageSettings, docsKeys } from '../../api/docs';
+import { useQueryClient } from '@tanstack/react-query';
+import { IconPicker } from './tree/IconPicker';
+import { GalleryView, RecentView } from './tree/PageViews';
+import { BulkDeleteDialog } from './tree/SelectionBar';
+import { affectedPages, rowStatus, type TreeView } from './tree/treeModel';
+import { useTreeActions } from './tree/useTreeActions';
+import { useTreeViewState } from './tree/useTreeViewState';
+import { PageIcon, SuggestionCount } from './tree/treeParts';
+
+/** The event that opens the app's Recycle Bin (the row under the page tree). */
+export const OPEN_RECYCLE_BIN_EVENT = 'kb:open-recycle-bin';
+import { isWidePage, readPageLook } from './pageSettings';
 import { sketchesAsImages } from '../sketch/sketchRefs';
 import { canvasesAsImages } from '../canvas/canvasRefs';
+import { blockOfAnchor, revealBlock } from './links/blockAnchor';
 
 interface Props {
   projectId: string;
@@ -67,9 +97,9 @@ interface Props {
   requestedAnchor?: string | null;
   onRequestHandled?: () => void;
   onOpenTicket: (ticketId: string) => void;
-  /** "Import Markdown" (hero) and the import strip. */
-  onImport?: () => void;
-  /** Markdown files or folders dropped anywhere on the Docs page, or picked with "Choose files…". */
+  /** "Import…" (hero, import strip, the tree's New page menu), with the source chosen (Markdown when not given). */
+  onImport?: (source?: ImportSource) => void;
+  /** Markdown, Word or HTML files or folders dropped anywhere on the Docs page, or picked with "Choose files…". */
   onDropFiles?: (files: File[]) => void;
   /** Docs switched off for the project (E6). */
   onOpenSettings?: () => void;
@@ -92,9 +122,33 @@ interface Props {
     | { kind: 'filter-tree'; q: string }
     | null;
   onIntentHandled?: () => void;
+  /** Opens the project sidebar where the app hides it (tablet and phone); no menu button without it. */
+  onOpenSidebar?: () => void;
+  /** Called with true while the app bar should hide (editing on a tablet or a phone), false after. */
+  onImmersiveChange?: (on: boolean) => void;
+  /** Called with the layout the Docs area has (desktop, tablet, phone) whenever it changes. */
+  onLayoutChange?: (layout: DocsLayout) => void;
+  /**
+   * Called with true while a page reads in focus (Reader 1, 4 and the phone frames: no app chrome), so the app hides
+   * its sidebar and its header; false when the chrome comes back.
+   */
+  onFocusChange?: (on: boolean) => void;
 }
 
-const NARROW_PX = 1200;
+/** A touch that starts this close to the left edge of the Docs area (px) and moves right opens the tree. */
+const EDGE_PX = 24;
+/** How far it has to move (px). */
+const SWIPE_PX = 60;
+
+/** The kind of a file being dragged in, from its type ("Markdown", "Word", "HTML"; a folder or an unknown type is
+ * a "File"). */
+function dragKindOf(type: string): string {
+  if (/markdown/.test(type)) return 'Markdown';
+  if (/wordprocessingml|msword/.test(type)) return 'Word';
+  if (/html/.test(type)) return 'HTML';
+  if (/^text\//.test(type)) return 'Text';
+  return 'File';
+}
 
 function download(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
@@ -107,6 +161,12 @@ function download(name: string, text: string) {
 
 /** Scroll a heading into view once its page has rendered (waits up to ~3 s for it) and flash it. */
 function scrollToSection(slug: string) {
+  // a link to a heading or block of a rich page opens at the block, marked for a few seconds
+  const linked = blockOfAnchor(slug);
+  if (linked) {
+    revealBlock(linked);
+    return;
+  }
   let tries = 0;
   const tick = () => {
     const el = document.getElementById(`docs-${slug}`);
@@ -142,12 +202,47 @@ function TreePageMenu({
   node,
   onAction,
   onClose,
+  sheet,
+  sub,
 }: {
   node: DocsTreeNode;
   onAction: (a: PageMenuAction) => void;
   onClose: () => void;
+  /** A phone: the menu is an action sheet. */
+  sheet?: boolean;
+  /** The sheet's line under the title: where the page is and its status ("Architecture · Published"). */
+  sub?: string;
 }) {
   const { data } = useDocsPage(node.id);
+  if (sheet)
+    return (
+      <BottomSheet label={node.title} onClose={onClose} testId="tree-menu-sheet" hideTitle>
+        {/* Tree3 29: the page's 40 px icon tile, its title and where it is, a 44 px close; 50 px rows */}
+        <div className="tr-msheet-head">
+          <span className="tr-msheet-ico" aria-hidden="true">
+            <PageIcon icon={node.icon} kind={node.kind} size={22} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="tr-msheet-title">{node.title}</div>
+            {sub && <div className="tr-msheet-sub">{sub}</div>}
+          </div>
+          <button type="button" className="dk-icobtn" aria-label="Close" data-sheet-close onClick={onClose}>
+            <Icon name="close" size={18} strokeWidth={1.9} />
+          </button>
+        </div>
+        {data ? (
+          <PageMenu
+            page={data}
+            onAction={onAction}
+            onClose={onClose}
+            variant="sheet"
+            hidden={node.kind === 'canvas' ? TREE_CANVAS_HIDDEN : undefined}
+          />
+        ) : (
+          <div className="skel" style={{ height: 120, margin: 16 }} />
+        )}
+      </BottomSheet>
+    );
   if (!data) {
     return (
       <div
@@ -169,7 +264,39 @@ function TreePageMenu({
       </div>
     );
   }
-  return <PageMenu page={data} onAction={onAction} onClose={onClose} />;
+  return (
+    <PageMenu
+      page={data}
+      onAction={onAction}
+      onClose={onClose}
+      hidden={node.kind === 'canvas' ? TREE_CANVAS_HIDDEN : undefined}
+    />
+  );
+}
+
+/** A canvas page has no Page settings, so no book either. */
+const TREE_CANVAS_HIDDEN: readonly PageMenuAction[] = ['settings', 'save-template', 'book'];
+
+/** A page object for a dialog that only needs the tree's facts about it (Move to for several pages). */
+function cachedToPageStub(n: DocsTreeNode, projectId: string): Partial<DocsPage> {
+  return {
+    id: n.id,
+    projectId,
+    parentId: n.parentId,
+    title: n.title,
+    slug: n.slug,
+    status: n.status,
+    version: n.version,
+    markdown: '',
+    headings: [],
+    path: [],
+    createdBy: '',
+    updatedBy: '',
+    updatedAt: n.updatedAt,
+    createdAt: n.updatedAt,
+    hasUnpublishedChanges: n.hasDraft,
+    draft: null,
+  };
 }
 
 function cachedToPage(
@@ -192,6 +319,8 @@ function cachedToPage(
     status: c.status,
     version: c.version,
     markdown: c.markdown,
+    format: c.format,
+    content: c.content ?? null,
     headings: c.headings,
     path,
     createdBy: c.updatedBy,
@@ -220,6 +349,10 @@ function cachedToPage(
  * @param props.onCloseResults - Called to leave the full results.
  * @param props.intent - One-shot request from the search palette (create a page / filter the tree).
  * @param props.onIntentHandled - Called once `intent` has been acted on.
+ * @param props.onOpenSidebar - Opens the project sidebar the app hides on a tablet or a phone.
+ * @param props.onImmersiveChange - Called with true while the app bar should hide (editing on touch layouts).
+ * @param props.onLayoutChange - Called with the Docs area's layout when it changes.
+ * @param props.onFocusChange - Called with true while a page reads in focus, without the app's chrome.
  */
 export function DocsView({
   projectId,
@@ -240,6 +373,10 @@ export function DocsView({
   onCloseResults,
   intent,
   onIntentHandled,
+  onOpenSidebar,
+  onImmersiveChange,
+  onLayoutChange,
+  onFocusChange,
 }: Props) {
   const toast = useToast();
   const offlineApi = useDocsOffline(projectId);
@@ -257,34 +394,74 @@ export function DocsView({
     title?: string;
     /** Opens the dialog with Write with AI preselected. */
     aiFrom?: { kind: 'ticket' | 'idea' | 'notes' | 'prompt'; ticketId?: string; text?: string };
+    /** The gallery chip to open on. */
+    chip?: GalleryChip;
   } | null>(null);
+  // "Save as template…" from a page menu
+  const [saveTplFor, setSaveTplFor] = useState<DocsPage | null>(null);
   // Desktop menu: File › New Doc Page
   useAppCommand('new-doc', () => setNewPage({ parentId: null }));
   const [moveFor, setMoveFor] = useState<DocsPage | null>(null);
   const [dupFor, setDupFor] = useState<DocsPage | null>(null);
   const [history, setHistory] = useState<{ compare?: { from: number; to: number } } | null>(null);
+  // an older version opened from History to read (read-only), for the page it belongs to
+  const [reading, setReading] = useState<{ pageId: string; version: number } | null>(null);
   const [deleteFor, setDeleteFor] = useState<{ id: string; title: string } | null>(null);
   // a page given to an AI member to write or review (#268)
   const [giveFor, setGiveFor] = useState<{ id: string; title: string } | null>(null);
   const [renameFor, setRenameFor] = useState<{ node: { id: string; title: string }; newTitle: string } | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [narrow, setNarrow] = useState(() => window.innerWidth < NARROW_PX);
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const layout = useDocsLayout(rootEl);
+  const narrow = layout !== 'desktop';
   const [railOpen, setRailOpen] = useState(false);
+  // the page whose Page settings panel is open (it closes when another page opens)
+  const [settingsFor, setSettingsFor] = useState<string | null>(null);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | undefined>(undefined);
+  // the tree's view, sort and filters; the page icon picker; several pages picked
+  const treeView = useTreeViewState(projectId);
+  const [iconFor, setIconFor] = useState<{ id: string; title: string; icon: string | null } | null>(null);
+  const [bulkMove, setBulkMove] = useState<string[] | null>(null);
+  const [bulkDelete, setBulkDelete] = useState<string[] | null>(null);
+  // the "···" of a gallery card or a recent row
+  const [viewMenu, setViewMenu] = useState<{ node: DocsTreeNode; at: DOMRect } | null>(null);
+  const qc = useQueryClient();
   const [treeCollapsed, setTreeCollapsed] = useState(() => localStorage.getItem('docsTreeCollapsed') === '1');
   const [dragFiles, setDragFiles] = useState<number | null>(null);
+  // what is dragged ("Markdown", "Word", "HTML": a browser does not tell the names before the drop) and where the
+  // page area starts (the drop zone covers the page, not the tree beside it: Start 4)
+  const [dragKinds, setDragKinds] = useState<string[]>([]);
+  const [dropLeft, setDropLeft] = useState(0);
   const [failedAt, setFailedAt] = useState(() => new Date());
 
-  const move = useMovePage(projectId);
   const restore = useRestorePage(projectId);
   const publish = usePublishPage(projectId);
   const renameApi = useRenameWithLinks(projectId);
   const recycle = useDocsRecycleBin(projectId);
+  const treeActions = useTreeActions(projectId, nodes);
 
+  /** Saves a page's icon (or removes it) and shows it in the tree at once. */
+  async function saveIcon(pageId: string, icon: string | null) {
+    const tree = docsKeys.tree(projectId);
+    const before = qc.getQueryData<DocsTreeNode[]>(tree);
+    qc.setQueryData<DocsTreeNode[]>(tree, (old) => old?.map((n) => (n.id === pageId ? { ...n, icon } : n)));
+    try {
+      const saved = await patchPageSettings(pageId, { icon });
+      qc.setQueryData<DocsPage>(docsKeys.page(pageId), (old) => (old ? { ...old, ...saved } : saved));
+      void qc.invalidateQueries({ queryKey: tree });
+    } catch (e) {
+      qc.setQueryData(tree, before);
+      toast.error("Couldn't change the page icon", docsErrorDetail(e)?.message ?? extractError(e));
+    }
+  }
+
+  const layoutRef = useRef(onLayoutChange);
+  layoutRef.current = onLayoutChange;
   useEffect(() => {
-    const onResize = () => setNarrow(window.innerWidth < NARROW_PX);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+    layoutRef.current?.(layout);
+    // a drawer of the layout before is not one of this one
+    setRailOpen(false);
+  }, [layout]);
 
   // switching projects resets the selection to that project's last page
   useEffect(() => {
@@ -339,11 +516,17 @@ export function DocsView({
   }, [selectedId, projectId]);
 
   const pageQuery = useDocsPage(selectedId);
+  const readingVersion = reading && reading.pageId === selectedId ? reading.version : null;
+  const versionQuery = useDocsVersion(readingVersion ? selectedId : null, readingVersion);
+  const restoreVersion = useRestoreVersion(projectId);
   const livePage = pageQuery.data;
   const pageError = pageQuery.error ? docsErrorDetail(pageQuery.error) : null;
   const treeError = tree.error ? docsErrorDetail(tree.error) : null;
   const networkDown = (pageQuery.isError && !pageError) || (tree.isError && !treeError);
   const access = useDocsAccess(projectId);
+  // who is looking and when, for the filters of the gallery and the recent list (a new "now" with each tree)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const viewCtx = useMemo(() => ({ me: access.data?.me ?? '', now: new Date() }), [access.data?.me, nodes]);
   const aiState = useDocsAiState(projectId);
   const aiOn = aiState.data?.state === 'ready' || aiState.data?.state === 'no_member';
   const healthCount = useDocsHealthCount(projectId, aiState.data?.state === 'ready');
@@ -358,6 +541,19 @@ export function DocsView({
   const cachedPage = selectedId && !livePage ? offlineApi.getCachedPage(selectedId) : null;
   const offlineCopy = !livePage && networkDown && cachedPage ? cachedToPage(cachedPage, projectId, nodes) : null;
   const page = livePage ?? offlineCopy;
+  // a "Copy link to version" link (`?docs=<page>&version=<n>`) opens that version to read, once, when the page loads
+  const versionFromLink = useRef<number | null>(
+    (() => {
+      const n = Number(new URLSearchParams(window.location.search).get('version'));
+      return Number.isInteger(n) && n > 0 ? n : null;
+    })(),
+  );
+  useEffect(() => {
+    const n = versionFromLink.current;
+    if (n == null || !livePage) return;
+    versionFromLink.current = null;
+    if (n < livePage.version) setReading({ pageId: livePage.id, version: n });
+  }, [livePage]);
   useEffect(() => {
     if (pageQuery.isError || tree.isError) setFailedAt(new Date());
   }, [pageQuery.isError, pageQuery.errorUpdatedAt, tree.isError, tree.errorUpdatedAt]);
@@ -379,15 +575,52 @@ export function DocsView({
   );
   const [filterRequest, setFilterRequest] = useState<{ q: string; n: number } | null>(null);
 
-  const showRail = narrow || treeCollapsed || editing;
+  // Wide and Full pages fold the tree to its rail (design board "app frame", B), and a book's pages read in focus
+  const pageWide =
+    !!page && page.kind !== 'canvas' && (isWidePage(readPageLook(page.settings)) || !!bookOf(page, nodes));
+  // a tablet shows the rail; a phone has no rail (the Pages button and the left edge open the tree)
+  const folded = layout === 'tablet' || (layout === 'desktop' && (editing || pageWide));
+  const showRail = layout === 'tablet' || (layout === 'desktop' && (treeCollapsed || editing || pageWide));
   function setCollapsed(v: boolean) {
     setTreeCollapsed(v);
     localStorage.setItem('docsTreeCollapsed', v ? '1' : '0');
   }
   function showTree() {
-    if (narrow) setRailOpen(true);
+    if (layout === 'phone' || folded) setRailOpen(true);
     else setCollapsed(false);
   }
+
+  // the app bar hides while editing on a tablet or a phone, so the page and the formatting get the screen
+  const immersive = editing && layout !== 'desktop';
+  const immersiveRef = useRef(onImmersiveChange);
+  immersiveRef.current = onImmersiveChange;
+  useEffect(() => {
+    immersiveRef.current?.(immersive);
+  }, [immersive]);
+  useEffect(() => () => immersiveRef.current?.(false), []);
+
+  // Focus reading (Reader 1, 4 and the phone frames 3, 6, 9): a book's page on a desktop, and any page read on a
+  // phone, has no app chrome: no project sidebar, no app header, no tree. "← Kanban Board" in the page bar brings
+  // the chrome back for that page; the next page opened reads in focus again.
+  const [focusLeft, setFocusLeft] = useState<string | null>(null);
+  const [readerPrefs] = useReaderPrefs();
+  const focusPage =
+    !!page && focusLeft !== page.id && (layout === 'phone' || (layout === 'desktop' && !!bookOf(page, nodes)));
+
+  // a swipe from the left edge opens the tree on touch screens (the Pages button and the rail do the same)
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    const left = rootEl?.getBoundingClientRect().left ?? 0;
+    swipe.current =
+      layout !== 'desktop' && !railOpen && t && t.clientX - left < EDGE_PX ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const from = swipe.current;
+    swipe.current = null;
+    const t = e.changedTouches[0];
+    if (from && t && t.clientX - from.x > SWIPE_PX && Math.abs(t.clientY - from.y) < SWIPE_PX) setRailOpen(true);
+  };
 
   // palette hand-offs: "Create page “…”" and "Filter the tree instead"
   useEffect(() => {
@@ -398,7 +631,7 @@ export function DocsView({
       setNewPage({ parentId: null, title: intent.title });
     } else {
       onCloseResults?.();
-      if (narrow) setRailOpen(true);
+      if (narrow || folded) setRailOpen(true);
       else {
         setTreeCollapsed(false);
         localStorage.setItem('docsTreeCollapsed', '0');
@@ -433,12 +666,37 @@ export function DocsView({
     }
   }
 
+  /** Opens the export dialog (ExportHost) with a format; without it (never here), Markdown downloads as before. */
+  function exportPage(full: DocsPage, format: ExportFormat | null) {
+    if (openExport(full.id, format)) return;
+    const doc = publishedDoc(full);
+    const md = doc ? docToMarkdown(doc) : full.markdown;
+    download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(md))}\n`);
+  }
+
+  async function restoreRead(pageId: string, version: number) {
+    try {
+      const updated = await restoreVersion.mutateAsync({ pageId, version, note: `Restored from v${version}` });
+      setReading(null);
+      toast.success(`Restored v${version} as v${updated.version}`);
+    } catch (e) {
+      toast.error("Couldn't restore the version", docsErrorDetail(e)?.message ?? extractError(e));
+    }
+  }
+
   async function runAction(action: PageAction, target: { id: string; title: string }) {
     switch (action) {
-      case 'edit':
+      case 'edit': {
+        // a page converting to the rich format (or whose conversion failed) is not editable
+        const lock = page?.id === target.id ? convertLock(page) : null;
+        if (lock) {
+          toast.info(lock === 'converting' ? 'Not yet' : 'Read-only', convertLockTip(lock));
+          return;
+        }
         select(target.id);
         setEditing(true);
         return;
+      }
       case 'add-child':
         setNewPage({ parentId: target.id });
         return;
@@ -457,21 +715,56 @@ export function DocsView({
         setHistory({});
         return;
       case 'rename':
-        if (showRail) showTree();
-        setRenamingId(target.id);
+        // the dialog: the icon is part of the name, and it says what happens to links (F2 on a row renames inline)
+        setRenameFor({ node: { id: target.id, title: target.title }, newTitle: target.title });
         return;
+      case 'settings':
+      case 'book':
+        if (page?.id !== target.id) select(target.id);
+        treeView.setView('tree');
+        setSettingsTab(action === 'book' ? 'book' : undefined);
+        setSettingsFor(target.id);
+        return;
+      case 'icon': {
+        const known = nodes.find((n) => n.id === target.id)?.icon ?? null;
+        setIconFor({ id: target.id, title: target.title, icon: known });
+        return;
+      }
+      case 'save-template':
+        if (readOnly) {
+          toast.info('Read-only', readOnly);
+          return;
+        }
+        break;
       default:
     }
     const full = await pageForNode(target.id);
     if (!full) return;
     if (action === 'move') setMoveFor(full);
     else if (action === 'duplicate') setDupFor(full);
-    else if (action === 'copy-markdown') await copy(`# ${full.title}\n\n${full.markdown}`, 'Markdown copied');
-    else if (action === 'export')
-      download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(full.markdown))}\n`);
+    else if (action === 'export') exportPage(full, null);
+    else if (action === 'save-template') setSaveTplFor(full);
+    else if (action === 'copy-markdown') {
+      // a rich page's Markdown is written from its JSON, as the editor writes it (the server's projection otherwise)
+      const doc = publishedDoc(full);
+      const md = doc ? docToMarkdown(doc) : full.markdown;
+      await copy(`# ${full.title}\n\n${md}`, 'Markdown copied');
+    }
   }
 
-  const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor || giveFor);
+  const anyDialog = !!(
+    newPage ||
+    moveFor ||
+    dupFor ||
+    history ||
+    deleteFor ||
+    renameFor ||
+    giveFor ||
+    saveTplFor ||
+    iconFor ||
+    bulkMove ||
+    bulkDelete
+  );
   usePageShortcuts(
     (a) => {
       if (page) void runAction(a, page);
@@ -495,6 +788,24 @@ export function DocsView({
 
   async function replaceSection(from: { title: string; anchor: string }, to: string) {
     if (!livePage || livePage.version < 1) return;
+    const doc = publishedDoc(livePage);
+    if (doc) {
+      // a rich page: the reference nodes themselves point at the new section
+      const next = replaceSectionRefs(doc, from, to);
+      if (!next) return;
+      try {
+        await publish.mutateAsync({
+          pageId: livePage.id,
+          baseVersion: livePage.version,
+          content: next,
+          note: `Link to ${from.title} › ${to} updated`,
+        });
+        toast.success(`Link now points to “${to}”`);
+      } catch (e) {
+        toast.error("Couldn't update the link", docsErrorDetail(e)?.message ?? extractError(e));
+      }
+      return;
+    }
     const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const md = livePage.markdown.replace(
       new RegExp(`\\[\\[${esc(from.title)}#${esc(from.anchor)}(?=[\\]|])`, 'g'),
@@ -522,7 +833,17 @@ export function DocsView({
     const enter = (e: DragEvent) => {
       if (!hasFiles(e)) return;
       depth += 1;
-      setDragFiles(Math.max(1, Array.from(e.dataTransfer?.items ?? []).filter((i) => i.kind === 'file').length));
+      const items = Array.from(e.dataTransfer?.items ?? []).filter((i) => i.kind === 'file');
+      setDragFiles(Math.max(1, items.length));
+      setDragKinds(items.map((i) => dragKindOf(i.type)));
+      if (rootEl) {
+        const box = rootEl.getBoundingClientRect();
+        const side = Array.from(rootEl.children).find((c) => {
+          const r = c.getBoundingClientRect();
+          return r.width > 0 && r.left <= box.left + 1 && r.width < box.width / 2 && r.height > box.height / 2;
+        });
+        setDropLeft(side ? Math.round(side.getBoundingClientRect().right - box.left) : 0);
+      }
     };
     const over = (e: DragEvent) => {
       if (!hasFiles(e)) return;
@@ -551,7 +872,7 @@ export function DocsView({
       window.removeEventListener('dragleave', leave);
       window.removeEventListener('drop', drop);
     };
-  }, [onDropFiles, editing]);
+  }, [onDropFiles, editing, rootEl]);
 
   const firstPage = () =>
     nodes.filter((n) => !n.parentId && !deletedHere.current.has(n.id)).sort((a, b) => a.position - b.position)[0];
@@ -584,6 +905,17 @@ export function DocsView({
     access.data?.access === false || treeError?.code === 'docs_no_access' || pageError?.code === 'docs_no_access';
   const disabledRole = treeError?.role ?? pageError?.role;
 
+  const menuSub = (n: DocsTreeNode) =>
+    `${(n.parentId && nodes.find((x) => x.id === n.parentId)?.title) || 'Top level'} · ${rowStatus(n, new Date()).label}`;
+  const changeView = (v: TreeView) => {
+    treeView.setView(v);
+    setHealthOpen(false);
+    if (v !== 'tree') {
+      onCloseResults?.();
+      setEditing(false);
+      setRailOpen(false);
+    }
+  };
   const treeEl = (
     <DocsTree
       projectId={projectId}
@@ -593,11 +925,25 @@ export function DocsView({
       loadingId={pageQuery.isLoading ? selectedId : null}
       onSelect={(id) => {
         setHealthOpen(false);
+        treeView.setView('tree');
         select(id);
       }}
       onNewPage={(parentId) => setNewPage({ parentId })}
+      renderNewPageMenu={(close) => (
+        <NewPageMenu
+          touch={narrow}
+          onClose={close}
+          onChoose={(c) => {
+            if (c.kind === 'blank') setNewPage({ parentId: null, template: 'blank' });
+            else if (c.kind === 'gallery') setNewPage({ parentId: null });
+            else if (c.kind === 'template') setNewPage({ parentId: null, template: c.id });
+            else onImport?.(c.kind === 'paste' ? 'paste' : undefined);
+          }}
+        />
+      )}
       headerActions={
-        onPopOut ? (
+        // a window of its own is a desktop thing: the touch drawer's header has only its close button (Tree1 A 2-3)
+        onPopOut && layout === 'desktop' ? (
           <button
             type="button"
             className="dk-icobtn"
@@ -614,20 +960,39 @@ export function DocsView({
       onRequestRename={(n, t) => void requestRename(n, t)}
       renamingId={renamingId}
       onRenamingChange={setRenamingId}
-      onMove={(id, parentId, beforeId, afterId) =>
-        move.mutateAsync({ pageId: id, parentId, beforeId, afterId }).catch((e) => {
-          toast.error("Couldn't move the page", docsErrorDetail(e)?.message ?? extractError(e));
-        })
-      }
-      onCollapse={() => (narrow ? setRailOpen(false) : setCollapsed(true))}
+      onMove={(id, parentId, beforeId, afterId) => treeActions.moveOne(id, { parentId, beforeId, afterId })}
+      layout={layout}
+      view={treeView.view}
+      onViewChange={changeView}
+      sort={treeView.sort}
+      onSortChange={treeView.setSort}
+      filters={treeView.filters}
+      onFiltersChange={treeView.setFilters}
+      me={access.data?.me ?? ''}
+      onBulk={(action, roots) => {
+        if (action === 'move') setBulkMove(roots);
+        else if (action === 'delete') setBulkDelete(roots);
+        else if (action === 'duplicate') void treeActions.duplicateMany(roots);
+        else treeActions.exportMany(roots);
+      }}
+      onMoveTo={(n) => void runAction('move', n)}
+      binCount={recycle.data?.length}
+      onOpenBin={() => window.dispatchEvent(new CustomEvent(OPEN_RECYCLE_BIN_EVENT))}
+      onCollapse={() => (railOpen ? setRailOpen(false) : setCollapsed(true))}
       aiOn={aiOn}
       onAskDocs={onAskDocs}
-      onHealth={() => setHealthOpen(true)}
+      onHealth={() => {
+        setHealthOpen(true);
+        // on a tablet or a phone the tree is a drawer over the page: Docs health shows once it is gone
+        setRailOpen(false);
+      }}
       healthActive={healthOpen}
       healthCount={healthCount}
       renderMenu={(node, close) => (
         <TreePageMenu
           node={node}
+          sheet={layout === 'phone'}
+          sub={menuSub(node)}
           onClose={close}
           onAction={(a) => {
             close();
@@ -643,6 +1008,8 @@ export function DocsView({
 
   let content: React.ReactNode;
   let leftOverride: React.ReactNode = null;
+  // the page is read (not edited, no list or view over it): it may read in focus
+  let focusOn = false;
   if (docsDisabled) {
     leftOverride = <></>;
     content = (
@@ -650,6 +1017,7 @@ export function DocsView({
         onOpenSettings={onOpenSettings}
         onBack={onBack}
         isAdmin={!disabledRole || disabledRole === 'admin'}
+        admin={access.data?.admins?.[0]}
       />
     );
   } else if (noAccess) {
@@ -666,9 +1034,10 @@ export function DocsView({
     content = (
       <DocsHealthView
         projectId={projectId}
-        onOpenPage={(id) => {
+        onOpenPage={(id, anchor) => {
           setHealthOpen(false);
           select(id);
+          if (anchor) scrollToSection(anchor);
         }}
         onOpenTicket={onOpenTicket}
         onWritePage={(ticketId) => {
@@ -713,7 +1082,10 @@ export function DocsView({
     content = (
       <DocsHero
         projectName={projectName}
+        projectId={projectId}
         ticketPrefix={heroPrefix}
+        layout={layout}
+        onBrowseTemplates={() => setNewPage({ parentId: null })}
         onCreate={(t) => setNewPage({ parentId: null, template: t })}
         onImport={onImport}
         onDropFiles={onDropFiles}
@@ -746,6 +1118,7 @@ export function DocsView({
         ) : (
           <PageSkeleton
             title={selNode?.title}
+            cover={!!selNode?.cover}
             crumbs={selNode ? crumbsFor(selNode) : undefined}
             note={pageLoadingStage === 1 ? <SlowLoadNote onRetry={() => void pageQuery.refetch()} /> : undefined}
           />
@@ -801,7 +1174,7 @@ export function DocsView({
         onOpenPage={select}
       />
     );
-  } else if (editing && !offlineCopy) {
+  } else if (editing && !offlineCopy && !(livePage && convertLock(livePage))) {
     content = (
       <DocsEditScreen
         key={page.id}
@@ -821,9 +1194,12 @@ export function DocsView({
           setEditing(false);
           if (updated) setSelectedId(updated.id);
         }}
+        layout={layout}
+        onOpenSettings={() => setSettingsFor(page.id)}
       />
     );
   } else {
+    focusOn = true;
     content = (
       <DocsPageView
         key={page.id}
@@ -834,6 +1210,7 @@ export function DocsView({
         narrow={narrow || history !== null}
         offline={offlineCopy ? { savedAt: cachedPage!.savedAt, version: cachedPage!.version } : null}
         readOnly={readOnly}
+        viewer={access.data?.role ? { role: access.data.role, admins: access.data.admins } : null}
         onTryAgain={() => {
           void pageQuery.refetch();
           void tree.refetch();
@@ -849,11 +1226,31 @@ export function DocsView({
         onRestorePage={(id) => restore.mutate(id, { onSuccess: () => toast.success('Page restored') })}
         onReplaceSection={(f, t) => void replaceSection(f, t)}
         onBodyRef={onBodyRef}
+        layout={layout}
+        // on a tablet the rail has the menu button
+        onOpenSidebar={layout === 'phone' ? onOpenSidebar : undefined}
+        onOpenTree={() => setRailOpen(true)}
+        onSearch={onSearch ? () => onSearch() : undefined}
+        nodes={nodes}
+        onExport={(f) => exportPage(page, f)}
+        focus={focusPage ? { onLeave: () => setFocusLeft(page.id), label: projectName } : null}
+        olderVersion={
+          readingVersion
+            ? {
+                version: readingVersion,
+                detail: versionQuery.data ?? null,
+                onBack: () => setReading(null),
+                onRestore: () => void restoreRead(page.id, readingVersion),
+                restoring: restoreVersion.isPending,
+              }
+            : null
+        }
       />
     );
   }
 
   if (resultsQuery !== null && !docsDisabled && !treeLoading) {
+    focusOn = false;
     content = (
       <SearchResults
         key={resultsQuery}
@@ -866,99 +1263,156 @@ export function DocsView({
         }}
         onOpenTicket={onOpenTicket}
         onBack={() => onCloseResults?.()}
+        currentPage={selectedId ? { id: selectedId, title: nodes.find((n) => n.id === selectedId)?.title ?? '' } : null}
       />
     );
   }
 
+  // Gallery and Recent take the page's place (the tree stays on the left)
+  const otherView =
+    treeView.view !== 'tree' &&
+    resultsQuery === null &&
+    !leftOverride &&
+    !docsDisabled &&
+    !noAccess &&
+    !treeLoading &&
+    !empty &&
+    !(healthOpen && aiOn);
+  if (otherView) {
+    focusOn = false;
+    const viewProps = {
+      nodes,
+      layout,
+      filters: treeView.filters,
+      onFiltersChange: treeView.setFilters,
+      ctx: viewCtx,
+      sort: treeView.sort,
+      onSortChange: treeView.setSort,
+      onOpen: (id: string) => {
+        treeView.setView('tree');
+        select(id);
+      },
+      onMenu: (node: DocsTreeNode, at: DOMRect) => setViewMenu({ node, at }),
+      renderSuggestions: (n: DocsTreeNode) => <SuggestionCount count={n.suggestions} />,
+      // touch: the bar over the view opens the tree's drawer and switches the view (Tree1 B 8-9, 13-14)
+      onOpenTree: layout === 'desktop' ? undefined : () => setRailOpen(true),
+      onViewChange: layout === 'desktop' ? undefined : changeView,
+    };
+    content =
+      treeView.view === 'gallery' ? (
+        <GalleryView
+          {...viewProps}
+          onMove={readOnly ? undefined : (id, t) => void treeActions.moveOne(id, t)}
+          onAddChild={readOnly ? undefined : (parentId) => setNewPage({ parentId })}
+        />
+      ) : (
+        <RecentView {...viewProps} />
+      );
+  }
+
+  const focus = focusOn && focusPage;
+  // the page's tone (the reader's Sepia or Night, or the page's own background) dresses the whole space around it
+  const tone = docsTone(focusOn && page && page.kind !== 'canvas' ? readPageLook(page.settings) : null, readerPrefs);
+  const focusRef = useRef(onFocusChange);
+  focusRef.current = onFocusChange;
+  useEffect(() => {
+    focusRef.current?.(focus);
+  }, [focus]);
+  useEffect(() => () => focusRef.current?.(false), []);
+
+  const treeDrawer = railOpen && !leftOverride && (
+    <DocsDrawer
+      label="Pages"
+      // Tree1 A 2-3: the tree's drawer is 400 wide on a tablet and 340 on a phone
+      width={layout === 'phone' ? 340 : 400}
+      onClose={() => setRailOpen(false)}
+      testId="tree-drawer"
+    >
+      {treeEl}
+    </DocsDrawer>
+  );
+  // a phone has no tree beside the page (it is a drawer); an empty space keeps the full tree for its New page
   const left =
     leftOverride ??
-    (empty ? (
-      treeEl
-    ) : showRail ? (
-      <>
-        <DocsRail
-          nodes={nodes}
-          selectedId={selectedId}
-          onExpand={showTree}
-          onSearch={() => onSearch?.()}
-          onNewPage={readOnly ? undefined : (p) => setNewPage({ parentId: p })}
-          onSelect={select}
-        />
-        {narrow && railOpen && (
-          <div
-            style={{
-              position: 'absolute',
-              left: 56,
-              top: 0,
-              bottom: 0,
-              zIndex: 25,
-              boxShadow: '8px 0 24px rgba(30,42,34,0.14)',
-              display: 'flex',
-            }}
-          >
-            {treeEl}
-          </div>
-        )}
-      </>
+    (layout === 'phone' || focus ? null : showRail && !empty ? (
+      <DocsRail
+        nodes={nodes}
+        selectedId={selectedId}
+        onExpand={showTree}
+        onSearch={() => onSearch?.()}
+        onNewPage={readOnly ? undefined : (p) => setNewPage({ parentId: p })}
+        onSelect={select}
+        onOpenSidebar={layout === 'tablet' ? onOpenSidebar : undefined}
+      />
     ) : (
       treeEl
     ));
+  const settingsPage = page && settingsFor === page.id && page.kind !== 'canvas' && !leftOverride ? page : null;
+  const settingsPanel = settingsPage && (
+    <PageSettingsPanel
+      key={`${settingsPage.id}:${settingsTab ?? ''}`}
+      page={settingsPage}
+      initialTab={settingsTab}
+      nodes={nodes}
+      layout={layout}
+      readOnly={readOnly ?? (offlineCopy ? 'Reconnect to change the page settings.' : null)}
+      onClose={() => setSettingsFor(null)}
+      onSaveTemplate={() => setSaveTplFor(settingsPage)}
+    />
+  );
 
   return (
     <DocsPeekProvider value={peek}>
       <div
-        className="docs-root"
+        ref={setRootEl}
+        className={`docs-root dk-layout-${layout}${narrow ? ' dk-touch' : ''}${tone.className ? ` ${tone.className}` : ''}`}
         data-testid="docs-view"
+        data-layout={layout}
+        data-docs-tone={tone.tone}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
         style={{
           flex: 1,
           minHeight: 0,
+          minWidth: 0,
           display: 'flex',
           position: 'relative',
           overflow: 'hidden',
           background: '#FFFFFF',
+          ...tone.style,
         }}
       >
+        {tone.className && <style>{readerThemeCss()}</style>}
+        {/* the first Tab stop of the space: past the tree to the page text (Docs states J 69) */}
+        {page && !editing && <SkipLink />}
         {left}
         {content}
+        {settingsPanel}
+        {treeDrawer}
         {!editing && !empty && !docsDisabled && (
-          <SinceViewedDigest projectId={projectId} nodes={nodes} onOpenPage={select} />
+          <SinceViewedDigest projectId={projectId} nodes={nodes} onOpenPage={select} phone={layout === 'phone'} />
         )}
 
         {dragFiles != null && (
-          <div
-            role="presentation"
-            style={{
-              position: 'absolute',
-              inset: 12,
-              zIndex: 150,
-              borderRadius: 12,
-              border: '2px dashed #2E6F40',
-              background: 'rgba(241,248,243,0.94)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              pointerEvents: 'none',
-            }}
-          >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: '#DCEEE1',
-                color: '#2E6F40',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Icon name="i26" size={22} strokeWidth={1.8} />
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>
+          <div role="presentation" className="dk-dropzone" style={{ left: dropLeft + 14 }} data-testid="docs-dropzone">
+            <span className="dk-dropzone-icon">
+              <Icon name="i26" size={26} strokeWidth={2} />
+            </span>
+            <div className="dk-dropzone-title">
               Drop to add {dragFiles} file{dragFiles === 1 ? '' : 's'}
             </div>
+            <div className="dk-dropzone-text">Markdown, Word and HTML files. Folders become a page tree.</div>
+            {dragKinds.length > 0 && (
+              <div className="dk-dropzone-files">
+                {dragKinds.slice(0, 4).map((k, i) => (
+                  <span key={i} className="dk-dropzone-file">
+                    <Icon name="i18" size={13} strokeWidth={1.9} />
+                    {k}
+                  </span>
+                ))}
+                {dragKinds.length > 4 && <span className="dk-dropzone-file">+{dragKinds.length - 4}</span>}
+              </div>
+            )}
           </div>
         )}
 
@@ -970,6 +1424,8 @@ export function DocsView({
             initialTemplate={newPage.template}
             initialTitle={newPage.title}
             aiFrom={newPage.aiFrom}
+            initialChip={newPage.chip}
+            layout={layout}
             onClose={() => setNewPage(null)}
             onCreated={(p) => {
               setNewPage(null);
@@ -979,6 +1435,22 @@ export function DocsView({
             }}
           />
         )}
+        {saveTplFor && (
+          <SaveTemplateDialog
+            projectId={projectId}
+            page={saveTplFor}
+            layout={layout}
+            onClose={() => setSaveTplFor(null)}
+            onSaved={() => {
+              setSaveTplFor(null);
+              toast.success('Saved as a template.', 'Find it in New page › Yours.', 8000, {
+                label: 'Open the gallery',
+                onClick: () => setNewPage({ parentId: null, chip: 'yours' }),
+              });
+            }}
+          />
+        )}
+        {editing && page?.convertState === 'done' && !readOnly && <WhatsNewTour layout={layout} />}
         {moveFor && (
           <MoveToDialog
             projectId={projectId}
@@ -1007,6 +1479,12 @@ export function DocsView({
             initialCompare={history.compare}
             onClose={() => setHistory(null)}
             onReopen={() => setHistory({})}
+            onOpenPage={select}
+            layout={layout}
+            onRead={(v) => {
+              setReading({ pageId: page.id, version: v });
+              setHistory(null);
+            }}
           />
         )}
         {deleteFor && (
@@ -1041,15 +1519,98 @@ export function DocsView({
             }}
           />
         )}
+        {iconFor && (
+          <IconPicker
+            projectId={projectId}
+            title={iconFor.title}
+            current={iconFor.icon}
+            layout={layout}
+            onClose={() => setIconFor(null)}
+            onPick={(icon) => {
+              const id = iconFor.id;
+              setIconFor(null);
+              void saveIcon(id, icon);
+            }}
+          />
+        )}
+        {bulkMove && nodes.find((n) => n.id === bulkMove[0]) && (
+          <MoveToDialog
+            projectId={projectId}
+            page={
+              cachedToPageStub(
+                nodes.find((n) => n.id === bulkMove[0])!,
+                projectId,
+              ) as DocsPage
+            }
+            nodes={nodes.filter((n) => !bulkMove.slice(1).includes(n.id))}
+            heading={bulkMove.length > 1 ? `Move ${bulkMove.length} pages` : undefined}
+            onClose={() => setBulkMove(null)}
+            onChoose={(t) => void treeActions.moveMany(bulkMove, t)}
+          />
+        )}
+        {bulkDelete && (
+          <BulkDeleteDialog
+            roots={nodes.filter((n) => bulkDelete.includes(n.id))}
+            affected={affectedPages(nodes, bulkDelete).size}
+            layout={layout}
+            onClose={() => setBulkDelete(null)}
+            onConfirm={() => {
+              const roots = bulkDelete;
+              setBulkDelete(null);
+              if (selectedId && affectedPages(nodes, roots).has(selectedId)) {
+                localStorage.removeItem(`docsPage:${projectId}`);
+                setSelectedId(null);
+                setEditing(false);
+              }
+              void treeActions.deleteMany(roots);
+            }}
+          />
+        )}
+        {viewMenu && (
+          <div
+            className="docs-root"
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              left: viewMenu.at.right,
+              top: viewMenu.at.bottom - 6,
+              width: 0,
+              height: 0,
+              zIndex: 300,
+            }}
+          >
+            <TreePageMenu
+              node={viewMenu.node}
+              sheet={layout === 'phone'}
+              sub={menuSub(viewMenu.node)}
+              onClose={() => setViewMenu(null)}
+              onAction={(a) => {
+                const n = viewMenu.node;
+                setViewMenu(null);
+                void runAction(a, n);
+              }}
+            />
+          </div>
+        )}
         {renameFor && (
           <RenameDialog
             projectId={projectId}
             page={renameFor.node}
             newTitle={renameFor.newTitle}
+            nodes={nodes}
+            layout={layout}
             onClose={() => setRenameFor(null)}
             onRenamed={() => setRenameFor(null)}
           />
         )}
+        <ExportHost
+          projectId={projectId}
+          projectName={projectName}
+          nodes={nodes}
+          canEdit={!!access.data?.canEdit}
+          layout={layout}
+          currentPage={page}
+        />
         {peekTarget && (
           <DocPeekPanel
             target={peekTarget}
@@ -1075,7 +1636,7 @@ export function DocsView({
 /** Files from a drop, walking dropped folders and keeping the relative path on `webkitRelativePath`. */
 async function collectFiles(dt: DataTransfer): Promise<File[]> {
   const out: File[] = [];
-  const isMd = (n: string) => /\.(md|markdown)$/i.test(n);
+  const isMd = (n: string) => /\.(md|markdown|docx|html?)$/i.test(n);
   const walk = async (entry: FileSystemEntry, prefix: string): Promise<void> => {
     if (entry.isFile) {
       const file = await new Promise<File>((res, rej) => (entry as FileSystemFileEntry).file(res, rej));

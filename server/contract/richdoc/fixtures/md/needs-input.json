@@ -1,0 +1,63 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "The owner is [Needs input: who owns this?]."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "[Needs input: budget figure]"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000003"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000004"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000005"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Deadline: [Needs input: date]"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000006"
+      }
+    }
+  ]
+}

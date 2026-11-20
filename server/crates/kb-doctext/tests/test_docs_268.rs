@@ -97,6 +97,24 @@ fn test_the_docs_guide_is_one_text_in_both_places() {
     for form in ["==", "> [!WARNING]", "- [ ]", "[[Page#Section]]", "action='edit'", "action='upload'"] {
         assert!(docs_guide::GUIDE.contains(form), "{form}");
     }
+    // Rich Docs: the annotated view, block edits, the names of the format contract and what a team's change becomes
+    for form in [
+        "<!-- #b-3f2a9c align=center -->",
+        "block_id='b-3f2a9c'",
+        "mode='delete'",
+        "attrs={\"align\": \"center\"}",
+        "placement=floatRight",
+        "<!-- pullQuote -->",
+        "[words]{color=red}",
+        "[embed: video · Release demo]",
+        "action='block'",
+        "action='highlights'",
+        "suggestions",
+        "left_alone",
+        "Not for AI teams",
+    ] {
+        assert!(docs_guide::GUIDE.contains(form), "{form}");
+    }
 }
 
 #[test]

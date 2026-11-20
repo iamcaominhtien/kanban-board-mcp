@@ -26,6 +26,11 @@ import { openRefCheatSheet } from './RefCheatSheet';
 import { AskPanel } from './ai/AskPanel';
 import { useDocsAiState } from '../../api/docsAi';
 import { askTabAvailable } from '../../utils/askRules';
+import { MatchMarker, TableRowSnip, matchAnchor } from './links/MatchMarker';
+import { QO_HEAD, QoRow, QoTile } from './links/QuickOpen';
+import './links/links.css';
+import type { DocsTreeNode } from '../../types/docs';
+import { useDocsLayout } from '../../hooks/useDocsLayout';
 
 // ─── recents + hotkey (exported helpers) ──────────────────────────────────────
 
@@ -119,6 +124,8 @@ export interface SearchPaletteProps {
   mode?: 'ask';
   /** "Draft a page from this question" in Ask. Left out, the button is hidden. */
   onWritePage?: (question: string) => void;
+  /** A screen of its own (phone): the whole window, no rounded box, results filling the height. */
+  fullScreen?: boolean;
 }
 
 type Row =
@@ -138,7 +145,9 @@ type Row =
     }
   | { kind: 'mention'; key: string; page: DocsSearchPage }
   | { kind: 'recent-search'; key: string; text: string }
-  | { kind: 'recent-page'; key: string; id: string; title: string; label: string };
+  | { kind: 'recent-page'; key: string; id: string; title: string; label: string; current?: boolean }
+  /** A page the open page links to ("Links on this page"). */
+  | { kind: 'link-page'; key: string; id: string; title: string; label: string };
 
 interface Section {
   title: string;
@@ -185,6 +194,7 @@ const hint = (keys: ReactNode, label: string) => (
  * @param props.onCreatePage - Called with a title; adds a "Create page" row when nothing was found.
  * @param props.onFilterTree - Called with the query; adds "Filter the tree instead" in the error state.
  * @param props.initialQuery - Query typed when the palette opens.
+ * @param props.fullScreen - Fill the window (the phone layout: search is its own screen).
  */
 export function SearchPalette({
   projectId,
@@ -199,9 +209,16 @@ export function SearchPalette({
   initialQuery = '',
   mode: initialMode,
   onWritePage,
+  fullScreen = false,
 }: SearchPaletteProps) {
   const toast = useToast();
   const online = useDocsOnline();
+  // RichDocsLinks A 4-6: a centred 640 px panel on a tablet (54 px rows), a full screen on a phone (58 px rows); no
+  // key hints on either, since there is no keyboard to press them with
+  const windowLayout = useDocsLayout(null);
+  const layout = fullScreen ? 'phone' : windowLayout;
+  const touch = layout !== 'desktop';
+  const phone = layout === 'phone';
   const [q, setQ] = useState(initialQuery);
   const [dq, setDq] = useState(initialQuery);
   const [scope, setScope] = useState<Scope>('space');
@@ -329,6 +346,23 @@ export function SearchPalette({
     return null;
   }, [data, searchable, mode, scope, showOffline, parsed, nodes]);
 
+  // the pages the open page links to, in the order they come (rich content: docRef, pageCard)
+  const linkedIds = useMemo(() => {
+    const ids: string[] = [];
+    const byTitle = new Map(nodes.map((n) => [n.title.toLowerCase(), n.id]));
+    const walk = (n: { type?: string; attrs?: Record<string, unknown>; content?: unknown[] } | undefined) => {
+      if (!n) return;
+      if (n.type === 'docRef' || n.type === 'pageCard') {
+        const id = (n.attrs?.pageId as string) || byTitle.get(String(n.attrs?.page ?? '').toLowerCase());
+        if (id && !ids.includes(id)) ids.push(id);
+        return;
+      }
+      (n.content as (typeof n)[] | undefined)?.forEach(walk);
+    };
+    walk((page.data?.content ?? undefined) as Parameters<typeof walk>[0]);
+    return ids;
+  }, [page.data, nodes]);
+
   // ── rows ──
   const sections: Section[] = useMemo(() => {
     const out: Section[] = [];
@@ -339,18 +373,32 @@ export function SearchPalette({
       return par?.title ?? 'Top level';
     };
     if (!searchable || tooShort) {
-      const rs = recents.slice(0, 4).map<Row>((t) => ({ kind: 'recent-search', key: 'rs:' + t, text: t }));
-      if (rs.length) out.push({ title: 'Recent searches', rows: rs });
+      // Go to page… (RichDocsLinks A 1): recent pages first, the page you are on dimmed; then where it links
       const rp = readJson<RecentDocsPage[]>(recentPagesKey(projectId), [])
-        .slice(0, 3)
+        .filter((p) => nodeById.has(p.id))
+        .slice(0, 5)
         .map<Row>((p) => ({
           kind: 'recent-page',
           key: 'rp:' + p.id,
           id: p.id,
           title: nodeById.get(p.id)?.title ?? p.title,
           label: parentOf(p.id),
+          current: p.id === pageId,
         }));
-      if (rp.length && trimmed.length === 0) out.push({ title: 'Recently viewed', rows: rp });
+      if (rp.length && trimmed.length === 0) out.push({ title: 'Recent pages', rows: rp });
+      const lp = linkedIds
+        .filter((id) => nodeById.has(id) && id !== pageId)
+        .slice(0, 4)
+        .map<Row>((id) => ({
+          kind: 'link-page',
+          key: 'lp:' + id,
+          id,
+          title: nodeById.get(id)!.title,
+          label: parentOf(id),
+        }));
+      if (lp.length && trimmed.length === 0) out.push({ title: 'Links on this page', rows: lp });
+      const rs = recents.slice(0, 4).map<Row>((t) => ({ kind: 'recent-search', key: 'rs:' + t, text: t }));
+      if (rs.length) out.push({ title: 'Recent searches', rows: rs });
       return out;
     }
     if (!data) return out;
@@ -450,17 +498,45 @@ export function SearchPalette({
       out.push({ title: `Saved pages · ${rows.length}`, rows });
       return out;
     }
+    // titles first, then headings and tickets (RichDocsLinks A 2), then the pages whose text matches
     const hits = data.pages.filter(titleHit);
     if (hits.length && !hasPhrase)
       out.push({
         title: `Pages · ${hits.length}`,
         rows: hits.map((p) => ({ kind: 'page', key: 'p:' + p.pageId, page: p, label: parentLabel(p) })),
       });
-    const withText = data.pages.filter((p) => p.matches.length);
+    const heads: Row[] = [];
+    data.pages.forEach((p) =>
+      p.matches.forEach((m, mi) => {
+        if (m.kind === 'heading' && m.section)
+          heads.push({ kind: 'heading', key: `qh:${p.pageId}:${mi}`, page: p, mi });
+      }),
+    );
+    if (heads.length) out.push({ title: `Headings · ${heads.length}`, rows: heads });
+    const withText = data.pages.filter((p) => p.matches.some((m) => m.kind !== 'heading'));
     if (withText.length)
       out.push({
         title: `In page content · ${withText.length}`,
-        rows: withText.map((p) => ({ kind: 'content', key: 'c:' + p.pageId, page: p, mi: 0 })),
+        rows: withText.map((p) => ({
+          kind: 'content',
+          key: 'c:' + p.pageId,
+          page: p,
+          mi: Math.max(
+            0,
+            p.matches.findIndex((m) => m.kind !== 'heading'),
+          ),
+        })),
+      });
+    if (data.tickets?.length)
+      out.push({
+        title: `Tickets · ${data.tickets.length}`,
+        rows: data.tickets.map((t) => ({
+          kind: 'ticket',
+          key: 't:' + t.ticketId,
+          id: t.ticketId,
+          title: t.title,
+          status: t.status,
+        })),
       });
     return out;
   }, [
@@ -481,6 +557,8 @@ export function SearchPalette({
     linkPage.data,
     dTrim,
     hasPhrase,
+    linkedIds,
+    pageId,
   ]);
 
   const flat = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
@@ -511,6 +589,7 @@ export function SearchPalette({
           inputRef.current?.focus();
           return;
         case 'recent-page':
+        case 'link-page':
           onOpenPage(r.id);
           onClose();
           return;
@@ -530,13 +609,13 @@ export function SearchPalette({
         case 'heading':
           if (shift) return copy(`[[${r.page.title}#${r.page.matches[r.mi].section}]]`);
           finish();
-          onOpenPage(r.page.pageId, r.page.matches[r.mi].slug);
+          onOpenPage(r.page.pageId, matchAnchor(r.page.matches[r.mi]));
           return;
         case 'section':
         case 'content': {
           finish();
           const m = r.page.matches[r.mi];
-          onOpenPage(r.page.pageId, m?.slug || undefined);
+          onOpenPage(r.page.pageId, m ? matchAnchor(m) : undefined);
           return;
         }
         case 'mention':
@@ -559,6 +638,13 @@ export function SearchPalette({
   };
 
   const noResults = searchable && !loading && !failed && !!data && flat.length === 0 && !pending;
+  // "Did you mean": the page whose title holds the spelling the server suggests (RichDocsLinks A 3)
+  const suggestedNode: DocsTreeNode | undefined = useMemo(() => {
+    const word = data?.suggestion?.toLowerCase();
+    if (!noResults || !word) return undefined;
+    return nodes.find((n) => n.title.toLowerCase() === word) ?? nodes.find((n) => n.title.toLowerCase().includes(word));
+  }, [noResults, data?.suggestion, nodes]);
+  const nodeOf = (id: string) => nodes.find((n) => n.id === id);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -582,6 +668,11 @@ export function SearchPalette({
       e.preventDefault();
       if ((e.ctrlKey || e.metaKey) && trimmed.length >= 2) return showAll();
       if (noResults && !showOffline) {
+        if (suggestedNode) {
+          onOpenPage(suggestedNode.id);
+          onClose();
+          return;
+        }
         if (scope !== 'all') setScope('all');
         return;
       }
@@ -596,56 +687,84 @@ export function SearchPalette({
   // ── render helpers ──
   const header = (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '13px 18px',
-        borderBottom: '1px solid #E3E8E5',
-      }}
+      className="qo-head"
+      data-layout={layout}
+      style={
+        touch
+          ? undefined
+          : {
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '13px 18px',
+              borderBottom: '1px solid #E3E8E5',
+            }
+      }
     >
-      <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
-      <div className="fx-qwrap">
-        <div className="fx-qback" ref={backRef} aria-hidden="true">
-          {q === '' ? (
-            <span style={{ color: '#6B7A70' }}>{`Search ${projectName} docs…`}</span>
-          ) : (
-            tokenize(q).map((t, i) =>
-              t.kind === 'plain' ? (
-                <span key={i}>
-                  {(mode === 'link' || mode === 'headings') && i > 0 ? (
-                    <mark className="fx-mark">{t.text}</mark>
-                  ) : (
-                    t.text
-                  )}
-                </span>
-              ) : (
-                <span
-                  key={i}
-                  className="fx-qtok"
-                  style={{ color: TOKEN_STYLE[t.kind].fg, ['--tok-bg' as string]: TOKEN_STYLE[t.kind].bg }}
-                >
-                  {t.text}
-                </span>
-              ),
-            )
-          )}
+      {layout === 'phone' ? (
+        <button type="button" className="qo-back" aria-label="Back to the page" onClick={onClose}>
+          <Icon name="chevronRight" size={20} strokeWidth={1.9} style={{ transform: 'rotate(180deg)' }} />
+        </button>
+      ) : (
+        <Icon name="i09" size={18} strokeWidth={2} style={{ color: layout === 'tablet' ? '#5B6B60' : '#2E6F40' }} />
+      )}
+      <div className={layout === 'phone' ? 'qo-field' : 'qo-field-plain'}>
+        {layout === 'phone' && <Icon name="i09" size={16} strokeWidth={2} style={{ color: '#5B6B60' }} />}
+        <div className="fx-qwrap">
+          <div className="fx-qback" ref={backRef} aria-hidden="true">
+            {q === '' ? (
+              <span style={{ color: '#6B7A70' }}>{`Search ${projectName} docs…`}</span>
+            ) : (
+              tokenize(q).map((t, i) =>
+                t.kind === 'plain' ? (
+                  <span key={i}>
+                    {(mode === 'link' || mode === 'headings') && i > 0 ? (
+                      <mark className="fx-mark">{t.text}</mark>
+                    ) : (
+                      t.text
+                    )}
+                  </span>
+                ) : (
+                  <span
+                    key={i}
+                    className="fx-qtok"
+                    style={{ color: TOKEN_STYLE[t.kind].fg, ['--tok-bg' as string]: TOKEN_STYLE[t.kind].bg }}
+                  >
+                    {t.text}
+                  </span>
+                ),
+              )
+            )}
+          </div>
+          <input
+            ref={inputRef}
+            className="fx-qinput"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onScroll={(e) => {
+              if (backRef.current) backRef.current.scrollLeft = e.currentTarget.scrollLeft;
+            }}
+            onKeyDown={onKeyDown}
+            spellCheck={false}
+            autoComplete="off"
+            aria-label={`Search ${projectName} docs`}
+            role="combobox"
+            aria-expanded="true"
+          />
         </div>
-        <input
-          ref={inputRef}
-          className="fx-qinput"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onScroll={(e) => {
-            if (backRef.current) backRef.current.scrollLeft = e.currentTarget.scrollLeft;
-          }}
-          onKeyDown={onKeyDown}
-          spellCheck={false}
-          autoComplete="off"
-          aria-label={`Search ${projectName} docs`}
-          role="combobox"
-          aria-expanded="true"
-        />
+        {layout === 'phone' && q !== '' && (
+          <button
+            type="button"
+            className="qo-clear"
+            aria-label="Clear the search"
+            onClick={() => {
+              setQ('');
+              inputRef.current?.focus();
+            }}
+          >
+            <Icon name="close" size={15} strokeWidth={2} />
+          </button>
+        )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         {askAvailable && (
@@ -660,8 +779,7 @@ export function SearchPalette({
         )}
         {loading && <span className="mc-spin" />}
         {!loading && modeChip(mode, hasPhrase, hasExclude, parsed.excludes.length)}
-        {!loading && mode === 'plain' && !hasPhrase && !hasExclude && trimmed !== '' && !syntaxOpen && <Kbd>Esc</Kbd>}
-        {!loading && mode === 'plain' && !hasPhrase && !hasExclude && trimmed === '' && !syntaxOpen && <Kbd>Esc</Kbd>}
+        {!loading && !touch && mode === 'plain' && !hasPhrase && !hasExclude && !syntaxOpen && <Kbd>Esc</Kbd>}
       </div>
     </div>
   );
@@ -769,8 +887,48 @@ export function SearchPalette({
         Offline copy
       </span>
     );
+    const rowProps: Record<string, unknown> = { ...common };
+    delete rowProps.key;
+    const qo = mode === 'plain' && !r.key.startsWith('m:');
     switch (r.kind) {
+      case 'recent-page':
+      case 'link-page': {
+        const node = nodeOf(r.id);
+        return (
+          <QoRow
+            key={r.key}
+            on={on}
+            dim={r.kind === 'recent-page' && r.current}
+            tile={<QoTile node={node} on={on} />}
+            title={r.title}
+            node={node}
+            where={r.label}
+            after={
+              r.kind === 'recent-page' && r.current ? (
+                <span style={{ fontSize: 12, color: '#5B6B60', flex: 'none' }}>this page</span>
+              ) : undefined
+            }
+            testId={r.kind === 'link-page' ? 'qo-link-page' : 'qo-recent-page'}
+            rowProps={rowProps}
+          />
+        );
+      }
       case 'page':
+        if (qo && !r.offline) {
+          const node = nodeOf(r.page.pageId);
+          return (
+            <QoRow
+              key={r.key}
+              on={on}
+              tile={<QoTile node={node} on={on} />}
+              title={highlight(r.page.title, dTrim)}
+              node={node}
+              where={r.label}
+              testId="qo-page"
+              rowProps={rowProps}
+            />
+          );
+        }
         return (
           <div {...common} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 18px' }}>
             <span style={{ display: 'flex', color: on ? '#2E6F40' : '#9AA8A0' }}>
@@ -845,20 +1003,30 @@ export function SearchPalette({
                     </>
                   )}
                 </span>
+                {m && m.kind !== 'heading' && (
+                  <span style={{ marginLeft: 'auto', display: 'inline-flex' }}>
+                    <MatchMarker match={m} />
+                  </span>
+                )}
               </div>
-              {m && (
-                <Snip
-                  html={m.snippet}
-                  style={{
-                    fontSize: 12.5,
-                    lineHeight: 1.5,
-                    color: '#5B6B60',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}
-                />
+              {m?.cells?.length ? (
+                // a table match is shown as its row (States4 I 62)
+                <TableRowSnip cells={m.cells} terms={dTrim.split(/\s+/).filter((w) => w && !w.startsWith('-'))} />
+              ) : (
+                m && (
+                  <Snip
+                    html={m.snippet}
+                    style={{
+                      fontSize: 12.5,
+                      lineHeight: 1.5,
+                      color: '#5B6B60',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  />
+                )
               )}
             </div>
             {r.offline ? offlineChip : enterKbd}
@@ -868,6 +1036,18 @@ export function SearchPalette({
       case 'section':
       case 'heading': {
         const m = r.page.matches[r.mi];
+        if (r.key.startsWith('qh:'))
+          return (
+            <QoRow
+              key={r.key}
+              on={on}
+              tile={<QoTile mark="heading" />}
+              title={highlight(m.section, dTrim)}
+              where={[...ancestors(r.page).slice(-1), r.page.title].join(' › ')}
+              testId="qo-heading"
+              rowProps={rowProps}
+            />
+          );
         const isHead = r.kind === 'heading';
         return (
           <div {...common} style={{ display: 'flex', gap: 10, padding: '9px 18px', alignItems: 'flex-start' }}>
@@ -969,6 +1149,23 @@ export function SearchPalette({
           </div>
         );
       case 'ticket':
+        if (mode === 'plain' && scope === 'space')
+          return (
+            <QoRow
+              key={r.key}
+              on={on}
+              tile={<QoTile mark="ticket" />}
+              title={highlight(r.title, dTrim)}
+              after={
+                <span className="dk-chip dk-chip-ticket" style={{ flex: 'none', fontSize: 12.5 }}>
+                  <StatusDot status={r.status} />
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5 }}>{r.id}</span>
+                </span>
+              }
+              testId="qo-ticket"
+              rowProps={rowProps}
+            />
+          );
         return mode === 'ticket' ? (
           <div {...common} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 18px' }}>
             <span style={{ marginTop: 5 }}>
@@ -1077,29 +1274,6 @@ export function SearchPalette({
             </button>
           </div>
         );
-      case 'recent-page':
-        return (
-          <div {...common} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 18px' }}>
-            <span style={{ display: 'flex', color: '#9AA8A0' }}>
-              <Icon name="i00" size={16} strokeWidth={1.8} />
-            </span>
-            <span
-              style={{
-                fontSize: 13.5,
-                fontWeight: 600,
-                color: '#1E2A22',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                minWidth: 0,
-              }}
-            >
-              {r.title}
-            </span>
-            <div style={{ flex: 1, minWidth: 8 }} />
-            <span style={{ flexShrink: 0, fontSize: 12, color: '#5B6B60', whiteSpace: 'nowrap' }}>{r.label}</span>
-          </div>
-        );
     }
   };
 
@@ -1180,99 +1354,72 @@ export function SearchPalette({
         </div>
       );
     }
-    // E2 no results
+    // E2 no results (RichDocsLinks A 3): a spelling hint, then the other ways out, one key away
     if (noResults) {
-      const suggestion = data?.suggestion;
+      const plainRow = (testId: string, onClick: () => void) => ({
+        role: 'option',
+        'aria-selected': false,
+        'data-sel': '0',
+        onClick,
+        'data-testid': testId,
+      });
       return (
-        <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: '#F1F3F1',
-                color: '#7A8A80',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Icon name="i09" size={18} strokeWidth={1.9} />
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>No results for “{trimmed}”</div>
-              <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 1 }}>In {inLabel} · 0 pages</div>
+        <div style={{ padding: '4px 0 6px' }} data-testid="qo-none">
+          <div style={{ padding: '22px 22px 8px' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>No page called “{trimmed}”</div>
+            <div style={{ fontSize: 12.5, color: '#5B6B60', marginTop: 3 }}>
+              Check the spelling, or try fewer words.
             </div>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              fontSize: 12.5,
-              lineHeight: 1.5,
-              color: '#3A4A3E',
-            }}
-          >
-            <div style={{ display: 'flex', gap: 8 }}>
-              <span style={{ color: '#9AA8A0' }}>•</span>
-              <span>
-                Check the spelling.
-                {suggestion && (
-                  <>
-                    {' '}
-                    Did you mean{' '}
-                    <b style={{ color: '#2E6F40', cursor: 'pointer' }} onClick={() => setQ(suggestion)}>
-                      {suggestion}
-                    </b>
-                    ?
-                  </>
-                )}
-              </span>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <span style={{ color: '#9AA8A0' }}>•</span>
-              <span>Try fewer or more general words.</span>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <span style={{ color: '#9AA8A0' }}>•</span>
-              <span>Drop “quotes” or −exclusions; they narrow the search.</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
-            {scope !== 'all' && (
-              <button
-                type="button"
-                className="st-btn"
-                style={{ justifyContent: 'flex-start' }}
-                onClick={() => setScope('all')}
-              >
-                <Icon name="i21" size={14} strokeWidth={1.9} />
-                <span>Search all projects for “{trimmed}”</span>
-              </button>
-            )}
-            {onCreatePage && (
-              <button
-                type="button"
-                className="st-btn"
-                style={{
-                  justifyContent: 'flex-start',
-                  color: '#2E6F40',
-                  borderColor: '#B7D9C0',
-                  background: '#F1F8F3',
-                }}
-                onClick={() => {
-                  onCreatePage(trimmed);
+          {suggestedNode && (
+            <>
+              <div style={QO_HEAD}>Did you mean</div>
+              <QoRow
+                on
+                tile={<QoTile node={suggestedNode} on />}
+                title={suggestedNode.title}
+                node={suggestedNode}
+                where={suggestedNode.parentId ? (nodeOf(suggestedNode.parentId)?.title ?? 'Top level') : 'Top level'}
+                testId="qo-did-you-mean"
+                rowProps={plainRow('qo-did-you-mean', () => {
+                  onOpenPage(suggestedNode.id);
                   onClose();
-                }}
-              >
-                <Icon name="i23" size={14} strokeWidth={1.9} />
-                <span>Create page “{trimmed}”</span>
-              </button>
-            )}
-          </div>
+                })}
+              />
+            </>
+          )}
+          <div style={QO_HEAD}>Or</div>
+          {onCreatePage && (
+            <QoRow
+              on={false}
+              tile={<QoTile mark="create" />}
+              title={`Create page “${trimmed}”`}
+              where="New draft at the top level"
+              testId="qo-create"
+              rowProps={plainRow('qo-create', () => {
+                onCreatePage(trimmed);
+                onClose();
+              })}
+            />
+          )}
+          <QoRow
+            on={false}
+            tile={<QoTile mark="search" />}
+            title={`Show all results for “${trimmed}”`}
+            where="Search the text of every page"
+            testId="qo-show-all"
+            rowProps={plainRow('qo-show-all', showAll)}
+          />
+          {scope !== 'all' && (
+            <QoRow
+              on={false}
+              tile={<QoTile mark="search" />}
+              title={`Search all projects for “${trimmed}”`}
+              where="The projects you are a member of"
+              testId="qo-all-projects"
+              rowProps={plainRow('qo-all-projects', () => setScope('all'))}
+            />
+          )}
         </div>
       );
     }
@@ -1724,21 +1871,30 @@ export function SearchPalette({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(37,61,44,0.5)',
+        background: phone ? '#FFFFFF' : touch ? 'rgba(30,42,34,0.42)' : 'rgba(37,61,44,0.5)',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        paddingTop: '10vh',
+        paddingTop: phone ? 0 : touch ? 50 : '10vh',
         boxSizing: 'border-box',
       }}
+      data-full-screen={phone || undefined}
+      data-layout={layout}
     >
-      <div style={{ position: 'relative', width: 620, maxWidth: 'calc(100vw - 32px)' }}>
+      <div
+        style={
+          phone
+            ? { position: 'relative', width: '100%', height: '100%' }
+            : { position: 'relative', width: touch ? 640 : 620, maxWidth: 'calc(100vw - 32px)' }
+        }
+      >
         <div
           style={{
             width: '100%',
-            borderRadius: 14,
-            border: '1px solid #E3E8E5',
-            boxShadow: '0 24px 64px rgba(30,42,34,0.22)',
+            height: phone ? '100%' : undefined,
+            borderRadius: phone ? 0 : 14,
+            border: phone ? 'none' : touch ? '1px solid #DCE3DE' : '1px solid #E3E8E5',
+            boxShadow: phone ? 'none' : touch ? '0 24px 64px rgba(30,42,34,0.28)' : '0 24px 64px rgba(30,42,34,0.22)',
             background: '#FFFFFF',
             overflow: 'hidden',
             boxSizing: 'border-box',
@@ -1747,15 +1903,21 @@ export function SearchPalette({
           }}
         >
           {header}
-          {scopeBar}
+          {!(touch && trimmed === '') && scopeBar}
           <div
             ref={listRef}
             className="fx-scroll"
-            style={{ maxHeight: 'min(460px, 60vh)', overflowY: 'auto', minHeight: 0 }}
+            style={
+              phone
+                ? { flex: 1, overflowY: 'auto', minHeight: 0, padding: '4px 0 6px' }
+                : touch
+                  ? { maxHeight: 'min(640px, 60vh)', overflowY: 'auto', minHeight: 0, padding: '4px 0 6px' }
+                  : { maxHeight: 'min(460px, 60vh)', overflowY: 'auto', minHeight: 0 }
+            }
           >
             {body}
           </div>
-          {footer}
+          {!touch && footer}
         </div>
         {syntaxOpen && <SyntaxHelp onClose={() => setSyntaxOpen(false)} />}
       </div>

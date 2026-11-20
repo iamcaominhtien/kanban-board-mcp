@@ -1,0 +1,344 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Entity: <name>"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "What one record is, in one sentence (\"one reservation a reader made\")."
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "attrs": {
+        "blockId": "b-000003"
+      },
+      "content": [
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000004"
+          },
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-000005"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000006"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Field"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-000007"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000008"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Meaning"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-000009"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00000a"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Type and format"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-00000b"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00000c"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Required"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-00000d"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00000e"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Example"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-00000f"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000010"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Rules"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000011"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000012"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000013"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "<field>"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000014"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000015"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "<what it means to the user>"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000016"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000017"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "text · number · date (ISO) · yes/no · list"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000018"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000019"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "yes / no"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00001a"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00001b"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "<real example>"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00001c"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00001d"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "limits, unique, who may change it"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-00001e",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Relations"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00001f"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "<Entity> has many <Entity>; deleting <one> does … to <the other>."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000020",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Existing data"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000021"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "What happens to records made before this change."
+        }
+      ]
+    }
+  ]
+}

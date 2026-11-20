@@ -1,0 +1,134 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Attendees"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000003"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000004"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Name"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000005",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Notes"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000006"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000007"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000008"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Topic"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000009",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Action items"
+        }
+      ]
+    },
+    {
+      "type": "taskList",
+      "attrs": {
+        "blockId": "b-00000a"
+      },
+      "content": [
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-00000b"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00000c"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Owner: task"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00000d"
+      }
+    }
+  ]
+}

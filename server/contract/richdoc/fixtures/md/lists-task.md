@@ -1,0 +1,4 @@
+- [ ] open task
+- [x] done task
+- [X] done upper case
+  - [ ] nested open

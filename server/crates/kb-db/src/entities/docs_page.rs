@@ -28,6 +28,15 @@ pub struct Model {
     pub deleted_root_id: Option<String>,
     /// page | canvas: a canvas page opens the Canvas editor instead of the text editor
     pub kind: String,
+    /// JSON page settings; None means the defaults
+    #[serde(default)]
+    pub settings: Option<String>,
+    /// Conversion to the rich format: waiting | working | done | failed; None = never needed
+    #[serde(default)]
+    pub convert_state: Option<String>,
+    /// Why the last conversion failed; None unless `convert_state` is `failed`
+    #[serde(default)]
+    pub convert_error: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -55,5 +64,8 @@ pub fn new() -> ActiveModel {
         deleted_by: Set(None),
         deleted_root_id: Set(None),
         kind: Set("page".to_string()),
+        settings: Set(None),
+        convert_state: Set(None),
+        convert_error: Set(None),
     }
 }

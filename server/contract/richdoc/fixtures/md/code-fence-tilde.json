@@ -1,0 +1,37 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "blockId": "b-000001",
+        "language": "bash"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "echo \"tilde fence\""
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "blockId": "b-000002",
+        "language": "md"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "```js\nnested fence\n```"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000003"
+      }
+    }
+  ]
+}

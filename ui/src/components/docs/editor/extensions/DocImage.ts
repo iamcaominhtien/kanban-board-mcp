@@ -3,8 +3,11 @@ import Image from '@tiptap/extension-image';
 /** Image whose width round-trips as `![alt|480](url)`. */
 export const DocImage = Image.extend({
   addAttributes() {
+    const parent = this.parent?.() as Record<string, object> | undefined;
     return {
-      ...this.parent?.(),
+      ...parent,
+      // schema.json (format 1): an image always has a src, '' when unknown
+      src: { ...parent?.src, default: '' },
       width: {
         default: null,
         parseHTML: (el) => {

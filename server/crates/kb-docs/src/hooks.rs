@@ -206,10 +206,17 @@ impl kb_draw::hooks::CanvasDocs for DocsForCanvases {
         markdown: &str,
         note: &str,
     ) -> kb_draw::Result<()> {
-        crate::docs::publish_page(session, page_id, i64::from(base_version), Some(note), Some(markdown), None)
-            .await
-            .map(|_| ())
-            .map_err(for_draw)
+        crate::docs::publish_page(
+            session,
+            page_id,
+            i64::from(base_version),
+            Some(note),
+            Some(crate::docs::BodyInput::Markdown(markdown)),
+            None,
+        )
+        .await
+        .map(|_| ())
+        .map_err(for_draw)
     }
 }
 

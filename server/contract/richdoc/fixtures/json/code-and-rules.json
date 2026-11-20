@@ -1,0 +1,70 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "blockId": "b-000001",
+        "filename": "src/app.ts",
+        "highlightLines": "2-3",
+        "language": "ts",
+        "lineNumbers": true,
+        "theme": "dark",
+        "wrap": true
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "const a = 1;\nconst b = 2;\nconst c = a + b;"
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "blockId": "b-000002",
+        "diff": true,
+        "language": "diff"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "- old\n+ new"
+        }
+      ]
+    },
+    {
+      "type": "horizontalRule",
+      "attrs": {
+        "blockId": "b-000003",
+        "style": "stars"
+      }
+    },
+    {
+      "type": "horizontalRule",
+      "attrs": {
+        "blockId": "b-000004",
+        "style": "fleuron"
+      }
+    },
+    {
+      "type": "horizontalRule",
+      "attrs": {
+        "blockId": "b-000005",
+        "style": "double"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000006"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "After the rules."
+        }
+      ]
+    }
+  ]
+}

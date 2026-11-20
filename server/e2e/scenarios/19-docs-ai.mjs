@@ -183,6 +183,15 @@ export default {
       const banner = p.getByTestId('freshness-banner');
       await banner.getByText('This page may be out of date').waitFor({ timeout: 30000 });
       await banner.getByTestId('freshness-reason').getByText('The API moved to gRPC.').waitFor();
+      // the reason names the block it read, with Show (RichDocsAi2 H 46): the board's amber 20 px chip
+      const chip = banner.getByTestId('freshness-block');
+      await chip.getByText('Paragraph · Show').waitFor();
+      const look = await chip.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { h: el.getBoundingClientRect().height, color: cs.color, border: cs.borderTopColor, size: cs.fontSize };
+      });
+      s.note('reason block chip', JSON.stringify(look));
+      if (look.h !== 20 || look.color !== 'rgb(138, 90, 0)' || look.border !== 'rgb(235, 211, 164)' || look.size !== '11px') throw new Error('reason chip: ' + JSON.stringify(look));
       await banner.getByTestId('freshness-still-correct').click();
       await banner.waitFor({ state: 'detached' });
     });
@@ -281,6 +290,8 @@ export default {
     await s.step('New page, Write with AI: "What will be sent" shows the chips and the tokens', async () => {
       await p.getByRole('button', { name: 'New page' }).first().click();
       const d = p.getByRole('dialog', { name: 'New page' });
+      // Write with AI is a violet chip of the gallery (design "Starting and shaping a page", frame 47)
+      await d.getByTestId('chip-ai').click();
       await d.getByRole('group', { name: 'Write with AI' }).waitFor();
       for (const t of ['From a ticket', 'From an idea', 'From pasted notes', 'From a prompt']) await d.getByRole('button', { name: t }).waitFor();
       await d.getByTestId('write-ai-prompt').click();
@@ -305,6 +316,7 @@ export default {
       await openDocs(s);
       await p.getByRole('button', { name: 'New page' }).first().click();
       const d = p.getByRole('dialog', { name: 'New page' });
+      await d.getByTestId('chip-ai').click();
       await d.getByTestId('write-ai-prompt').click();
       await d.getByRole('textbox', { name: 'What the page is about' }).fill('How paging works in the API');
       await d.getByTestId('what-will-be-sent').getByText(/~\d[\d,]* tokens/).waitFor();
@@ -340,19 +352,64 @@ export default {
       await h.getByRole('tab', { name: /^Broken links 1/ }).waitFor({ timeout: 15000 });
       await h.getByRole('tab', { name: /^Out of date 0/ }).waitFor();
       await h.getByRole('tab', { name: /^Broken links/ }).click();
-      const row = h.getByTestId('health-broken');
-      await row.getByText('Nowhere page').waitFor();
+      // grouped by the link's target (board Links G 40): the missing page heads the group, each row is a page that
+      // links to it, with Go to link and Dismiss
+      const group = h.getByTestId('health-broken-group');
+      await group.getByText('Nowhere page').first().waitFor();
+      await group.getByRole('button', { name: 'Create “Nowhere page”' }).waitFor();
+      const row = group.getByTestId('health-broken');
       await row.getByText('Release notes').waitFor();
-      await row.getByRole('button', { name: 'Review' }).waitFor();
-      await row.getByRole('button').last().click();
+      await row.getByRole('button', { name: 'Go to link' }).waitFor();
+      await row.getByRole('button', { name: 'Dismiss' }).click();
       await p.getByRole('menuitem').first().click();
       await row.waitFor({ state: 'detached' });
       await h.getByText('Every link and section resolves.').waitFor();
+    });
+    await s.step('Docs health: a picture whose file was deleted is a row of its own, with the IN column', async () => {
+      const notes = ids['Release notes'];
+      const v = (await api(`/docs/pages/${notes}`)).version;
+      const published = await p.request.post(`${s.server.base}/docs/pages/${notes}/publish`, {
+        data: { base_version: v, markdown: '# Release notes\n\nThe release ships the API described in [[API]].\n\n![Valley road](/uploads/e2e-gone/valley.png)\n', note: 'A picture' },
+      });
+      if (!published.ok()) throw new Error('publish answered ' + published.status());
+      const h = p.getByTestId('docs-health');
+      await h.getByTestId('health-run').click();
+      await h.getByRole('button', { name: 'Run now' }).waitFor({ timeout: 30000 });
+      await h.getByRole('tab', { name: /^Broken links 1/ }).click();
+      const row = h.getByTestId('health-broken-media');
+      await row.getByText('The image file was deleted: “Valley road”').waitFor({ timeout: 15000 });
+      await row.getByText('Image', { exact: true }).waitFor();
+      await h.getByText('IN', { exact: true }).waitFor();
+      const look = await row.evaluate((el) => {
+        const td = el.querySelector('td'); const cs = getComputedStyle(td);
+        return { padding: cs.padding, size: cs.fontSize, status: el.dataset.status };
+      });
+      s.note('broken picture row', JSON.stringify(look));
+      if (look.padding !== '11px 14px' || look.size !== '12.5px' || look.status !== 'image_missing') throw new Error('broken picture row: ' + JSON.stringify(look));
+      await row.getByRole('button', { name: 'Dismiss' }).click();
+      await p.getByRole('menuitem').first().click();
+      await row.waitFor({ state: 'detached' });
     });
     await s.step('Docs health: Missing docs lists a Done ticket no page mentions', async () => {
       const h = p.getByTestId('docs-health');
       await h.getByRole('tab', { name: /^Missing docs/ }).click();
       s.note('missing docs tab', (await h.innerText()).slice(-200));
+    });
+    await s.step('Docs health on a tablet: the tabs are 44 px pills, the chosen one dark green; Run now is 44 px (RichDocsLinks J 41)', async () => {
+      const size = p.viewportSize();
+      await p.setViewportSize({ width: 820, height: 1180 });
+      try {
+        const h = p.getByTestId('docs-health');
+        await p.locator('[data-testid="docs-health"][data-layout="tablet"]').waitFor();
+        const look = (el) => ({ h: Math.round(el.getBoundingClientRect().height), bg: getComputedStyle(el).backgroundColor, radius: getComputedStyle(el).borderRadius });
+        const on = await h.getByRole('tab', { selected: true }).evaluate(look);
+        const run = await h.getByTestId('health-run').evaluate(look);
+        s.note('tablet health', { on, run });
+        if (on.h !== 44 || on.bg !== 'rgb(31, 90, 49)' || on.radius !== '999px') throw new Error('tablet tab: ' + JSON.stringify(on));
+        if (run.h < 44) throw new Error('Run now is not 44 px on a tablet: ' + JSON.stringify(run));
+      } finally {
+        await p.setViewportSize(size);
+      }
     });
     await s.step('a page comment on API', async () => {
       await item('API').click();
@@ -438,6 +495,18 @@ export default {
       const row = (done.result.pages ?? []).find((x) => x.page_id === notes);
       s.note('digest job result', done.result);
       if (!row || row.kind !== 'changed' || row.from_version !== v || row.to_version !== v + 1 || row.line !== 'Added the paging line.') throw new Error('since_viewed result: ' + JSON.stringify(done.result));
+      // who published it and the blocks that changed (RichDocsAi2 H 44): the paragraph, as a 19 px grey chip
+      if (!row.by || !row.at || !row.blocks || row.blocks.edited < 1) throw new Error('since_viewed blocks: ' + JSON.stringify(row));
+      const line = card.getByTestId('since-viewed-row').filter({ hasText: 'Release notes' });
+      await line.getByTestId('since-viewed-by').getByText(/: 1 block edited/).waitFor();
+      const chip = line.getByTestId('since-viewed-chips').locator('span').first();
+      await chip.getByText(/^Paragraph/).waitFor();
+      const look = await chip.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { h: el.getBoundingClientRect().height, bg: cs.backgroundColor, size: cs.fontSize };
+      });
+      s.note('digest chip', JSON.stringify(look));
+      if (look.h !== 19 || look.bg !== 'rgb(241, 243, 241)' || look.size !== '10.5px') throw new Error('digest chip: ' + JSON.stringify(look));
       s.note('digest after the summary', (await card.innerText()).slice(0, 300));
     });
     await s.step('Follow a page: the bell menu, Everything, Only mentions, Muted, unfollow', async () => {
@@ -479,8 +548,188 @@ export default {
       await p.getByRole('button', { name: 'Docs', exact: true }).click();
       await p.getByRole('switch', { name: 'Following this space', checked: true }).waitFor();
     });
+    await s.step('AI teams on a page: the page menu sets how a team\'s changes arrive, and Not for AI teams', async () => {
+      await item('API').click();
+      await p.getByTestId('page-title').getByText('API', { exact: true }).waitFor();
+      const settingsOf = async () => (await api(`/docs/pages/${ids.API}`)).settings ?? {};
+      const saved = () => p.waitForResponse((r) => r.request().method() === 'PATCH' && /\/docs\/pages\/[^/]+\/settings$/.test(r.url()), { timeout: 8000 });
+      await p.getByTestId('page-menu').click();
+      await p.getByTestId('menu-ai-changes').click();
+      await p.getByText('WHEN A TEAM CHANGES THIS PAGE').waitFor();
+      await p.getByRole('menuitemradio', { name: /Team default: Suggest first/, checked: true }).waitFor();
+      // the board's radio rows (RichDocsAi1 frame 9): 8px 10px, a 16 px radio, the chosen one on #F1F8F3
+      const opt = await p.getByTestId('ai-apply-suggest').evaluate((el) => {
+        const cs = getComputedStyle(el); const r = el.querySelector('.sg-radio').getBoundingClientRect();
+        return { padding: cs.padding, radio: r.width };
+      });
+      s.note('AI changes option', JSON.stringify(opt));
+      if (opt.padding !== '8px 10px' || opt.radio !== 16) throw new Error('AI changes rows: ' + JSON.stringify(opt));
+      await Promise.all([saved(), p.getByTestId('ai-apply-direct').click()]);
+      if ((await settingsOf()).aiApply !== 'direct') throw new Error('aiApply was not saved: ' + JSON.stringify(await settingsOf()));
+      await p.getByTestId('page-menu').click();
+      await p.getByTestId('menu-ai-changes').getByText('Apply directly').waitFor();
+      await p.getByTestId('menu-ai-changes').click();
+      await Promise.all([saved(), p.getByTestId('ai-apply-default').click()]);
+      if ('aiApply' in (await settingsOf())) throw new Error('the page should follow the team again');
+      await p.getByTestId('page-menu').click();
+      await Promise.all([saved(), p.getByTestId('menu-not-for-ai').click()]);
+      if ((await settingsOf()).notForAi !== true) throw new Error('notForAi was not saved');
+      await p.getByTestId('page-menu').click();
+      await p.getByRole('menuitemcheckbox', { name: 'Not for AI teams', checked: true }).waitFor();
+      await Promise.all([saved(), p.getByTestId('menu-not-for-ai').click()]);
+      if ('notForAi' in (await settingsOf())) throw new Error('notForAi should be off again');
+    });
+    await s.step('Give the page to a team: each team has its roles and what it does now under its name', async () => {
+      await p.getByTestId('page-menu').click();
+      await p.getByTestId('menu-give-ai').click();
+      const d = p.getByTestId('docs-give-page');
+      const opt = d.locator('.gp-opt').filter({ hasText: 'Docs helper' });
+      const sub = opt.locator('.gp-opt-hint');
+      await sub.getByText(/ · (idle|working( on [A-Z]+-\d+)?|paused)$/).waitFor({ timeout: 15000 });
+      const look = await sub.evaluate((el) => ({ size: getComputedStyle(el).fontSize, color: getComputedStyle(el).color }));
+      s.note('team line', `${await sub.innerText()} ${JSON.stringify(look)}`);
+      if (look.size !== '12.5px' || look.color !== 'rgb(91, 107, 96)') throw new Error('team line: ' + JSON.stringify(look));
+      await d.getByRole('button', { name: 'Cancel' }).click();
+      await d.waitFor({ state: 'detached' });
+    });
+    await s.step('Give the page on a phone: a bottom sheet (20 px corners), 44 px rows and two 44 px buttons (RichDocsAi2 frame 27)', async () => {
+      const size = p.viewportSize();
+      await p.setViewportSize({ width: 390, height: 844 });
+      try {
+        await p.getByTestId('page-menu').click();
+        await p.getByTestId('menu-give-ai').click();
+        const d = p.getByTestId('docs-give-page');
+        await d.locator('.gp-opt').first().waitFor();
+        const sheet = await d.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return { w: Math.round(r.width), bottom: Math.round(r.bottom), radius: cs.borderRadius, shadow: cs.boxShadow };
+        });
+        const opt = await d.locator('.gp-opt').first().evaluate((el) => Math.round(el.getBoundingClientRect().height));
+        const btns = await d.locator('.gp-foot .sg-btn').evaluateAll((els) => els.map((el) => ({ h: Math.round(el.getBoundingClientRect().height), size: getComputedStyle(el).fontSize })));
+        s.note('give sheet', { sheet, opt, btns });
+        if (sheet.w !== 390 || sheet.bottom !== 844 || sheet.radius !== '20px 20px 0px 0px') throw new Error('give sheet: ' + JSON.stringify(sheet));
+        if (opt < 44) throw new Error('a team row is ' + opt + ' px');
+        if (btns.length !== 2 || btns.some((b) => b.h !== 44 || b.size !== '14.5px')) throw new Error('give buttons: ' + JSON.stringify(btns));
+        await d.getByRole('button', { name: 'Cancel' }).click();
+        await d.waitFor({ state: 'detached' });
+      } finally {
+        await p.setViewportSize(size);
+      }
+    });
+    await s.step('Ask the team on a selection: one purple button; the verbs, Change tone, Translate, Format this as…, the Ask line', async () => {
+      const para = p.getByTestId('page-body').locator('.dk-rich p').first();
+      await para.scrollIntoViewIfNeeded();
+      const box = await para.boundingBox();
+      await p.mouse.move(box.x + 2, box.y + box.height / 2);
+      await p.mouse.down();
+      await p.mouse.move(box.x + 80, box.y + box.height / 2, { steps: 6 });
+      await p.mouse.up();
+      const btn = await p.getByTestId('ask-team').evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, h: el.getBoundingClientRect().height }));
+      await p.getByTestId('ask-team').click();
+      const m = p.getByTestId('ask-team-menu');
+      await m.getByText('Docs helper', { exact: true }).waitFor();
+      await m.getByText('Changes arrive as suggestions here').waitFor();
+      for (const t of ['Rewrite', 'Shorten', 'Change tone', 'Fix grammar', 'Translate', 'Make a table', 'Format this as…']) {
+        await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
+      }
+      await m.getByRole('textbox', { name: 'Ask the team to…' }).waitFor();
+      await m.getByText('This page is set to suggest first').waitFor();
+      s.note('ask the team menu', await m.innerText());
+      // the board's numbers (RichDocsAi2 frames 28-29): a light purple button, a 260 px menu of 34 px rows
+      const look = await m.evaluate((el) => {
+        const row = el.querySelector('.sg-ask-item').getBoundingClientRect();
+        return { width: el.getBoundingClientRect().width, row: row.height, radius: getComputedStyle(el).borderRadius };
+      });
+      look.btn = btn.bg;
+      look.btnHeight = btn.h;
+      s.note('ask the team look', JSON.stringify(look));
+      if (look.width !== 260 || look.row !== 34 || look.btn !== 'rgb(239, 232, 251)' || look.radius !== '12px') throw new Error('Ask the team look: ' + JSON.stringify(look));
+      await m.getByTestId('ask-team-format').click();
+      for (const t of ['Heading 2', 'Pull quote', 'Callout', 'Bulleted list', 'Numbered list', 'Task list', 'Two columns']) await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
+      await m.getByRole('menuitem', { name: '‹ Back' }).click();
+      await m.getByTestId('ask-team-tone').click();
+      for (const t of ['Friendly', 'Formal', 'Plain', 'Confident', 'Shorter sentences']) await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
+      await m.getByRole('menuitem', { name: '‹ Back' }).click();
+      await m.getByTestId('ask-team-translate').click();
+      await m.getByRole('menuitem', { name: 'Vietnamese', exact: true }).waitFor();
+      await p.keyboard.press('Escape');
+      await m.waitFor({ state: 'detached' });
+    });
+    await s.step('Settings, Docs: how each team changes pages, Suggest first or Apply directly', async () => {
+      await p.getByRole('button', { name: 'Settings', exact: true }).click();
+      await p.getByRole('navigation', { name: 'Settings pages' }).getByRole('button', { name: 'Docs', exact: true }).click();
+      const g = p.getByRole('radiogroup', { name: 'How Docs helper changes pages' });
+      await g.getByRole('radio', { name: 'Suggest first', checked: true }).waitFor();
+      // the board's segmented switch (RichDocsAi1 frame 10): a #EEF3EF track 250 px wide, 26 px buttons
+      const sw = await g.evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, width: el.getBoundingClientRect().width, h: el.querySelector('button').getBoundingClientRect().height }));
+      s.note('team switch', JSON.stringify(sw));
+      if (sw.bg !== 'rgb(238, 243, 239)' || sw.width !== 250 || sw.h !== 26) throw new Error('team switch: ' + JSON.stringify(sw));
+      const saved = () => p.waitForResponse((r) => r.request().method() === 'PATCH' && /\/docs\/settings$/.test(r.url()), { timeout: 8000 });
+      const [res] = await Promise.all([saved(), g.getByRole('radio', { name: 'Apply directly' }).click()]);
+      s.note('team setting saved', `${res.status()} ${(await res.text()).slice(0, 300)}`);
+      await g.getByRole('radio', { name: 'Apply directly', checked: true }).waitFor();
+      const st = await api(`/projects/${ids.project}/docs/settings`);
+      if (!Object.values(st.aiApply ?? st.ai_apply ?? {}).includes('direct')) throw new Error('aiApply not saved: ' + JSON.stringify(st));
+      await Promise.all([saved(), g.getByRole('radio', { name: 'Suggest first' }).click()]);
+      await g.getByRole('radio', { name: 'Suggest first', checked: true }).waitFor();
+      await p.getByRole('button', { name: 'Back to board' }).click();
+      // back to the Docs space as the steps before left it
+      await p.reload();
+      await p.getByRole('complementary', { name: 'Project navigation' }).waitFor({ timeout: 20000 });
+      await p.getByRole('button', { name: 'Docs', exact: true }).click();
+      await p.getByTestId('tree-ask-docs').waitFor();
+    });
+    await s.step('phone: suggestions waiting put the review bar at the bottom in place of the reading bar (RichDocsAi1 frames 4-5)', async () => {
+      // a team writes through the board's MCP with its run's token: a run row for the AI team, made on this throwaway
+      // server's database, gives one (the stand-in CLI never calls the board's tools)
+      const { DatabaseSync } = await import('node:sqlite');
+      const crypto = await import('node:crypto');
+      const base = s.server.base;
+      const call = async (method, url, body) => {
+        const r = await p.request.fetch(`${base}${url}`, { method, data: body });
+        if (!r.ok()) throw new Error(`${method} ${url}: ${r.status()} ${await r.text()}`);
+        return r.json();
+      };
+      const pid = (await call('GET', '/projects'))[0].id;
+      const team = (await call('GET', `/projects/${pid}/members`)).find((m) => m.kind === 'ai');
+      const token = 'kbr_e2e_docs_review';
+      const db = new DatabaseSync(path.join(s.server.dirs.root, 'data/kanban.db'));
+      db.exec('PRAGMA busy_timeout=10000');
+      const now = new Date().toISOString();
+      const run = { id: 'run_e2e_review', kind: 'team', number: 99, mode: 'work', trigger: 'assign', state: 'running', started_by: 'You', instruction: '', queued_at: now, report: '{}', files: '[]', tokens_in: 0, tokens_out: 0, cost_usd: 0.0, metered: 0, paused: 0, restarts: '[]', retries: '[]', steps_count: 0, live: 0, depth: 0, token_hash: crypto.createHash('sha256').update(token).digest('hex'), member_id: team.id, project_id: pid };
+      db.prepare(`INSERT INTO ai_run (${Object.keys(run).map((k) => `"${k}"`).join(',')}) VALUES (${Object.keys(run).map(() => '?').join(',')})`).run(...Object.values(run));
+      db.close();
+      const page = await call('POST', `/projects/${pid}/docs/pages`, { title: 'Roadmap notes' });
+      await call('PUT', `/docs/pages/${page.id}/draft`, { markdown: 'We kept the roadmap in slides.\n\nEvery sprint someone forgot to update it.\n', base_version: 0 });
+      await call('POST', `/docs/pages/${page.id}/publish`, { base_version: 0 });
+      const blocks = (await call('GET', `/docs/pages/${page.id}`)).content.content.map((b) => b.attrs.blockId);
+      const r = await p.request.fetch(`${base}/mcp/`, {
+        method: 'POST',
+        headers: { accept: 'application/json, text/event-stream', 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        data: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'docs_write', arguments: { action: 'edit', page_id: page.id, items: [{ block_id: blocks[0], markdown: 'We kept the roadmap in a slide deck for two years.' }, { block_id: blocks[1], markdown: 'Every sprint somebody forgot to update it.' }] } } },
+      });
+      if (!r.ok()) throw new Error('MCP edit: ' + r.status());
+      if (!(await call('GET', `/docs/pages/${page.id}/suggestions`)).suggestions?.length) throw new Error('the team edit made no suggestion');
+      const ctx = await p.context().browser().newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      try {
+        const t = await ctx.newPage();
+        await t.goto(`${base}/?proj=${pid}&docs=${page.id}`);
+        const bar = t.getByTestId('sg-bar');
+        await bar.getByText('1 of 2').waitFor({ timeout: 20000 });
+        await t.locator('#kb-splash').waitFor({ state: 'detached', timeout: 20000 });
+        const box = await bar.boundingBox();
+        if (!box || box.y + box.height > 844 || box.width !== 390) throw new Error('the review bar is not at the bottom of the screen: ' + JSON.stringify(box));
+        // nothing covers it: the reading bar steps aside while suggestions wait
+        if (await t.getByTestId('read-bar').isVisible()) throw new Error('the reading bar still shows over the review bar');
+        const hit = await t.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y); return e?.closest('[data-testid="sg-bar"]') ? '' : (e?.outerHTML ?? 'nothing').slice(0, 200); }, { x: box.x + box.width - 40, y: box.y + box.height / 2 });
+        if (hit) throw new Error('something covers Accept all: ' + hit);
+      } finally {
+        await ctx.close();
+      }
+    });
     await s.step('turn Docs AI off: the AI entries disappear', async () => {
-      await p.getByRole('button', { name: 'Settings' }).click();
+      await p.getByRole('button', { name: 'Settings', exact: true }).click(); // not the page's Reading settings
       await p.getByRole('navigation', { name: 'Settings pages' }).getByRole('button', { name: 'Docs', exact: true }).click();
       await p.getByRole('switch', { name: 'Use AI in Docs' }).click();
       await p.getByRole('switch', { name: 'Use AI in Docs', checked: false }).waitFor();

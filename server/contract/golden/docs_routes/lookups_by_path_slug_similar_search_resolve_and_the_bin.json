@@ -76,7 +76,62 @@
       "slug_path": "architecture/api",
       "status": "published",
       "version": 1,
-      "markdown": "## Endpoints\nSee [[Architecture#Layers]] and KAN-1.",
+      "markdown": "## Endpoints\n\nSee [[Architecture#Layers]] and KAN-1.",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Endpoints"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "See "
+              },
+              {
+                "type": "docRef",
+                "attrs": {
+                  "page": "Architecture",
+                  "section": "Layers"
+                }
+              },
+              {
+                "type": "text",
+                "text": " and "
+              },
+              {
+                "type": "ticketRef",
+                "attrs": {
+                  "key": "KAN-1"
+                }
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -127,7 +182,62 @@
       "slug_path": "architecture/api",
       "status": "published",
       "version": 1,
-      "markdown": "## Endpoints\nSee [[Architecture#Layers]] and KAN-1.",
+      "markdown": "## Endpoints\n\nSee [[Architecture#Layers]] and KAN-1.",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Endpoints"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "See "
+              },
+              {
+                "type": "docRef",
+                "attrs": {
+                  "page": "Architecture",
+                  "section": "Layers"
+                }
+              },
+              {
+                "type": "text",
+                "text": " and "
+              },
+              {
+                "type": "ticketRef",
+                "attrs": {
+                  "key": "KAN-1"
+                }
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -200,7 +310,62 @@
       "slug_path": "architecture/api",
       "status": "published",
       "version": 1,
-      "markdown": "## Endpoints\nSee [[Architecture#Layers]] and KAN-1.",
+      "markdown": "## Endpoints\n\nSee [[Architecture#Layers]] and KAN-1.",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Endpoints"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "See "
+              },
+              {
+                "type": "docRef",
+                "attrs": {
+                  "page": "Architecture",
+                  "section": "Layers"
+                }
+              },
+              {
+                "type": "text",
+                "text": " and "
+              },
+              {
+                "type": "ticketRef",
+                "attrs": {
+                  "key": "KAN-1"
+                }
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -430,7 +595,9 @@
             {
               "section": "Layers",
               "slug": "layers",
-              "snippet": "<mark>Rate</mark> limiting lives in the API layer."
+              "snippet": "<mark>Rate</mark> limiting lives in the API layer.",
+              "block_id": "<bid:1>",
+              "kind": "text"
             }
           ]
         }
@@ -620,7 +787,9 @@
             {
               "section": "Layers",
               "slug": "layers",
-              "snippet": "<mark>Layers</mark>"
+              "snippet": "<mark>Layers</mark>",
+              "block_id": "<bid:1>",
+              "kind": "heading"
             }
           ]
         }
@@ -753,7 +922,9 @@
             {
               "section": "Layers",
               "slug": "layers",
-              "snippet": "<mark>Rate</mark> <mark>limiting</mark> lives in the API layer."
+              "snippet": "<mark>Rate</mark> <mark>limiting</mark> lives in the API layer.",
+              "block_id": "<bid:1>",
+              "kind": "text"
             }
           ]
         }

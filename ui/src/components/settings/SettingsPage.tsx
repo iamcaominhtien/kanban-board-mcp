@@ -5,6 +5,7 @@ import { McpFullControl } from '../McpFullControl';
 import { AiSettingsSection } from '../ai/AiSettingsSection';
 import { UpdateSettingsSection } from '../UpdateSettingsSection';
 import { DocsSettingsRow } from '../docs/DocsSettingsRow';
+import { DocsSpaceSettings } from '../docs/settings/DocsSpaceSettings';
 import { IdeaSpaceSettings } from '../ideas/IdeaSpaceSettings';
 import { DocsAiSettings } from '../docs/ai/DocsAiSettings';
 import { DiagramSettingsSection } from '../diagrams/DiagramSettingsSection';
@@ -367,6 +368,7 @@ export function SettingsPage({
               <DocsAiSettings project={project} />
             </SettingsCard>
           )}
+          <DocsSpaceSettings project={project} />
         </>
       ) : null;
       break;

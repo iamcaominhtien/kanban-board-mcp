@@ -243,8 +243,14 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
         .filter(docs_link::Column::Origin.eq("page"))
         .all(session)
         .await?;
-    let mut seen: HashSet<(String, Option<String>)> = HashSet::new();
+    let mut seen: HashSet<(String, Option<String>, Option<String>)> = HashSet::new();
     let mut pages_out: Vec<Value> = Vec::new();
+    // the headings and blocks of this page that links point at, named as the link checker names them
+    let own_doc = if rows.iter().any(|l| l.target_block_id.is_some()) {
+        docs_search::rich_docs(session, std::slice::from_ref(&page)).await?.remove(&page.id)
+    } else {
+        None
+    };
     let wanted: HashSet<String> =
         rows.iter().map(|link| link.target_title.clone().unwrap_or_default().to_lowercase()).collect();
     // each source page is read and parsed once, not once per link (a long page links to the same page many times),
@@ -256,7 +262,7 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
         let Some(src) = src.filter(|s| s.deleted_at.as_deref().is_none_or(str::is_empty) && s.id != page.id) else {
             continue;
         };
-        let key = (src.id.clone(), link.source_section.clone());
+        let key = (src.id.clone(), link.source_section.clone(), link.target_block_id.clone());
         if !seen.insert(key) {
             continue;
         }
@@ -298,11 +304,84 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
             "context": context,
             "excerpt": excerpt,
             "target_anchor": link.target_anchor,
+            "source_block_id": link.source_block_id,
+            "target_block": link
+                .target_block_id
+                .as_deref()
+                .and_then(|b| own_doc.as_ref().and_then(|d| super::blocks::describe_target(d, b))),
         }));
     }
     let mut out = Map::new();
     out.insert("pages".into(), Value::Array(pages_out));
     out.insert("tickets".into(), Value::Array(ticket_backlinks(session, &page).await?));
+    Ok(out)
+}
+
+/// What a link can point at in a page (`[[Page#` in the editor, "Link a doc" on a ticket): `{page_id, title,
+/// headings, blocks, inbound}`. `headings` are `{block_id, level, text, slug, under}` and `blocks` `{block_id, kind,
+/// label, detail, section}`, in reading order; `inbound` counts, per heading or block, the live pages whose links
+/// point at it (the badge on a block others link to). A page stored as Markdown only has none of them.
+///
+/// # Errors
+/// 404 `page_not_found` for a page that does not exist, is in the Recycle Bin or cannot be read.
+pub async fn link_targets(session: &Session, page_id: &str) -> Result<Map<String, Value>> {
+    let page = get_page(session, page_id, false, false).await?;
+    let doc = docs_search::rich_docs(session, std::slice::from_ref(&page)).await?.remove(&page.id);
+    let (headings, blocks) = doc.as_ref().map(super::blocks::link_targets).unwrap_or_default();
+    let rows = docs_link::Entity::find()
+        .filter(docs_link::Column::TargetPageId.eq(page.id.as_str()))
+        .filter(docs_link::Column::Origin.eq("page"))
+        .filter(docs_link::Column::TargetBlockId.is_not_null())
+        .all(session)
+        .await?;
+    let mut inbound: HashMap<String, HashSet<String>> = HashMap::new();
+    let sources: HashSet<String> = rows.iter().map(|r| r.source_page_id.clone()).collect();
+    let live: HashSet<String> = if sources.is_empty() {
+        HashSet::new()
+    } else {
+        docs_page::Entity::find()
+            .filter(docs_page::Column::Id.is_in(sources.into_iter().collect::<Vec<_>>()))
+            .all(session)
+            .await?
+            .into_iter()
+            .filter(|p| p.deleted_at.as_deref().is_none_or(str::is_empty) && p.id != page.id)
+            .map(|p| p.id)
+            .collect()
+    };
+    for r in rows {
+        if let (Some(b), true) = (r.target_block_id, live.contains(&r.source_page_id)) {
+            inbound.entry(b).or_default().insert(r.source_page_id);
+        }
+    }
+    let mut out = Map::new();
+    out.insert("page_id".into(), json!(page.id));
+    out.insert("title".into(), json!(page.title));
+    out.insert(
+        "headings".into(),
+        Value::Array(
+            headings
+                .iter()
+                .map(|h| {
+                    json!({"block_id": h.block_id, "level": h.level, "text": h.text, "slug": h.slug, "under": h.under})
+                })
+                .collect(),
+        ),
+    );
+    out.insert(
+        "blocks".into(),
+        Value::Array(
+            blocks
+                .iter()
+                .map(|b| {
+                    json!({"block_id": b.block_id, "kind": b.kind, "label": b.label, "detail": b.detail,
+                           "section": b.section})
+                })
+                .collect(),
+        ),
+    );
+    let mut counts: Vec<(String, usize)> = inbound.into_iter().map(|(b, s)| (b, s.len())).collect();
+    counts.sort();
+    out.insert("inbound".into(), Value::Object(counts.into_iter().map(|(b, n)| (b, json!(n))).collect()));
     Ok(out)
 }
 
@@ -454,6 +533,26 @@ impl Rows {
 
 /// Pages tied to a ticket: mentioned in it (description/comment), linked by hand, or mentioning it.
 pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<Map<String, Value>>> {
+    docs_for_ticket_with(session, ticket_id, false).await
+}
+
+/// How many characters of a heading's section or a block a Linked docs card shows.
+const EXCERPT_CHARS: usize = 140;
+
+/// Where a row of `docs_for_ticket` points inside its page, for the block-level cards.
+enum RowPlace {
+    /// The ticket's text names a heading of the page (by its text).
+    Section(String),
+    /// A block of the page (where the page mentions the ticket, or the block linked by hand).
+    Block(String),
+}
+
+/// [`docs_for_ticket`]; with `blocks`, the rows of rich pages also say where in the page they point
+/// (`GET /tickets/{id}/docs?blocks=true`, RichDocsLinks H 47): `block_id`, `block` (`{block_id, kind, label, detail}`,
+/// see [`super::blocks::describe_target`]) and `excerpt` (the words of the heading's section or the block). A row the
+/// page cannot place keeps only the usual keys.
+pub async fn docs_for_ticket_with(session: &Session, ticket_id: &str, blocks: bool) -> Result<Vec<Map<String, Value>>> {
+    let mut places: Vec<(usize, String, RowPlace)> = Vec::new();
     let t = ticket::Entity::find_by_id(ticket_id).one(session).await?;
     let proj = match &t {
         Some(t) => project_table::Entity::find_by_id(t.project_id.as_str()).one(session).await?,
@@ -497,7 +596,12 @@ pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<M
                     resolve_page_ref(&pages, &[], &request, &headings, Some(&aliases), Some(&renamed), Some(&index));
                 if let Some(pid) = res.get("page_id").and_then(Value::as_str) {
                     if let Some(page) = by_id.get(pid).cloned() {
-                        rows.add(&page, &by_id, origin, res.get("section").and_then(Value::as_str), &r.context, detail);
+                        let before = rows.out.len();
+                        let section = res.get("section").and_then(Value::as_str);
+                        rows.add(&page, &by_id, origin, section, &r.context, detail);
+                        if let (true, Some(section)) = (rows.out.len() > before, section) {
+                            places.push((before, page.id.clone(), RowPlace::Section(section.to_string())));
+                        }
                     }
                 }
             }
@@ -527,6 +631,7 @@ pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<M
                 .map(|(_, text)| text.clone())
                 .unwrap_or_else(|| slug.to_string())
         });
+        let before = rows.out.len();
         rows.add(
             &src,
             &by_id,
@@ -535,9 +640,15 @@ pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<M
             &link.snippet,
             "",
         );
+        if let (true, Some(block)) = (rows.out.len() > before, link.source_block_id.clone()) {
+            places.push((before, src.id.clone(), RowPlace::Block(block)));
+        }
     }
     if let Some(t) = &t {
         canvas_rows(session, t, &by_id, &mut rows).await?;
+    }
+    if blocks && !places.is_empty() {
+        place_rows(session, &mut rows.out, &places, &by_id).await?;
     }
     rows.out.sort_by(|a, b| {
         let key = |m: &Map<String, Value>| {
@@ -546,6 +657,50 @@ pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<M
         key(a).cmp(&key(b))
     });
     Ok(rows.out)
+}
+
+/// Adds `block_id`, `block` and `excerpt` to the rows a rich page can place (see [`docs_for_ticket_with`]).
+async fn place_rows(
+    session: &Session,
+    out: &mut [Map<String, Value>],
+    places: &[(usize, String, RowPlace)],
+    by_id: &HashMap<String, docs_page::Model>,
+) -> Result<()> {
+    let pages: Vec<docs_page::Model> =
+        places.iter().filter_map(|(_, id, _)| by_id.get(id).cloned()).collect::<Vec<_>>().into_iter().fold(
+            Vec::new(),
+            |mut acc: Vec<docs_page::Model>, p| {
+                if !acc.iter().any(|x| x.id == p.id) {
+                    acc.push(p);
+                }
+                acc
+            },
+        );
+    let docs = docs_search::rich_docs(session, &pages).await?;
+    for (at, page_id, place) in places {
+        let (Some(row), Some(doc)) = (out.get_mut(*at), docs.get(page_id)) else { continue };
+        let block_id = match place {
+            RowPlace::Block(id) => Some(id.clone()),
+            RowPlace::Section(text) => {
+                let wanted = crate::util::casefold(text.trim());
+                super::blocks::link_targets(doc)
+                    .0
+                    .into_iter()
+                    .find(|h| crate::util::casefold(h.text.trim()) == wanted)
+                    .map(|h| h.block_id)
+            }
+        };
+        let Some(block_id) = block_id else { continue };
+        let Some(block) = super::blocks::describe_target(doc, &block_id) else { continue };
+        row.insert("block_id".into(), json!(block_id));
+        row.insert(
+            "block".into(),
+            json!({"block_id": block["block_id"], "kind": block["kind"], "label": block["label"],
+                   "detail": block["detail"]}),
+        );
+        row.insert("excerpt".into(), json!(super::blocks::block_excerpt(doc, &block_id, EXCERPT_CHARS)));
+    }
+    Ok(())
 }
 
 const ORIGIN_WORDS: [(&str, &str); 8] = [
@@ -677,10 +832,32 @@ async fn ticket_activity(session: &Session, t: &ticket::Model, field: &str, from
 /// Returns the link row; when a mention already links them, that row, with `already_linked` and a `message` (no
 /// manual link is added). Fails with 422 if the page and ticket are in different projects.
 pub async fn link_ticket_doc(session: &Session, ticket_id: &str, page_id: &str) -> Result<Map<String, Value>> {
+    link_ticket_doc_at(session, ticket_id, page_id, None).await
+}
+
+/// [`link_ticket_doc`] at a heading or block of the page (`block_id`, kept on the manual link as the block it points
+/// at, so the ticket's card opens the page there; RichDocsLinks H 48). A page already linked by hand moves its link
+/// to the new block.
+///
+/// # Errors
+/// As [`link_ticket_doc`]; 422 `block_not_found` when the page has no such block.
+pub async fn link_ticket_doc_at(
+    session: &Session,
+    ticket_id: &str,
+    page_id: &str,
+    block_id: Option<&str>,
+) -> Result<Map<String, Value>> {
     let t = ticket_or_404(session, ticket_id).await?;
     let page = get_page(session, page_id, false, false).await?;
     if page.project_id != t.project_id {
         return docs_err(422, "bad_project", "The page and the ticket belong to different projects");
+    }
+    let block = block_id.filter(|b| !b.is_empty()).map(str::to_string);
+    if let Some(b) = &block {
+        let docs = docs_search::rich_docs(session, std::slice::from_ref(&page)).await?;
+        if docs.get(&page.id).and_then(|d| super::blocks::describe_target(d, b)).is_none() {
+            return docs_err(422, "block_not_found", "The page has no such heading or block");
+        }
     }
     let existing = docs_link::Entity::find()
         .filter(docs_link::Column::SourcePageId.eq(page.id.as_str()))
@@ -712,11 +889,17 @@ pub async fn link_ticket_doc(session: &Session, ticket_id: &str, page_id: &str) 
         link.target_ticket_id = Set(Some(ticket_id.to_string()));
         link.origin = Set("manual".to_string());
         link.snippet = Set(String::new());
+        link.source_block_id = Set(block.clone());
         link.insert(session).await?;
         ticket_activity(session, &t, "doc_ref_added", Value::Null, json!(page.title)).await?;
         session.commit().await?;
+    } else if let (Some(row), Some(_)) = (existing, &block) {
+        let mut row = kb_db::edit(row);
+        row.source_block_id = Set(block.clone());
+        row.update(session).await?;
+        session.commit().await?;
     }
-    let rows = docs_for_ticket(session, ticket_id).await?;
+    let rows = docs_for_ticket_with(session, ticket_id, block.is_some()).await?;
     match rows.into_iter().find(|r| r["page_id"] == json!(page.id) && r["origin"] == json!("manual")) {
         Some(row) => Ok(row),
         None => Err(crate::Error::Other("the manual link is not listed".to_string())),

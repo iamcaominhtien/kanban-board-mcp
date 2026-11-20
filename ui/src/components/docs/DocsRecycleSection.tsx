@@ -1,11 +1,16 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
-import { docsErrorDetail, usePurgePage, useRestorePage } from '../../api/docs';
+import { client } from '../../api/client';
+import { docsErrorDetail, docsKeys, usePurgePage, useRestorePage } from '../../api/docs';
 import { useEmptyRecycleBin, useRecycleEntries } from '../../api/docsActions';
 import { extractError } from '../../api/extractError';
 import type { RecycleEntry } from '../../types/docsActions';
 import { useToast } from '../Toast';
 import { Icon } from './Icon';
 import { agoText, displayName, plural } from './docsShared';
+import { daysLeftText, daysLeftTone, pagesToEmpty, type EmptyScope, type RestoreWhere } from './tree/RecycleBinParts';
+import { EditorAvatar } from './tree/treeParts';
+import { DOCS_PHONE_BELOW, DOCS_TABLET_BELOW, useNarrowWindow } from '../../hooks/useDocsLayout';
 
 const errMsg = (err: unknown) => docsErrorDetail(err)?.message ?? extractError(err);
 
@@ -21,27 +26,80 @@ export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) 
   const restore = useRestorePage(projectId);
   const purge = usePurgePage(projectId);
   const empty = useEmptyRecycleBin(projectId);
+  const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
-  async function restoreEntry(entry: RecycleEntry) {
+  /**
+   * Restores a page with its child pages. A page whose parent is gone comes back at the top level, under a page
+   * chosen for it, or under its parent restored first (`where`).
+   */
+  async function restoreEntry(entry: RecycleEntry, where?: RestoreWhere) {
     setBusyId(entry.id);
     setRowError(null);
     try {
+      if (where?.kind === 'parent-first') await restore.mutateAsync(where.parentId);
       const res = await restore.mutateAsync(entry.id);
+      if (where?.kind === 'page')
+        await client.post(`/docs/pages/${entry.id}/move`, { parentId: where.parentId, beforeId: null, afterId: null });
+      void qc.invalidateQueries({ queryKey: docsKeys.tree(projectId) });
       const children = res.restoredPages - 1;
       toast.showToast({
         variant: 'success',
         title: `Restored “${entry.title}”${children > 0 ? ` and ${plural(children, 'child page')}` : ''}`,
-        message: res.movedToTopLevel
-          ? `Its parent is still deleted, so “${entry.title}” returned at the top level.`
-          : 'Back in the tree, in its old position.',
+        message:
+          where?.kind === 'page'
+            ? 'Back in the tree, under the page you chose.'
+            : where?.kind === 'parent-first'
+              ? `Back in the tree, under ${entry.parentTitle}.`
+              : res.movedToTopLevel
+                ? `Its parent is still deleted, so “${entry.title}” returned at the top level.`
+                : 'Back in the tree, in its old position.',
         action: onOpenPage ? { label: 'Open', onClick: () => onOpenPage(entry.id) } : undefined,
       });
     } catch (err) {
       setRowError({ id: entry.id, message: errMsg(err) });
     } finally {
       setBusyId(null);
+    }
+  }
+
+  /** Restores several pages, each in its own place (a page whose parent is gone comes back at the top level). */
+  async function restoreMany(list: RecycleEntry[]): Promise<boolean> {
+    setBulkBusy(true);
+    let done = 0;
+    try {
+      for (const e of list) {
+        await restore.mutateAsync(e.id);
+        done += 1;
+      }
+      toast.success(`Restored ${plural(done, 'page')}`, 'Each one is back in its own place.');
+      return true;
+    } catch (err) {
+      toast.error(done ? `Restored ${done} of ${list.length} pages` : "Couldn't restore the pages", errMsg(err));
+      return false;
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  /** Deletes several pages forever. */
+  async function purgeMany(list: RecycleEntry[]): Promise<boolean> {
+    setBulkBusy(true);
+    let done = 0;
+    try {
+      for (const e of list) {
+        await purge.mutateAsync(e.id);
+        done += 1;
+      }
+      toast.success(`Deleted ${plural(done, 'page')} forever`);
+      return true;
+    } catch (err) {
+      toast.error(done ? `Deleted ${done} of ${list.length} pages` : "Couldn't delete the pages", errMsg(err));
+      return false;
+    } finally {
+      setBulkBusy(false);
     }
   }
 
@@ -60,7 +118,9 @@ export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) 
     }
   }
 
-  async function emptyBin(): Promise<boolean> {
+  async function emptyBin(scope: EmptyScope = 'all'): Promise<boolean> {
+    // only the older pages: one by one (the server empties the whole bin or nothing)
+    if (scope === 'older') return purgeMany(pagesToEmpty(query.data ?? [], 'older'));
     try {
       await empty.mutateAsync();
       toast.success('Recycle Bin emptied', 'Deleted pages were removed forever.');
@@ -77,9 +137,12 @@ export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) 
     error: query.isError ? errMsg(query.error) : null,
     busyId,
     rowError,
-    emptying: empty.isPending,
+    emptying: empty.isPending || bulkBusy,
+    bulkBusy,
     restoreEntry,
+    restoreMany,
     purgeEntry,
+    purgeMany,
     emptyBin,
   };
 }
@@ -104,6 +167,9 @@ export function BinRow({
   first,
   last,
   pinned,
+  check,
+  icon,
+  badge,
 }: {
   kind: 'page' | 'ticket';
   title: string;
@@ -117,70 +183,213 @@ export function BinRow({
   last?: boolean;
   /** Keep the actions visible (a confirmation or a request is in progress). */
   pinned?: boolean;
+  /** A checkbox before the row (several pages picked). */
+  check?: ReactNode;
+  /** The page's emoji for the 44 px tile; the plain page or ticket mark when absent. */
+  icon?: string | null;
+  /** Above the actions, on the right (the days left). */
+  badge?: ReactNode;
 }) {
   const isPage = kind === 'page';
+  const emoji = icon && !icon.startsWith('icon:') && !icon.startsWith('/') && !/^(https?:|data:)/.test(icon);
+  // Tree3 41-42: on a tablet the days left sit by the title and the buttons stack, 44 px high; a phone gets one card
+  // per page with the two buttons side by side under it
+  const narrow = useNarrowWindow(DOCS_TABLET_BELOW);
+  const phone = useNarrowWindow(DOCS_PHONE_BELOW);
+  const tile = (
+    <div
+      aria-hidden="true"
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 11,
+        background: '#F1F6F2',
+        color: '#5B6B60',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        fontSize: 22,
+        filter: emoji ? 'grayscale(.35)' : undefined,
+      }}
+    >
+      {emoji ? icon : <Icon name={isPage ? 'i00' : 'i13'} size={20} strokeWidth={1.8} />}
+    </div>
+  );
+  if (phone) {
+    return (
+      <div
+        className="bin-row bin-row-phone"
+        data-testid={`bin-row-${kind}`}
+        style={{ padding: '14px 16px', borderBottom: last ? undefined : '1px solid #EEF3EF' }}
+        data-first={first ? '1' : undefined}
+        data-pinned={pinned ? '1' : undefined}
+      >
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          {check}
+          {tile}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3, color: '#1E2A22' }}>{title}</div>
+            <div style={{ fontSize: 12.5, color: '#5B6B60', marginTop: 2 }}>{meta}</div>
+          </div>
+          {badge}
+        </div>
+        {lines.map((l, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              color: '#5B6B60',
+              margin: '8px 0 0 56px',
+              flexWrap: 'wrap',
+            }}
+          >
+            {l}
+          </div>
+        ))}
+        {footer && <div style={{ margin: '1px 0 0 56px' }}>{footer}</div>}
+        <div className="bin-actions" style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          {actions}
+        </div>
+      </div>
+    );
+  }
   return (
     <div
-      className="bin-row"
+      className={`bin-row${narrow ? ' bin-row-tablet' : ''}`}
       data-testid={`bin-row-${kind}`}
       style={{
         display: 'flex',
         alignItems: 'flex-start',
-        gap: 12,
-        padding: '12px 16px',
+        gap: 14,
+        padding: '14px 18px',
         borderBottom: last ? undefined : '1px solid #EEF3EF',
       }}
       data-first={first ? '1' : undefined}
       data-pinned={pinned ? '1' : undefined}
     >
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          background: isPage ? '#DCEEE1' : '#EEF3EF',
-          color: isPage ? '#2E6F40' : '#5B6B60',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <Icon name={isPage ? 'i00' : 'i13'} size={16} strokeWidth={1.8} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {check}
+      {tile}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: narrow ? 'wrap' : undefined }}>
           <span
-            className="mc-chip"
-            style={
-              isPage
-                ? { background: '#DCEEE1', color: '#1F5A31', height: 20 }
-                : { background: '#F1F3F1', color: '#3A4A3E', height: 20 }
-            }
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: 22,
+              boxSizing: 'border-box',
+              padding: '0 9px',
+              borderRadius: 999,
+              fontSize: 10.5,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              flex: 'none',
+              ...(isPage
+                ? { background: '#F1F8F3', color: '#2E6F40', border: '1px solid #CFE6D6' }
+                : { background: '#F1F6F2', color: '#3A4A3E', border: '1px solid #DCE6DF' }),
+            }}
           >
             {isPage ? 'Page' : 'Ticket'}
           </span>
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>{title}</span>
+          <span style={{ fontSize: narrow ? 15 : 14.5, fontWeight: 700, color: '#1E2A22' }}>{title}</span>
+          {narrow && badge}
         </div>
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5B6B60', flexWrap: 'wrap' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12.5,
+            color: '#5B6B60',
+            flexWrap: 'wrap',
+            marginTop: 2,
+          }}
         >
           {meta}
         </div>
         {lines.map((l, i) => (
-          <div key={i} style={{ fontSize: 11.5, color: '#9AA8A0' }}>
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              color: '#5B6B60',
+              marginTop: 3,
+              flexWrap: 'wrap',
+            }}
+          >
             {l}
           </div>
         ))}
         {footer}
       </div>
-      <div
-        className="bin-actions"
-        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, paddingTop: 2 }}
-      >
-        {actions}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+        {!narrow && badge}
+        <div
+          className="bin-actions"
+          style={
+            narrow
+              ? { display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 8 }
+              : { display: 'flex', alignItems: 'center', gap: 8 }
+          }
+        >
+          {actions}
+        </div>
       </div>
     </div>
+  );
+}
+
+/** The colours of the days left: grey, amber in the last week, red in the last three days (organising pages, E 40). */
+const DAYS_PILL = {
+  grey: { background: '#F1F6F2', color: '#3A4A3E', border: '1px solid #DCE6DF' },
+  amber: { background: '#FDF3E3', color: '#8A5A00', border: '1px solid #EBD3A4' },
+  red: { background: '#FDF1EE', color: '#C4432A', border: '1px solid #F0C4B8' },
+} as const;
+
+/** "27 days left" as a pill with a clock, in its colour. */
+export function DaysLeftPill({ days }: { days: number }) {
+  const tone = daysLeftTone(days);
+  return (
+    <span
+      className="tr-days"
+      data-testid="bin-days-left"
+      data-tone={tone.tone}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        height: 22,
+        boxSizing: 'border-box',
+        padding: '0 9px',
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+        ...DAYS_PILL[tone.tone],
+      }}
+    >
+      <svg
+        aria-hidden="true"
+        width={11}
+        height={11}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M12 7.5V12l3 2" />
+      </svg>
+      {daysLeftText(days)}
+    </span>
   );
 }
 
@@ -215,10 +424,15 @@ export function PageBinRow({
   onAskPurge,
   onCancelPurge,
   onPurge,
+  selected,
+  onToggleSelect,
 }: {
   entry: RecycleEntry;
   busy: boolean;
   confirming: boolean;
+  /** Picked for Restore or Delete forever of several pages; absent: no checkbox. */
+  selected?: boolean;
+  onToggleSelect?: () => void;
   error?: string | null;
   first?: boolean;
   last?: boolean;
@@ -235,35 +449,31 @@ export function PageBinRow({
         style={{
           display: 'flex',
           alignItems: 'flex-start',
-          gap: 10,
-          padding: '9px 12px',
-          borderRadius: 10,
-          background: '#E8F1FB',
-          border: '1px solid #B9D3EE',
-          fontSize: 12.5,
-          lineHeight: 1.5,
-          color: '#1E2A22',
-          marginTop: 4,
+          gap: 6,
+          fontSize: 12,
+          lineHeight: 1.45,
+          color: '#8A5A00',
+          marginTop: 5,
         }}
       >
-        <span style={{ color: '#2F6FB0', display: 'flex', marginTop: 1 }}>
-          <Icon name="i28" size={16} strokeWidth={1.9} />
+        <span style={{ display: 'flex', marginTop: 2 }}>
+          <Icon name="i28" size={13} strokeWidth={2} />
         </span>
         <span>
-          <b style={{ fontWeight: 700 }}>“{entry.title}” will return at the top level.</b> Its parent,{' '}
-          {entry.parentTitle}, is still in the Recycle Bin. Restore {entry.parentTitle} first to put it back in place.
+          “{entry.title}” will return at the top level. Its parent, {entry.parentTitle}, is still in the Recycle Bin.
+          Restore {entry.parentTitle} first to put it back in place.
         </span>
       </div>
     );
   } else if (extra > 0) {
     note = (
-      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 2 }}>
+      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 5 }}>
         Restoring brings back all {entry.pageCount} pages in the same order.
       </div>
     );
   } else if (entry.parentTitle) {
     note = (
-      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 2 }}>
+      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 5 }}>
         Restores under {entry.parentTitle}.
       </div>
     );
@@ -273,12 +483,13 @@ export function PageBinRow({
     <BinRow
       kind="page"
       title={entry.title}
+      icon={entry.icon}
       first={first}
       last={last}
       pinned={confirming || busy}
+      badge={<DaysLeftPill days={entry.daysLeft} />}
       meta={
         <>
-          <Icon name="i00" size={12} strokeWidth={1.8} />
           <span style={{ minWidth: 0 }}>
             {entry.parentTitle ?? 'Top level'}
             {extra > 0 &&
@@ -287,8 +498,24 @@ export function PageBinRow({
         </>
       }
       lines={[
-        `${displayName(entry.deletedBy)} · ${agoText(entry.deletedAt)} · ${entry.daysLeft} ${entry.daysLeft === 1 ? 'day' : 'days'} left`,
+        <>
+          <EditorAvatar name={entry.deletedBy} size={18} />
+          <span>
+            {displayName(entry.deletedBy)} · {agoText(entry.deletedAt)}
+          </span>
+        </>,
       ]}
+      check={
+        onToggleSelect ? (
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={onToggleSelect}
+            aria-label={`Select ${entry.title}`}
+            style={{ accentColor: '#2E6F40', width: 16, height: 16, marginTop: 8 }}
+          />
+        ) : undefined
+      }
       footer={
         <>
           {note}
@@ -317,17 +544,23 @@ export function PageBinRow({
           </>
         ) : (
           <>
-            <button type="button" className="st-btn st-btn-sm" disabled={busy} onClick={onRestore}>
+            <button
+              type="button"
+              className="st-btn"
+              style={{ minHeight: 32, background: '#F1F8F3', borderColor: '#2E6F40', color: '#1F5A31' }}
+              disabled={busy}
+              onClick={onRestore}
+            >
               <Icon name="i19" size={13} strokeWidth={2} />
               {busy ? 'Restoring…' : 'Restore'}
             </button>
             <button
               type="button"
-              className="st-btn st-btn-sm st-btn-danger-outline"
+              className="st-btn st-btn-danger-outline"
+              style={{ minHeight: 32 }}
               disabled={busy}
               onClick={onAskPurge}
             >
-              <Icon name="i12" size={13} />
               Delete forever
             </button>
           </>

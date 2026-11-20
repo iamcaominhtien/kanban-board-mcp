@@ -15,8 +15,8 @@ use kb_doctext::pystr::{self, is_word};
 use kb_fuzzy::{fuzz, process};
 use serde_json::{Map, Value as Json, json};
 
-use super::index::{contents, ensure_fts};
-use super::query::{Query, build_matches, contains, count_matches, highlight, passes, plain_line, window};
+use super::index::{contents, ensure_fts, rich_docs};
+use super::query::{Marker, Query, build_matches, contains, count_matches, highlight, passes, plain_line, window};
 use crate::util::casefold;
 use crate::{Result, docs_err};
 
@@ -45,6 +45,18 @@ pub struct SearchParams {
     pub status: Option<String>,
     /// "relevance" or "edited_at".
     pub sort: String,
+    /// Only matches of these types (`page`, `image`, `table`, `file`, `code`, `diagram`, comma separated; see
+    /// [`match_type`]): a page stays when one of its matches is of such a type, and lists only those.
+    pub kinds: Option<String>,
+    /// Count the pages per match type (`facets.kinds`); the full search page asks for it (`facets=kinds`).
+    pub kind_facets: bool,
+    /// Count the pages that may be outdated (`facets.outdated`); the search page asks for it (`facets=outdated`).
+    pub outdated_facet: bool,
+    /// Count the results per project (`facets.projects`, scope `all`); the search page asks for it (`facets=projects`).
+    pub project_facets: bool,
+    /// Give each match of a picture, video, code block, file or diagram what its result card shows (`card`, see
+    /// [`crate::docs::blocks::match_card`]); the search page asks for it (`cards=true`).
+    pub cards: bool,
 }
 
 impl Default for SearchParams {
@@ -61,6 +73,11 @@ impl Default for SearchParams {
             has_tickets: None,
             status: None,
             sort: "relevance".into(),
+            kinds: None,
+            kind_facets: false,
+            outdated_facet: false,
+            project_facets: false,
+            cards: false,
         }
     }
 }
@@ -497,8 +514,15 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
         if since.as_ref().is_some_and(|s| p.updated_at < *s) {
             continue;
         }
-        if params.status.as_deref().is_some_and(|s| !s.is_empty() && p.status != s) {
-            continue;
+        match params.status.as_deref() {
+            // the search page's "May be outdated" (RichDocsLinks B 7): no page row has that status
+            Some(OUTDATED) => {
+                if !may_be_outdated(p, now) {
+                    continue;
+                }
+            }
+            Some(s) if !s.is_empty() && p.status != s => continue,
+            _ => {}
         }
         if params.has_tickets.is_some_and(|h| ticket_linked.contains(&p.id) != h) {
             continue;
@@ -517,6 +541,57 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
                 .unwrap_or(std::cmp::Ordering::Equal)
                 .then_with(|| casefold(&a.title).cmp(&casefold(&b.title)))
         });
+    }
+
+    // the type of what matched (B 7): placed over the pages the counts cover, before paging, when asked for
+    let wanted_types: Vec<String> = params
+        .kinds
+        .as_deref()
+        .unwrap_or("")
+        .split(',')
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
+        .collect();
+    let mut placed: HashMap<String, Vec<Map<String, Json>>> = HashMap::new();
+    let mut kinds_facet: Option<Json> = None;
+    if params.kind_facets || !wanted_types.is_empty() {
+        let pool: Vec<docs_page::Model> = filtered.iter().take(300).map(|p| (*p).clone()).collect();
+        let pool_content = contents(session, &pool).await?;
+        let pool_docs = rich_docs(session, &pool).await?;
+        let positive = query.positive();
+        let mut per_type: HashMap<&'static str, i64> = HashMap::new();
+        for p in &pool {
+            let mut matches =
+                build_matches(pool_content.get(&p.id).map(String::as_str).unwrap_or(""), &positive, headings_only, 3);
+            if let Some(doc) = pool_docs.get(&p.id) {
+                place_matches(doc, &mut matches, &positive, headings_only);
+            }
+            let types: HashSet<&'static str> = if matches.is_empty() {
+                HashSet::from(["page"])
+            } else {
+                matches.iter().map(|m| match_type(m.get("kind").and_then(Json::as_str))).collect()
+            };
+            for t in types {
+                *per_type.entry(t).or_default() += 1;
+            }
+            placed.insert(p.id.clone(), matches);
+        }
+        kinds_facet = Some(Json::Array(
+            MATCH_TYPES.iter().map(|t| json!({"name": t, "count": per_type.get(t).copied().unwrap_or(0)})).collect(),
+        ));
+        if !wanted_types.is_empty() {
+            let keep = |m: &Map<String, Json>| {
+                wanted_types.iter().any(|w| w == match_type(m.get("kind").and_then(Json::as_str)))
+            };
+            filtered.retain(|p| {
+                placed.get(&p.id).is_some_and(|ms| {
+                    if ms.is_empty() { wanted_types.iter().any(|w| w == "page") } else { ms.iter().any(keep) }
+                })
+            });
+            for ms in placed.values_mut() {
+                ms.retain(keep);
+            }
+        }
     }
 
     let window_pages: Vec<&docs_page::Model> = filtered.iter().skip(offset).take(limit).copied().collect();
@@ -540,6 +615,10 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
                 .max(1)
         })
         .sum();
+    // a match names the block it sits in (`block_id`, `kind`), so a result opens the page at it; pictures and videos
+    // match by their caption or description too
+    let owned_window: Vec<docs_page::Model> = window_pages.iter().map(|p| (*p).clone()).collect();
+    let docs = rich_docs(session, &owned_window).await?;
     let mut out_pages: Vec<Json> = Vec::new();
     for p in &window_pages {
         let mut m = Map::new();
@@ -554,8 +633,35 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
         m.insert("updated_at".into(), json!(p.updated_at));
         m.insert("updated_by".into(), json!(p.updated_by));
         m.insert("tickets".into(), Json::Array(page_tickets.get(&p.id).cloned().unwrap_or_default()));
-        let matches =
-            build_matches(contents_map.get(&p.id).map(String::as_str).unwrap_or(""), &positive, headings_only, 3);
+        let matches = match placed.remove(&p.id) {
+            Some(done) => done,
+            None => {
+                let mut matches = build_matches(
+                    contents_map.get(&p.id).map(String::as_str).unwrap_or(""),
+                    &positive,
+                    headings_only,
+                    3,
+                );
+                if let Some(doc) = docs.get(&p.id) {
+                    place_matches(doc, &mut matches, &positive, headings_only);
+                }
+                matches
+            }
+        };
+        let mut matches = matches;
+        if params.cards {
+            if let Some(doc) = docs.get(&p.id) {
+                for mm in matches.iter_mut() {
+                    let card = mm
+                        .get("block_id")
+                        .and_then(Json::as_str)
+                        .and_then(|b| crate::docs::blocks::match_card(doc, b, &positive));
+                    if let Some(card) = card {
+                        mm.insert("card".into(), card);
+                    }
+                }
+            }
+        }
         m.insert("matches".into(), Json::Array(matches.into_iter().map(Json::Object).collect()));
         out_pages.push(Json::Object(m));
     }
@@ -579,17 +685,123 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
     result.insert("pages".into(), Json::Array(out_pages));
     result.insert("tickets".into(), Json::Array(ticket_hits.into_iter().take(5).map(Json::Object).collect()));
     result.insert("suggestion".into(), suggestion.map(Json::from).unwrap_or(Json::Null));
-    result.insert(
-        "facets".into(),
-        json!({
-            "authors": author_rows.iter().map(|(n, c)| json!({"name": n, "count": c})).collect::<Vec<_>>(),
-            "under": under_facet,
-            "status": status_rows.iter().map(|(n, c)| json!({"name": n, "count": c})).collect::<Vec<_>>(),
-            "edited": edited_facet,
-            "has_tickets": ticket_linked.len(),
-        }),
-    );
+    let mut facets = json!({
+        "authors": author_rows.iter().map(|(n, c)| json!({"name": n, "count": c})).collect::<Vec<_>>(),
+        "under": under_facet,
+        "status": status_rows.iter().map(|(n, c)| json!({"name": n, "count": c})).collect::<Vec<_>>(),
+        "edited": edited_facet,
+        "has_tickets": ticket_linked.len(),
+    });
+    if let Some(k) = kinds_facet {
+        facets["kinds"] = k;
+    }
+    if params.outdated_facet {
+        facets["outdated"] = json!(candidates.iter().filter(|p| may_be_outdated(p, now)).count());
+    }
+    if params.project_facets {
+        // "All projects · Kanban Board 17 · Mobile App 8" (B 12): the results per project, largest first
+        let mut per: Vec<(String, i64)> = Vec::new();
+        for p in &filtered {
+            match per.iter_mut().find(|(id, _)| *id == p.project_id) {
+                Some(row) => row.1 += 1,
+                None => per.push((p.project_id.clone(), 1)),
+            }
+        }
+        per.sort_by_key(|row| std::cmp::Reverse(row.1));
+        facets["projects"] = Json::Array(
+            per.into_iter()
+                .map(|(id, n)| {
+                    let name = projects.get(&id).map(|x| x.name.clone()).unwrap_or_default();
+                    json!({"project_id": id, "name": name, "count": n})
+                })
+                .collect(),
+        );
+    }
+    result.insert("facets".into(), facets);
     Ok(result)
+}
+
+/// The `status` filter value for pages that may be outdated.
+pub const OUTDATED: &str = "outdated";
+
+/// A published page not edited or reviewed for this many months may be outdated (the UI's `OUTDATED_MONTHS`).
+const OUTDATED_MONTHS: u32 = 6;
+
+/// Whether a page may be outdated, by the rule of the reading view: published, and marked Outdated in its settings
+/// (`status`), or not edited (nor marked reviewed, `reviewedAt`) for [`OUTDATED_MONTHS`] months.
+pub fn may_be_outdated(p: &docs_page::Model, now: chrono::DateTime<Utc>) -> bool {
+    if p.version < 1 || p.status != "published" {
+        return false;
+    }
+    let settings = crate::docs::read_settings(p.settings.as_deref());
+    if settings.get("status").and_then(Json::as_str) == Some(OUTDATED) {
+        return true;
+    }
+    let Some(cutoff) = now.checked_sub_months(chrono::Months::new(OUTDATED_MONTHS)) else {
+        return false;
+    };
+    let cutoff = time::iso(&cutoff);
+    let reviewed = settings.get("reviewedAt").and_then(Json::as_str).unwrap_or("");
+    let last = if reviewed > p.updated_at.as_str() { reviewed } else { p.updated_at.as_str() };
+    !last.is_empty() && last < cutoff.as_str()
+}
+
+/// The match types of the search page's Type filter, in its order.
+pub const MATCH_TYPES: [&str; 6] = ["page", "image", "table", "file", "code", "diagram"];
+
+/// The Type filter's name for the kind of block a match sits in: `image` (pictures and videos), `table`, `file`,
+/// `code`, `diagram` (draw.io diagrams, sketches, canvases) or `page` (text, headings, lists, callouts, quotes,
+/// anything else, and a match not placed in a block).
+pub fn match_type(kind: Option<&str>) -> &'static str {
+    match kind {
+        Some("image" | "video") => "image",
+        Some("table") => "table",
+        Some("file") => "file",
+        Some("code") => "code",
+        Some("diagram" | "sketch" | "canvas") => "diagram",
+        _ => "page",
+    }
+}
+
+/// Names the block of each match of a rich page (`block_id`, `kind`: `heading`, `table`, `code`, `image`…; a table
+/// match also its `row` and `cells`) and adds
+/// the pictures and videos whose caption or description holds a term (`field`: `caption`, `alt` or `title`) while
+/// there is room for three matches.
+fn place_matches(doc: &Json, matches: &mut Vec<Map<String, Json>>, terms: &[String], headings_only: bool) {
+    for m in matches.iter_mut() {
+        let slug = m.get("slug").and_then(Json::as_str).map(str::to_string);
+        let snippet = m.get("snippet").and_then(Json::as_str).unwrap_or("").to_string();
+        let placed = crate::docs::blocks::block_of_match(doc, slug.as_deref(), &snippet, terms);
+        m.insert("block_id".into(), placed.as_ref().map(|(b, _)| json!(b)).unwrap_or(Json::Null));
+        // a table match names its row ("Table · row 2") and carries the row's cells, shown as a row
+        if let Some((block, "table")) = placed.as_ref().map(|(b, k)| (b.as_str(), *k)) {
+            if let Some(hit) = crate::docs::blocks::table_row_of(doc, block, &snippet, terms) {
+                m.insert("row".into(), json!(hit.row));
+                m.insert("cells".into(), json!(hit.cells));
+            }
+        }
+        m.insert("kind".into(), placed.map(|(_, k)| json!(k)).unwrap_or(Json::Null));
+    }
+    if headings_only {
+        return;
+    }
+    let marker = Marker::new(terms);
+    for hit in crate::docs::blocks::caption_hits(doc, terms) {
+        if matches.len() >= 3 {
+            break;
+        }
+        if matches.iter().any(|m| m.get("block_id").and_then(Json::as_str) == Some(hit.block_id.as_str())) {
+            continue;
+        }
+        let mut m = Map::new();
+        m.insert("section".into(), hit.section.as_ref().map(|(t, _)| json!(t)).unwrap_or(Json::Null));
+        m.insert("slug".into(), hit.section.as_ref().map(|(_, s)| json!(s)).unwrap_or(Json::Null));
+        m.insert("snippet".into(), json!(marker.mark(&hit.text)));
+        m.insert("block_id".into(), json!(hit.block_id));
+        m.insert("kind".into(), json!(hit.kind));
+        m.insert("field".into(), json!(hit.field));
+        matches.push(m);
+    }
 }
 
 /// Suggest up to 4 pages whose slug or title resembles a slug (for the "page not found" screen): `{page_id, title,

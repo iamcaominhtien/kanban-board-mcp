@@ -1,0 +1,99 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "blockquote",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000002"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Outer"
+            }
+          ]
+        },
+        {
+          "type": "blockquote",
+          "attrs": {
+            "blockId": "b-000003"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000004"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Inner quote"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "bulletList",
+          "attrs": {
+            "blockId": "b-000005"
+          },
+          "content": [
+            {
+              "type": "listItem",
+              "attrs": {
+                "blockId": "b-000006"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000007"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "a list in a quote"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "attrs": {
+                "blockId": "b-000008"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000009"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "second"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00000a"
+      }
+    }
+  ]
+}

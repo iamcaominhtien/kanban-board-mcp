@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
 
@@ -10,7 +10,12 @@ export type PageMenuAction =
   | 'copy-markdown'
   | 'move'
   | 'history'
+  | 'settings'
+  | 'icon'
+  | 'book'
+  | 'save-template'
   | 'export'
+  | 'print'
   | 'give-ai'
   | 'delete';
 
@@ -18,7 +23,18 @@ interface PageMenuProps {
   page: DocsPage;
   onAction: (a: PageMenuAction) => void;
   onClose: () => void;
+  /** `sheet`: drawn in place (a phone's bottom sheet) instead of as a popover under its button. */
+  variant?: 'popover' | 'sheet';
+  /** Entries left out (a canvas page has no Page settings). */
+  hidden?: readonly PageMenuAction[];
+  /** Entries drawn only when asked for: Print (the read view, where the header has no room for it). */
+  extra?: readonly PageMenuAction[];
+  /** AI team rows drawn after "Give to an AI team…" (AI changes, Not for AI teams; suggestions/pageAi.tsx). */
+  aiItems?: ReactNode;
 }
+
+/** Entries a menu shows only when its `extra` names them. */
+const OPTIONAL: readonly PageMenuAction[] = ['print'];
 
 interface Item {
   action: PageMenuAction;
@@ -38,8 +54,13 @@ const GROUPS: Item[][] = [
     { action: 'move', label: 'Move to…', icon: 'i35', kbd: 'M' },
   ],
   [
+    { action: 'icon', label: 'Page icon…', icon: 'i58' },
+    { action: 'settings', label: 'Page settings…', icon: 'i42' },
+    { action: 'book', label: 'Turn into a book…', icon: 'i00' },
+    { action: 'save-template', label: 'Save as template…', icon: 'i24' },
     { action: 'history', label: 'Page history', icon: 'i39', kbd: 'H' },
-    { action: 'export', label: 'Export as Markdown', icon: 'i43' },
+    { action: 'export', label: 'Export…', icon: 'i43' },
+    { action: 'print', label: 'Print', icon: 'page', kbd: 'Ctrl P' },
   ],
   [{ action: 'give-ai', label: 'Give to an AI team…', icon: 'i28' }],
   [{ action: 'delete', label: 'Delete page', icon: 'i12', kbd: 'Del', danger: true }],
@@ -87,8 +108,15 @@ export function usePageShortcuts(onAction: (a: PageMenuAction) => void, enabled 
  * The page header "···" menu. Position it with a relatively-positioned wrapper; it opens below, right-aligned.
  * @param props.onAction - Called with the chosen menu action.
  * @param props.onClose - Called to dismiss the menu.
+ * @param props.variant - `sheet` draws it in place, full width, with 44 px rows (a phone's bottom sheet).
+ * @param props.hidden - Entries to leave out.
+ * @param props.extra - Optional entries to draw (Print).
+ * @param props.aiItems - AI team rows drawn after "Give to an AI team…".
  */
-export function PageMenu({ onAction, onClose }: PageMenuProps) {
+export function PageMenu({ page, onAction, onClose, variant = 'popover', hidden, extra, aiItems }: PageMenuProps) {
+  const sheet = variant === 'sheet';
+  // a book's entry opens its settings instead of turning it into one
+  const isBook = (page.settings?.book as { isBook?: boolean } | undefined)?.isBook === true;
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -122,48 +150,54 @@ export function PageMenu({ onAction, onClose }: PageMenuProps) {
   return (
     <div
       ref={rootRef}
-      className="dk-menu docs-root"
+      className={sheet ? 'dk-menu-sheet docs-root' : 'dk-menu docs-root'}
       role="menu"
       aria-label="Page actions"
       onKeyDown={moveFocus}
-      style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 290, zIndex: 60 }}
+      style={sheet ? undefined : { position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 290, zIndex: 60 }}
     >
-      {GROUPS.map((group, gi) => (
-        <div key={gi}>
-          {gi > 0 && <div style={{ height: 1, background: '#EEF3EF', margin: '4px 6px' }} />}
-          {group.map((it) => (
-            <button
-              key={it.action}
-              type="button"
-              role="menuitem"
-              className="dk-mi"
-              data-testid={`menu-${it.action}`}
-              onClick={() => {
-                onClose();
-                onAction(it.action);
-              }}
-              style={{
-                width: '100%',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                fontFamily: 'inherit',
-                ...(it.danger ? { color: '#C4432A' } : {}),
-              }}
-            >
-              <span style={{ color: it.danger ? '#C4432A' : '#5B6B60', display: 'flex' }}>
-                <Icon name={it.icon} size={15} strokeWidth={1.8} />
-              </span>
-              <span>{it.label}</span>
-              {it.kbd && (
-                <span style={{ marginLeft: 'auto' }}>
-                  <span className="dk-kbd">{it.kbd}</span>
+      {GROUPS.map((all, gi) => ({ all, gi })).map(({ all, gi }) => {
+        const group = all.filter(
+          (it) => !hidden?.includes(it.action) && (!OPTIONAL.includes(it.action) || !!extra?.includes(it.action)),
+        );
+        return (
+          <div key={gi}>
+            {gi > 0 && <div style={{ height: 1, background: '#E3E8E5', margin: '4px 6px' }} />}
+            {group.map((it) => (
+              <button
+                key={it.action}
+                type="button"
+                role="menuitem"
+                className="dk-mi"
+                data-testid={`menu-${it.action}`}
+                onClick={() => {
+                  onClose();
+                  onAction(it.action);
+                }}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  background: 'none',
+                  textAlign: 'left',
+                  fontFamily: 'inherit',
+                  ...(it.danger ? { color: '#C4432A' } : {}),
+                }}
+              >
+                <span style={{ color: it.danger ? '#C4432A' : '#5B6B60', display: 'flex' }}>
+                  <Icon name={it.icon} size={15} strokeWidth={1.8} />
                 </span>
-              )}
-            </button>
-          ))}
-        </div>
-      ))}
+                <span>{it.action === 'book' && isBook ? 'Book settings…' : it.label}</span>
+                {it.kbd && !sheet && (
+                  <span style={{ marginLeft: 'auto' }}>
+                    <span className="dk-kbd">{it.kbd}</span>
+                  </span>
+                )}
+              </button>
+            ))}
+            {aiItems && all.some((it) => it.action === 'give-ai') && aiItems}
+          </div>
+        );
+      })}
     </div>
   );
 }

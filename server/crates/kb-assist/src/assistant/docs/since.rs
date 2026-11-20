@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use chrono::{Duration, Utc};
 use kb_base::{pyjson, pytext, time};
 use kb_db::Session;
-use kb_db::entities::{docs_ai_job, docs_page, docs_page_seen};
+use kb_db::entities::{docs_ai_job, docs_page, docs_page_seen, docs_version};
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use regex::Regex;
 use serde_json::{Map, Value, json};
@@ -94,6 +94,101 @@ pub async fn changed_since_viewed(session: &Session, project_id: &str, person: &
     Ok(out)
 }
 
+/// A rich version of a page as JSON, `None` for a Markdown version or one that is not there.
+async fn rich_version(session: &Session, page_id: &str, version: i32) -> Result<Option<Value>, Error> {
+    if version <= 0 {
+        return Ok(None);
+    }
+    let row = docs_version::Entity::find()
+        .filter(docs_version::Column::PageId.eq(page_id))
+        .filter(docs_version::Column::Version.eq(version))
+        .one(session)
+        .await?;
+    Ok(row.filter(|v| v.format == "rich").and_then(|v| v.content).and_then(|c| serde_json::from_str(&c).ok()))
+}
+
+/// The top-level blocks of a rich page.
+fn top(doc: &Value) -> Vec<&Value> {
+    doc.get("content").and_then(Value::as_array).map(|a| a.iter().collect()).unwrap_or_default()
+}
+
+/// One block of a digest row: `{block_id, type, level, n, change}`. `type` is the block's node type (`paragraph`,
+/// `heading`, `pullQuote`…), `level` a heading's level, `n` its place among the page's blocks of that type (1-based;
+/// `None` when it is the only one), `change` `edited` or `added`.
+fn block_chip(doc: &Value, block: &Value, change: &str) -> Value {
+    let ty = block.get("type").and_then(Value::as_str).unwrap_or("");
+    let id = kb_docs::docs::blocks::block_id_of(block);
+    let same: Vec<&Value> =
+        top(doc).into_iter().filter(|b| b.get("type").and_then(Value::as_str) == Some(ty)).collect();
+    let n = id
+        .and_then(|id| same.iter().position(|b| kb_docs::docs::blocks::block_id_of(b) == Some(id)))
+        .filter(|_| same.len() > 1)
+        .map(|i| i + 1);
+    json!({
+        "block_id": id,
+        "type": ty,
+        "level": block.get("attrs").and_then(|a| a.get("level")).cloned().unwrap_or(Value::Null),
+        "n": n,
+        "change": change,
+    })
+}
+
+/// What changed in a page's blocks since the version the person saw: `{edited, added, removed, blocks}` (`blocks`:
+/// the edited and added ones in page order, at most 12, as [`block_chip`] writes them). For a new page every block
+/// counts as added and `blocks` is empty. `None` when either version is not a rich page.
+async fn block_changes(session: &Session, row: &Changed) -> Result<Option<Value>, Error> {
+    let Some(new) = rich_version(session, &row.page.id, row.page.version).await? else { return Ok(None) };
+    if row.kind == Change::New {
+        let n = top(&new).len();
+        return Ok(Some(json!({"edited": 0, "added": n, "removed": 0, "blocks": []})));
+    }
+    let Some(old) = rich_version(session, &row.page.id, row.from).await? else { return Ok(None) };
+    let changes = kb_docs::docs_suggestions::diff_blocks(&old, &new);
+    // a page saved as Markdown gets new block ids: a new block with the words of a removed one is the same block,
+    // and one of the same kind in its place is that block edited
+    let text = |b: &Option<Value>| b.as_ref().map(kb_docs::docs::blocks::block_text).unwrap_or_default();
+    let ty = |b: &Option<Value>| b.as_ref().and_then(|b| b.get("type")).and_then(Value::as_str).map(str::to_string);
+    let mut deletes: Vec<&kb_docs::docs_suggestions::BlockChange> =
+        changes.iter().filter(|c| c.kind == "delete").collect();
+    let mut kinds: Vec<(&kb_docs::docs_suggestions::BlockChange, &str)> = Vec::new();
+    let mut inserts = Vec::new();
+    for c in &changes {
+        match c.kind {
+            "delete" => {}
+            "insert" => match deletes.iter().position(|d| text(&d.before) == text(&c.content)) {
+                Some(at) => {
+                    deletes.remove(at);
+                }
+                None => inserts.push(c),
+            },
+            _ => kinds.push((c, "edited")),
+        }
+    }
+    for c in inserts {
+        match deletes.iter().position(|d| ty(&d.before) == ty(&c.content)) {
+            Some(at) => {
+                deletes.remove(at);
+                kinds.push((c, "edited"));
+            }
+            None => kinds.push((c, "added")),
+        }
+    }
+    // in page order
+    let order: Vec<&str> = top(&new).into_iter().filter_map(kb_docs::docs::blocks::block_id_of).collect();
+    kinds.sort_by_key(|(c, _)| c.block_id.as_deref().and_then(|id| order.iter().position(|o| *o == id)));
+    let edited = kinds.iter().filter(|(_, k)| *k == "edited").count();
+    let added = kinds.iter().filter(|(_, k)| *k == "added").count();
+    let removed = deletes.len();
+    let mut chips = Vec::new();
+    for (c, change) in &kinds {
+        let block = c.block_id.as_deref().and_then(|id| kb_docs::docs::blocks::find_block(&new, id));
+        if let Some(block) = block.filter(|_| chips.len() < 12) {
+            chips.push(block_chip(&new, block, change));
+        }
+    }
+    Ok(Some(json!({"edited": edited, "added": added, "removed": removed, "blocks": chips})))
+}
+
 /// A title as a model writes it at the start of a line: marks and quotes around it do not count.
 fn title_key(title: &str) -> String {
     title.trim_matches(|c| matches!(c, '*' | '\u{201c}' | '\u{201d}' | ' ')).to_lowercase()
@@ -138,8 +233,9 @@ fn lines_by_page(rows: &[Changed], lines: &[Value]) -> Vec<Option<String>> {
 /// What changed in the space since the person last looked, one line per page.
 ///
 /// The server picks the pages (`changed_since_viewed`) and gives the skill `pages` [{page_id, title, seen_version}];
-/// the result is `{pages: [{page_id, title, kind, from_version, to_version, line}], count, lines}`. Without a changed
-/// page no turn is run.
+/// the result is `{pages: [{page_id, title, kind, from_version, to_version, line, by, at, blocks}], count, lines}`
+/// (`by` and `at`: who published the page last and when; `blocks`: what changed block by block, [`block_changes`]).
+/// Without a changed page no turn is run.
 pub fn since_viewed_job(job: docs_ai_job::Model) -> HandlerFuture {
     boxed(async move {
         let rows = {
@@ -163,10 +259,18 @@ pub fn since_viewed_job(job: docs_ai_job::Model) -> HandlerFuture {
             spent = cost(&out);
         }
         let found = lines_by_page(&rows, &lines);
+        let mut changes = Vec::new();
+        {
+            let session = kb_db::database::session();
+            for r in &rows {
+                changes.push(block_changes(&session, r).await?);
+            }
+        }
         let pages: Vec<Value> = rows
             .iter()
             .zip(found)
-            .map(|(r, line)| {
+            .zip(changes)
+            .map(|((r, line), blocks)| {
                 json!({
                     "page_id": r.page.id,
                     "title": r.page.title,
@@ -174,6 +278,9 @@ pub fn since_viewed_job(job: docs_ai_job::Model) -> HandlerFuture {
                     "from_version": r.from,
                     "to_version": r.page.version,
                     "line": line.map(|l| clip(&l, 400)),
+                    "by": r.page.updated_by,
+                    "at": r.page.updated_at,
+                    "blocks": blocks,
                 })
             })
             .collect();

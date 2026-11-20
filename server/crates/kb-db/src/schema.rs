@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn the_chain_ends_at_the_snapshot_head() {
-        assert_eq!(CHAIN.len(), 80);
+        assert_eq!(CHAIN.len(), 82);
         assert_eq!(head_revision(), include_str!("../schema/head.txt").trim());
         assert!(known_revision("551353060a20"));
         assert!(known_revision("f6a7b8c9d0e1"));
@@ -207,9 +207,9 @@ mod tests {
 
     #[test]
     fn the_snapshots_split_into_statements() {
-        assert_eq!(statements(SQLITE_SCHEMA).filter(|s| s.contains("CREATE TABLE")).count(), 78);
+        assert_eq!(statements(SQLITE_SCHEMA).filter(|s| s.contains("CREATE TABLE")).count(), 83);
         assert_eq!(statements(SQLITE_SCHEMA).filter(|s| s.contains("CREATE VIRTUAL TABLE")).count(), 3);
-        assert_eq!(statements(POSTGRES_SCHEMA).filter(|s| s.contains("CREATE TABLE")).count(), 78);
-        assert_eq!(statements(MYSQL_SCHEMA).filter(|s| s.contains("CREATE TABLE")).count(), 78);
+        assert_eq!(statements(POSTGRES_SCHEMA).filter(|s| s.contains("CREATE TABLE")).count(), 83);
+        assert_eq!(statements(MYSQL_SCHEMA).filter(|s| s.contains("CREATE TABLE")).count(), 83);
     }
 }

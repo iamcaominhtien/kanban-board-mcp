@@ -4,9 +4,11 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
 const key = new PluginKey('docsPlaceholder');
 
+// `dk-placeholder`, not `dk-ph`: that name is the reading page's header (docs.css), a flex column that broke the hint
+// into one line per word group
 function widget(): HTMLElement {
   const el = document.createElement('span');
-  el.className = 'dk-ph';
+  el.className = 'dk-placeholder';
   el.setAttribute('contenteditable', 'false');
   el.innerHTML =
     'Type <span class="dk-kbd">/</span> for blocks, or <span class="dk-kbd">[[</span> to link a page or ticket';

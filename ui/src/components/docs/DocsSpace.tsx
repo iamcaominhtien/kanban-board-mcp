@@ -1,11 +1,21 @@
-import { useCallback, useEffect, useState, type ComponentProps } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type CSSProperties,
+} from 'react';
 import { useDocsTree } from '../../api/docs';
 import { DocsView } from './DocsView';
 import { getActiveReplaceAdapter } from './editorReplace';
 import { FindInPage, useDocsFindHotkey } from './FindInPage';
 import { ImportDialog } from './ImportDialog';
+import type { ImportSource } from './start/importConvert';
 import { RefCheatSheetHost } from './RefCheatSheet';
 import { SearchPalette, rememberDocsPage, useDocsSearchHotkey } from './SearchPalette';
+import { DOCS_PHONE_BELOW, useNarrowWindow, type DocsLayout } from '../../hooks/useDocsLayout';
 import './docs.css';
 
 interface Props {
@@ -18,6 +28,12 @@ interface Props {
   onBack?: () => void;
   /** Move Docs into a window of its own, on this page (#268). */
   onPopOut?: (pageId: string | null) => void;
+  /** Opens the project sidebar where the app hides it (tablet and phone widths). */
+  onOpenSidebar?: () => void;
+  /** Called with true while the app bar should hide (editing on a tablet or a phone), false after. */
+  onImmersiveChange?: (on: boolean) => void;
+  /** Called with true while a page reads in focus, without the app's sidebar and header; false after. */
+  onFocusChange?: (on: boolean) => void;
 }
 
 /**
@@ -30,6 +46,9 @@ interface Props {
  * @param props.onOpenSettings - Called to open project settings when Docs is disabled.
  * @param props.onBack - Called to leave the Docs space.
  * @param props.onPopOut - Called with the open page to move Docs into a window of its own.
+ * @param props.onOpenSidebar - Opens the project sidebar the app hides on narrow screens.
+ * @param props.onImmersiveChange - Called with true while the app bar should hide (editing on touch layouts).
+ * @param props.onFocusChange - Called with true while a page reads in focus (no app chrome).
  */
 export function DocsSpace({
   projectId,
@@ -40,6 +59,9 @@ export function DocsSpace({
   onOpenSettings,
   onBack,
   onPopOut,
+  onOpenSidebar,
+  onImmersiveChange,
+  onFocusChange,
 }: Props) {
   const tree = useDocsTree(projectId);
   const nodes = tree.data ?? [];
@@ -47,9 +69,10 @@ export function DocsSpace({
   const [intent, setIntent] = useState<ComponentProps<typeof DocsView>['intent']>(null);
   const [palette, setPalette] = useState<{ q?: string; mode?: 'ask' } | null>(null);
   const [results, setResults] = useState<string | null>(null);
-  const [importing, setImporting] = useState<{ files?: File[] } | null>(null);
+  const [importing, setImporting] = useState<{ files?: File[]; source?: ImportSource; text?: string } | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const [root, setRoot] = useState<HTMLElement | null>(null);
+  const [layout, setLayout] = useState<DocsLayout>('desktop');
 
   // a root whose page or editor was closed is no longer in the document
   const liveRoot = root?.isConnected ? root : null;
@@ -72,8 +95,32 @@ export function DocsSpace({
     if (n) rememberDocsPage(projectId, n.id, n.title);
   }, [current, nodes, projectId]);
 
+  // A phone has Docs edge to edge (Shell A 3, D 12-13): the app's view leaves a side and bottom margin around every
+  // tab; the Docs area cancels it with negative margins of the same size (read from the parent, so it follows the app)
+  const [bleed, setBleed] = useState<CSSProperties | undefined>(undefined);
+  const spaceRef = useRef<HTMLDivElement>(null);
+  // only when the window itself is a phone's: then the wider area is still a phone's, and the layout cannot flip
+  const phoneWindow = useNarrowWindow(DOCS_PHONE_BELOW);
+  useLayoutEffect(() => {
+    const parent = spaceRef.current?.parentElement;
+    if (layout !== 'phone' || !phoneWindow || !parent) {
+      setBleed(undefined);
+      return;
+    }
+    const cs = getComputedStyle(parent);
+    const px = (v: string) => parseFloat(v) || 0;
+    setBleed({
+      marginLeft: -px(cs.paddingLeft),
+      marginRight: -px(cs.paddingRight),
+      marginBottom: -px(cs.paddingBottom),
+    });
+  }, [layout, phoneWindow]);
+
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative', overflow: 'hidden' }}>
+    <div
+      ref={spaceRef}
+      style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative', overflow: 'hidden', ...bleed }}
+    >
       <DocsView
         projectId={projectId}
         projectName={projectName}
@@ -84,7 +131,15 @@ export function DocsSpace({
           onRequestHandled?.();
         }}
         onOpenTicket={onOpenTicket}
-        onImport={() => setImporting({})}
+        onImport={(source) => {
+          // Paste starts with what is on the clipboard, when the browser lets the page read it
+          if (source === 'paste' && navigator.clipboard?.readText)
+            navigator.clipboard.readText().then(
+              (text) => setImporting({ source, text }),
+              () => setImporting({ source }),
+            );
+          else setImporting({ source });
+        }}
         onDropFiles={(files) => setImporting({ files })}
         onOpenSettings={onOpenSettings}
         onBack={onBack}
@@ -96,6 +151,10 @@ export function DocsSpace({
         onCloseResults={() => setResults(null)}
         intent={intent}
         onIntentHandled={() => setIntent(null)}
+        onOpenSidebar={onOpenSidebar}
+        onImmersiveChange={onImmersiveChange}
+        onFocusChange={onFocusChange}
+        onLayoutChange={setLayout}
       />
       <RefCheatSheetHost />
       {findOpen && (
@@ -113,6 +172,7 @@ export function DocsSpace({
           pageId={current ?? undefined}
           initialQuery={palette.q}
           mode={palette.mode}
+          fullScreen={layout === 'phone'}
           onClose={() => setPalette(null)}
           onOpenPage={(id, anchor) => {
             setPalette(null);
@@ -146,6 +206,9 @@ export function DocsSpace({
           projectName={projectName}
           nodes={nodes}
           initialFiles={importing.files}
+          initialSource={importing.source}
+          initialText={importing.text}
+          phone={layout === 'phone'}
           onClose={() => setImporting(null)}
           onDone={(created) => {
             if (created.length) {

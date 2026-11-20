@@ -2,6 +2,7 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { SketchEmbed } from '../../../sketch/SketchEmbed';
 import { SKETCH_LINE } from '../../../sketch/sketchRefs';
+import { dataOnly } from '../../../../richdoc/extensions/attr';
 
 function SketchView({ node, updateAttributes, editor }: NodeViewProps) {
   const { id, label } = node.attrs as { id: string; label: string };
@@ -42,9 +43,9 @@ export const Sketch = Node.create({
     ];
   },
 
-  renderHTML({ node }) {
+  renderHTML({ node, HTMLAttributes }) {
     const a = node.attrs as { id: string; label: string };
-    return ['div', mergeAttributes({ 'data-sketch': a.id, 'data-label': a.label }), a.label];
+    return ['div', mergeAttributes(dataOnly(HTMLAttributes), { 'data-sketch': a.id, 'data-label': a.label }), a.label];
   },
 
   renderText({ node }) {

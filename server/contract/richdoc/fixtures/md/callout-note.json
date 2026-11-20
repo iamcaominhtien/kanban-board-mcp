@@ -1,0 +1,32 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000001",
+        "kind": "note"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000002"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "A note."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000003"
+      }
+    }
+  ]
+}

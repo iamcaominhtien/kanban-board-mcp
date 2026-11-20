@@ -8,6 +8,8 @@ pub mod checklists;
 pub mod comments;
 pub mod diagrams;
 pub mod docs;
+pub mod docs_page;
+pub mod docs_rich;
 pub mod ideas;
 pub mod members;
 pub mod memory;
@@ -21,8 +23,9 @@ pub mod work_log;
 
 pub use branches::{add_branch, checkout_branch, delete_branch, update_branch};
 pub use canvases::{
-    comment_on_canvas, create_canvas_from_files, design_guide, diagram_guide, docs_guide, list_project_canvases,
-    read_canvas, role_guide, shared_guides, ticket_guide, update_canvas_frame,
+    comment_on_canvas, create_canvas_from_files, delete_canvas_by_id, design_guide, diagram_guide, docs_guide,
+    list_project_canvases, read_canvas, restore_canvas_by_id, role_guide, shared_guides, ticket_guide,
+    update_canvas_frame,
 };
 pub use checklists::{
     add_acceptance_criterion, add_sub_task, delete_acceptance_criterion, delete_sub_task, toggle_acceptance_criterion,
@@ -34,11 +37,12 @@ pub use diagrams::{
 };
 pub use docs::{
     add_docs_comment, create_docs_page, delete_docs_comment, delete_docs_page, duplicate_docs_page, edit_docs_comment,
-    get_docs_page, get_docs_version, import_docs, link_ticket_doc, list_docs_comments, list_docs_pages,
-    list_docs_recycle_bin, list_docs_versions, move_docs_page, reopen_docs_comment, reply_docs_comment,
-    resolve_docs_comment, resolve_docs_links, restore_docs_page, restore_docs_version, search_docs, unlink_ticket_doc,
-    update_docs_page, upload_file,
+    get_docs_block, get_docs_highlights, get_docs_page, get_docs_version, import_docs, link_ticket_doc,
+    list_docs_comments, list_docs_pages, list_docs_recycle_bin, list_docs_versions, move_docs_page,
+    reopen_docs_comment, reply_docs_comment, resolve_docs_comment, resolve_docs_links, restore_docs_page,
+    restore_docs_version, search_docs, unlink_ticket_doc, update_docs_page, upload_file,
 };
+pub use docs_page::{export_docs, list_docs_templates, set_docs_settings};
 pub use ideas::{
     create_idea_ticket, get_idea_activity_trail, get_idea_ticket, list_idea_assumptions, list_idea_tickets,
 };

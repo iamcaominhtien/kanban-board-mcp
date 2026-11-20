@@ -210,7 +210,14 @@ pub async fn create_tickets(
         replaced = chipped.replaced;
         not_replaced = chipped.missing;
         if replaced > 0 {
-            kb_docs::docs::save_draft(session, &page.id, &chipped.markdown, None, None).await?;
+            kb_docs::docs::save_draft(
+                session,
+                &page.id,
+                kb_docs::docs::BodyInput::Markdown(&chipped.markdown),
+                None,
+                None,
+            )
+            .await?;
             draft_after = Some(chipped.markdown);
         }
     }
@@ -257,7 +264,14 @@ pub async fn undo_tickets(session: &Session, token: &str, _by: &str) -> Result<M
                     kb_docs::docs::discard_draft(session, &entry.page_id).await?;
                 }
                 Some(before) => {
-                    kb_docs::docs::save_draft(session, &entry.page_id, before, None, None).await?;
+                    kb_docs::docs::save_draft(
+                        session,
+                        &entry.page_id,
+                        kb_docs::docs::BodyInput::Markdown(before),
+                        None,
+                        None,
+                    )
+                    .await?;
                 }
             }
             restored = true;

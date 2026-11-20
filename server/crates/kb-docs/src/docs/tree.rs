@@ -148,11 +148,12 @@ async fn copy_page(session: &Session, src: &docs_page::Model, title: &str, paren
     let latest = latest_version(session, src).await?;
     let actor = activity::current_actor();
     let draft = draft_for(session, &src.id, &actor).await?;
-    let markdown = match (&latest, &draft) {
-        (Some(l), _) => l.markdown.clone(),
-        (None, Some(d)) => d.markdown.clone(),
-        _ => String::new(),
-    };
+    let body = match (&latest, &draft) {
+        (Some(l), _) => super::body::PageBody::of_version(l),
+        (None, Some(d)) => super::body::PageBody::of_draft(d),
+        _ => super::body::PageBody::from_markdown("", &mut kb_richdoc::RandomIds),
+    }
+    .into_rich();
     let mut page = docs_page::new();
     page.project_id = Set(src.project_id.clone());
     page.parent_id = Set(parent_id.map(str::to_string));
@@ -166,7 +167,7 @@ async fn copy_page(session: &Session, src: &docs_page::Model, title: &str, paren
     draft.page_id = Set(page.id.clone());
     draft.author = Set(actor);
     draft.title = Set(title.to_string());
-    draft.markdown = Set(markdown);
+    super::versions::set_draft_body(&mut draft, &body);
     draft.base_version = Set(0);
     draft.insert(session).await?;
     Ok(page.id)
@@ -278,21 +279,26 @@ pub async fn list_deleted(session: &Session, project_id: &str) -> Result<Vec<Val
         // `p.deleted_at or _now()`
         let deleted_at = p.deleted_at.clone().filter(|at| !at.is_empty()).unwrap_or_else(time::now_iso);
         let days_left = (RECYCLE_DAYS - days_since(&deleted_at)?).max(0);
-        out.push((
-            p.deleted_at.clone().unwrap_or_default(),
-            json!({
-                "id": p.id,
-                "title": p.title,
-                "project_id": p.project_id,
-                "parent_title": parent.as_ref().map(|x| x.title.clone()),
-                "parent_deleted": parent.as_ref().is_some_and(|x| x.deleted_at.as_deref().is_some_and(|d| !d.is_empty())),
-                "deleted_at": p.deleted_at,
-                "deleted_by": p.deleted_by,
-                "page_count": count,
-                "child_titles": children,
-                "days_left": days_left,
-            }),
-        ));
+        let mut entry = json!({
+            "id": p.id,
+            "title": p.title,
+            "project_id": p.project_id,
+            "parent_title": parent.as_ref().map(|x| x.title.clone()),
+            "parent_deleted": parent.as_ref().is_some_and(|x| x.deleted_at.as_deref().is_some_and(|d| !d.is_empty())),
+            "deleted_at": p.deleted_at,
+            "deleted_by": p.deleted_by,
+            "page_count": count,
+            "child_titles": children,
+            "days_left": days_left,
+        });
+        // the page's icon, only when it has one: a page without one answers as in 4.0.x (MCP and HTTP)
+        if let (Some(icon), Some(row)) = (
+            super::settings::read_settings(p.settings.as_deref()).get("icon").filter(|i| !i.is_null()),
+            entry.as_object_mut(),
+        ) {
+            row.insert("icon".into(), icon.clone());
+        }
+        out.push((p.deleted_at.clone().unwrap_or_default(), entry));
     }
     out.sort_by(|a, b| b.0.cmp(&a.0));
     Ok(out.into_iter().map(|(_, v)| v).collect())
@@ -328,6 +334,19 @@ pub async fn hard_delete(session: &Session, pages: &[docs_page::Model]) -> Resul
         .exec(session)
         .await?;
     docs_ai_job::Entity::delete_many().filter(docs_ai_job::Column::PageId.is_in(ids.clone())).exec(session).await?;
+    // format 1: the page's highlights, public links and suggestions go with it (an export file stays its own)
+    kb_db::entities::docs_highlight::Entity::delete_many()
+        .filter(kb_db::entities::docs_highlight::Column::PageId.is_in(ids.clone()))
+        .exec(session)
+        .await?;
+    kb_db::entities::docs_public_link::Entity::delete_many()
+        .filter(kb_db::entities::docs_public_link::Column::PageId.is_in(ids.clone()))
+        .exec(session)
+        .await?;
+    kb_db::entities::docs_suggestion::Entity::delete_many()
+        .filter(kb_db::entities::docs_suggestion::Column::PageId.is_in(ids.clone()))
+        .exec(session)
+        .await?;
     docs_page::Entity::delete_many().filter(docs_page::Column::Id.is_in(ids)).exec(session).await?;
     Ok(())
 }

@@ -1,0 +1,2058 @@
+/* Rich Docs editing (Editor boards A to N): the ribbon, the tablet strip, the phone bar and its sheets, the colour
+   picker, the status line, the format painter bar, the paste chip, the shortcut sheet, focus mode, and how the
+   paragraph attributes of format 1 are drawn in the editor. */
+
+/* ---------- ribbon ---------- */
+.dk-ribbon {
+  flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e3e8e5;
+  box-sizing: border-box;
+}
+.dk-rb-rows {
+  display: flex;
+  flex-direction: column;
+  /* the rule between the two rows stops 16 px short of each side (Editor board, frame 1) */
+  background: linear-gradient(#f0f3f1, #f0f3f1) 16px 44px / calc(100% - 32px) 1px no-repeat;
+}
+.dk-rb-row1,
+.dk-rb-row2 {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 44px;
+  padding: 0 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.dk-rb-row2 {
+  margin-top: 1px;
+}
+/* a group rule: 1 × 20, 6 px each side (the 2 px row gap plus 4 px) */
+.dk-ribbon .dk-sep {
+  width: 1px;
+  height: 20px;
+  background: #e3e8e5;
+  margin: 0 4px;
+}
+.dk-rb.dk-rb-w46 {
+  width: 46px;
+  padding: 0;
+}
+.dk-rb-chev {
+  color: #7a8a80;
+}
+.dk-rb {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  color: #3a4a3e;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.dk-rb:hover:not(:disabled) {
+  background: #f1f5f2;
+}
+.dk-rb:focus-visible,
+.dk-rb-select:focus-visible,
+.dk-rb-size button:focus-visible {
+  outline: 2px solid #68ba7f;
+  outline-offset: 1px;
+}
+.dk-rb.dk-rb-on {
+  background: #eaf0ec;
+  color: #1e2a22;
+}
+.dk-rb.dk-rb-mixed {
+  background: #f6faf7;
+  border: 1.5px dashed #9aa8a0;
+}
+.dk-rb:disabled,
+.dk-rb-select:disabled,
+.dk-rb-size button:disabled {
+  opacity: 0.36;
+  cursor: default;
+}
+.dk-rb-split {
+  display: inline-flex;
+  align-items: center;
+}
+/* a button with its menu caret beside it is 46 px wide in all, as one button with a caret on the board */
+.dk-rb-split > .dk-rb:first-child {
+  min-width: 30px;
+  padding: 0 0 0 6px;
+}
+.dk-rb.dk-rb-caret {
+  min-width: 16px;
+  width: 16px;
+  padding: 0;
+}
+.dk-rb-select {
+  height: 32px;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  flex: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+  background: #ffffff;
+  cursor: pointer;
+  margin-right: 4px;
+}
+.dk-rb-select > span {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dk-rb-select > svg {
+  color: #7a8a80;
+}
+.dk-rb-size {
+  width: 88px;
+  height: 32px;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: stretch;
+  box-sizing: border-box;
+  flex: none;
+  background: #ffffff;
+  overflow: hidden;
+}
+.dk-rb-size button,
+.dk-rb-size .dk-rb-size-v {
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  color: #5b6b60;
+  cursor: pointer;
+  padding: 0;
+}
+.dk-rb-size .dk-rb-size-v {
+  flex: 1;
+  border-left: 1px solid #eef3ef;
+  border-right: 1px solid #eef3ef;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.dk-rb-color {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 14px;
+  line-height: 15px;
+  font-weight: 800;
+}
+.dk-rb-color-bar {
+  width: 15px;
+  height: 3.5px;
+  border-radius: 1px;
+}
+.dk-rb-script {
+  font-size: 13px;
+  font-weight: 700;
+}
+.dk-rb-script sup,
+.dk-rb-script sub {
+  font-size: 9px;
+}
+.dk-rb.dk-rb-insert {
+  gap: 5px;
+  padding: 0 10px;
+  border: 1px solid #bfdcc7;
+  background: #f1f8f3;
+  color: #2e6f40;
+  margin-left: 4px;
+}
+.dk-rb.dk-rb-insert:hover:not(:disabled) {
+  background: #e6f2ea;
+}
+.dk-rb-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1.5px solid #2e6f40;
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dk-rb-group-inline {
+  display: inline-flex;
+  gap: 2px;
+}
+
+/* a page stored as Markdown (an idea) has no colours, fonts, sizes or paragraph attributes */
+.dk-rb-hide,
+.dk-rb-plain .dk-rb-rich,
+.dk-rb-plain [data-rich-only] {
+  display: none !important;
+}
+
+/* tablet: one strip that scrolls, Undo, Redo and Insert pinned at its right end */
+.dk-ribbon-strip {
+  height: 52px;
+}
+.dk-rb-stripwrap {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.dk-rb-strip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* the strip fades out over its last 48 px (Editor board, frame 6) */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - 48px),
+    rgba(0, 0, 0, 0.15) calc(100% - 7px),
+    transparent
+  );
+  mask-image: linear-gradient(to right, #000 calc(100% - 48px), rgba(0, 0, 0, 0.15) calc(100% - 7px), transparent);
+}
+.dk-rb-strip::-webkit-scrollbar,
+.dk-rb-row1::-webkit-scrollbar,
+.dk-rb-row2::-webkit-scrollbar {
+  display: none;
+}
+/* Undo and Redo pinned at the start, with a soft shadow over the strip; Insert pinned at the end (frame 7) */
+.dk-rb-pinned {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px 0 2px;
+  height: 100%;
+  background: #ffffff;
+  z-index: 2;
+}
+.dk-rb-pinned.dk-rb-pinned-start {
+  padding: 0 4px 0 8px;
+  box-shadow: 6px 0 8px -6px rgba(30, 42, 34, 0.18);
+}
+.dk-ribbon-strip .dk-rb {
+  min-width: 44px;
+  height: 44px;
+}
+.dk-ribbon-strip .dk-rb svg {
+  width: 19px;
+  height: 19px;
+}
+.dk-ribbon-strip .dk-rb .dk-rb-chev {
+  width: 9px;
+  height: 9px;
+}
+.dk-ribbon-strip .dk-rb.dk-rb-w46 {
+  width: 56px;
+}
+.dk-ribbon-strip .dk-rb.dk-rb-caret {
+  min-width: 20px;
+  width: 20px;
+}
+.dk-ribbon-strip .dk-rb-select,
+.dk-ribbon-strip .dk-rb-size {
+  height: 40px;
+}
+.dk-ribbon-strip .dk-rb-select {
+  width: 96px !important;
+}
+.dk-ribbon-strip .dk-rb-size {
+  width: 108px;
+}
+.dk-ribbon-strip .dk-sep {
+  height: 26px;
+}
+.dk-rb.dk-rb-insert.dk-rb-insert-icon {
+  width: 44px;
+  padding: 0;
+  margin: 0;
+}
+
+/* phone: the bar above the keyboard, 44 px targets, never scrolling */
+.dk-ribbon-bottom {
+  border-bottom: none;
+  padding: 0 4px;
+}
+/* the phone bar (Editor board, frame 8): 52 px, eight 44 px targets spread evenly, Insert tinted green */
+.dk-ph-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 52px;
+  gap: 0;
+}
+.dk-ph-bar .dk-rb {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  flex: none;
+}
+.dk-ph-bar .dk-rb.dk-ph-insert {
+  background: #f1f8f3;
+  color: #2e6f40;
+}
+/* the editor's phone sheets (Editor board, frames 9, 10 and 18): 20 px corners, a 40×5 grabber, 15 px title */
+.dk-sheet[data-testid^='phone-sheet-'] {
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(20, 32, 24, 0.22);
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+/* the bar is fixed, so its sheets' overlay would cover only the bar: it covers the screen */
+.dk-ribbon-bottom > .dk-overlay {
+  position: fixed;
+}
+.dk-overlay:has(> .dk-sheet[data-testid^='phone-sheet-']) > .dk-scrim {
+  background: rgba(20, 32, 24, 0.38);
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-grab {
+  padding: 8px 0 2px;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-grab > span {
+  height: 5px;
+  border-radius: 3px;
+  background: #d3dcd6;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-head {
+  padding: 6px 8px 6px 20px;
+  font-size: 15px;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-head .dk-icobtn {
+  border-radius: 9px;
+  color: #5b6b60;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-body {
+  padding: 0 8px 4px;
+}
+/* Aa: the format sheet (frame 9) */
+.dk-sheet[data-testid='phone-sheet-format'] .dk-sheet-body {
+  padding: 4px 16px 8px;
+}
+.dk-ph-format {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dk-ph-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  margin-bottom: 7px;
+}
+.dk-ph-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dk-ph-chip {
+  flex: none;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #1e2a22;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dk-ph-chip-on {
+  font-weight: 700;
+  background: #f1f8f3;
+  border-color: #2e6f40;
+}
+.dk-ph-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dk-ph-format .dk-rb-select.dk-ph-font {
+  flex: 1;
+  width: auto;
+  height: 44px;
+  gap: 6px;
+  padding: 0 9px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.dk-ph-format .dk-rb-size {
+  width: 130px;
+  height: 44px;
+}
+.dk-ph-format .dk-rb-size .dk-rb-size-v {
+  font-size: 13px;
+}
+.dk-ph-wide.st-btn {
+  flex: 1;
+  height: 44px;
+  justify-content: center;
+}
+/* a row of 44 px buttons on a tinted strip: marks, alignment, lists */
+.dk-ph-seg {
+  display: flex;
+  align-items: center;
+  background: #f6faf7;
+  border-radius: 10px;
+  padding: 2px;
+}
+.dk-ph-seg .dk-rb {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border-radius: 7px;
+  color: #3a4a3e;
+}
+.dk-ph-seg .dk-rb.dk-rb-on {
+  color: #1e2a22;
+}
+.dk-ph-b {
+  font-size: 15px;
+  font-weight: 800;
+}
+.dk-ph-i {
+  font-family: 'Lora', 'Source Serif 4', Georgia, serif;
+  font-style: italic;
+  font-size: 16px;
+  font-weight: 600;
+}
+.dk-ph-u,
+.dk-ph-s {
+  font-size: 14.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.dk-ph-s {
+  text-decoration: line-through;
+}
+.dk-ph-seg .dk-rb-script {
+  font-size: 13px;
+  font-weight: 700;
+}
+/* More (frame 10): 44 px rows, 14 px text, 16 px icons */
+.dk-sheet[data-testid^='phone-sheet-'] .dk-menu-sheet .dk-mi {
+  min-height: 44px;
+  height: 44px;
+  padding: 7px 10px;
+  gap: 9px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e2a22;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-menu-sheet .dk-mi > svg:first-child {
+  width: 16px;
+  height: 16px;
+  color: #3a4a3e;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-menu-sheet .dk-mi > svg:last-child:not(:first-child) {
+  color: #7a8a80;
+}
+/* the colour sheet (frame 18): the picker's own title goes, the sheet names it; 36 px swatches in 54 px cells */
+.dk-sheet[data-testid='phone-sheet-color'] .dk-sheet-body,
+.dk-sheet[data-testid='phone-sheet-highlight'] .dk-sheet-body {
+  padding: 0 14px 8px;
+}
+.dk-cp-touch {
+  padding: 12px;
+}
+.dk-cp-touch > .dk-cp-title {
+  display: none;
+}
+.dk-cp-touch .dk-cp-auto {
+  height: 40px;
+}
+.dk-cp-touch .dk-cp-sw {
+  width: 54px;
+  min-height: 0;
+}
+.dk-cp-touch .dk-cp-sw-recent {
+  width: 36px;
+}
+.dk-cp-touch .dk-cp-dot {
+  width: 36px;
+  height: 36px;
+}
+.dk-cp-touch .dk-cp-plus {
+  width: 40px;
+  height: 40px;
+}
+.dk-cp-touch .dk-cp-hexbox {
+  height: 40px;
+  border-color: transparent;
+}
+
+/* ---------- popovers ---------- */
+.dk-rb-pop .dk-rb-row {
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  box-sizing: border-box;
+}
+.dk-rb-pop .dk-mi,
+.dk-sheet .dk-rb-row {
+  border: none;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+}
+.dk-rb-keys {
+  font-size: 11px;
+  color: #7a8a80;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.dk-rb-group {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  padding: 8px 10px 4px;
+}
+.dk-rb-note {
+  font-size: 11.5px;
+  color: #5b6b60;
+  padding: 4px 10px 6px;
+  line-height: 1.45;
+}
+.dk-rb-search {
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 7px;
+  padding: 0 9px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+  margin-bottom: 4px;
+}
+/* Font, Font size (Editor board, frames 20 and 21): 8 px popovers, rows of 34 / 32 px with a check column */
+.dk-rb-pop:has(> [data-testid='font-menu']),
+.dk-rb-pop:has(> [data-testid='size-menu']) {
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.18);
+}
+.dk-rb-searchbox {
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  margin-bottom: 6px;
+  color: #5b6b60;
+}
+.dk-rb-searchbox input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+}
+.dk-rb-searchbox:focus-within {
+  border-color: #2e6f40;
+}
+[data-testid='font-menu'] .dk-rb-group {
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  padding: 8px 10px 3px;
+}
+[data-testid='font-menu'] .dk-rb-row {
+  height: 34px;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 7px;
+}
+[data-testid='font-menu'] .dk-rb-row.dk-mi-on,
+[data-testid='size-menu'] .dk-rb-row.dk-mi-on {
+  background: #f1f8f3;
+}
+.dk-rb-check {
+  width: 14px;
+  flex: none;
+  display: inline-flex;
+}
+.dk-rb-sizefield {
+  height: 34px;
+  box-sizing: border-box;
+  border: 1.5px solid #2e6f40;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  margin-bottom: 6px;
+}
+.dk-rb-sizefield input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.dk-rb-sizefield span {
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.dk-rb-sizes {
+  display: flex;
+  flex-direction: column;
+}
+.dk-rb-sizes .dk-rb-row {
+  height: 32px;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 13px;
+}
+.dk-rb-sizes .dk-rb-row.dk-mi-on {
+  font-weight: 700;
+}
+[data-testid='size-menu'] > .dk-rb-row {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.dk-rb-rule {
+  height: 1px;
+  background: #eef3ef;
+  margin: 6px 4px;
+}
+.dk-rb-rule-wide {
+  margin: 12px 0 6px;
+}
+/* Drop cap and Numbered list (Editor board, frames 25 and 28): 14 px panels, rows of words and a control */
+.dk-rb-pop:has(> .dk-rb-panel) {
+  padding: 14px;
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.18);
+}
+.dk-rb-phead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-rb-switch {
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  padding: 0;
+  background: #c7d2cb;
+  position: relative;
+  flex: none;
+  cursor: pointer;
+}
+.dk-rb-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: left 0.15s;
+}
+.dk-rb-switch.on {
+  background: #2e6f40;
+}
+.dk-rb-switch.on::after {
+  left: 18px;
+}
+.dk-rb-prow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+}
+.dk-rb-plabel {
+  font-size: 13px;
+  color: #1e2a22;
+}
+.dk-rb-phint {
+  font-size: 11px;
+  color: #5b6b60;
+}
+.dk-rb-pnote {
+  font-size: 11.5px;
+  color: #5b6b60;
+  margin-top: 6px;
+}
+.dk-rb-track {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #eef3ef;
+  flex: none;
+}
+.dk-rb-track button {
+  width: 38px;
+  height: 28px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.dk-rb-track.wide {
+  width: 150px;
+}
+.dk-rb-track.wide button {
+  flex: 1;
+  width: auto;
+  height: 32px;
+  font-size: 12.5px;
+}
+.dk-rb-track button.on {
+  background: #ffffff;
+  color: #1e2a22;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.14);
+}
+.dk-rb-colourbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.dk-rb-colourbtn span {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(30, 42, 34, 0.14);
+}
+.dk-rb-dropcolours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0 6px;
+}
+.dk-rb-dropcolours button {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(30, 42, 34, 0.14);
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-rb-dropcolours button.on {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 3.5px #2e6f40;
+}
+.dk-rb-pselect {
+  width: 130px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  padding: 0 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+  background-color: #ffffff;
+  min-height: 0;
+}
+.dk-rb-listlooks {
+  display: flex;
+  gap: 6px;
+}
+.dk-rb-listlooks button {
+  flex: 1;
+  height: 44px;
+  border-radius: 8px;
+  border: 1.5px solid #e3e8e5;
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-rb-listlooks button.on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.dk-rb-stepper {
+  width: 110px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  flex: none;
+}
+.dk-rb-stepper button {
+  width: 28px;
+  height: 100%;
+  border: none;
+  background: none;
+  color: #5b6b60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.dk-rb-stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.dk-rb-stepper input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-left: 1px solid #eef3ef;
+  border-right: 1px solid #eef3ef;
+  text-align: center;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+  outline: none;
+}
+.dk-rb-px {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #3a4a3e;
+}
+.dk-rb-px input {
+  width: 52px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 6px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 13px;
+}
+.dk-rb-unit {
+  color: #7a8a80;
+}
+
+/* ---------- colour picker (Editor board D, frames 11 to 14) ---------- */
+.dk-rb-pop:has(> .dk-cp) {
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.18);
+}
+.dk-cp {
+  display: flex;
+  flex-direction: column;
+}
+.dk-cp-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-cp-title-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: #5b6b60;
+}
+.dk-cp-auto,
+.dk-cp-back {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  border: none;
+  background: none;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e2a22;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+.dk-cp-auto:hover,
+.dk-cp-back:hover,
+.dk-cp-auto-on {
+  background: #f1f5f2;
+}
+.dk-cp-autobox {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid #c7d2cb;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: none;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e2a22;
+}
+.dk-cp-autolabel {
+  flex: 1;
+}
+.dk-cp-hint {
+  font-weight: 400;
+  color: #5b6b60;
+  font-size: 11.5px;
+}
+.dk-cp-rule {
+  height: 1px;
+  background: #eef3ef;
+  margin: 6px 0 10px;
+}
+.dk-cp-sec {
+  margin-top: 12px;
+}
+.dk-cp-head {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  margin-bottom: 7px;
+}
+/* six named swatches a row, each 46 px wide with its name under it */
+.dk-cp-grid {
+  /* six named colours a row, spread across the popover's width */
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  justify-items: center;
+  gap: 8px 0;
+}
+.dk-cp-recent {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dk-cp-sw {
+  border: none;
+  background: none;
+  padding: 0;
+  width: 46px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dk-cp-sw-recent {
+  width: 28px;
+}
+.dk-cp-dot {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: none;
+}
+.dk-cp-dot-hl,
+.dk-cp-sw-recent .dk-cp-dot {
+  border: 1px solid #c7d2cb;
+}
+.dk-cp-sw-recent .dk-cp-dot {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+.dk-cp-sw:hover .dk-cp-dot {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 3.5px #c7d2cb;
+}
+.dk-cp-name {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #5b6b60;
+  white-space: nowrap;
+}
+.dk-cp-sw-on .dk-cp-name {
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-cp-customrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dk-cp-plus {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px dashed #9aa8a0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5b6b60;
+  cursor: pointer;
+  flex: none;
+  padding: 0;
+}
+.dk-cp-hexbox {
+  flex: 1;
+  height: 32px;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: #1e2a22;
+  cursor: pointer;
+  text-align: left;
+}
+.dk-cp-chip {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex: none;
+}
+.dk-cp-backlink {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2e6f40;
+  cursor: pointer;
+}
+/* the chosen colour (no longer drawn: the square shows it) */
+.dk-cp-preview {
+  height: 40px;
+  border-radius: 9px;
+  border: 1px solid #e3e8e5;
+}
+.dk-cp-custom {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dk-cp-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #5b6b60;
+}
+.dk-cp-field.dk-cp-hex {
+  flex: 2.2;
+}
+.dk-cp-field input {
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  padding: 0 9px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+/* Custom colour (Editor board, frame 13): a 150 px saturation and brightness square and a 14 px hue bar */
+.dk-cp-sv {
+  position: relative;
+  height: 150px;
+  border-radius: 9px;
+  border: 1px solid #e3e8e5;
+  cursor: crosshair;
+  touch-action: none;
+}
+.dk-cp-sv span {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.dk-cp-hue {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  margin-top: 12px;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  cursor: pointer;
+  touch-action: none;
+}
+.dk-cp-hue span {
+  position: absolute;
+  top: -2px;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.dk-cp-hue:focus-visible {
+  outline: 2px solid #2e6f40;
+  outline-offset: 3px;
+}
+.dk-cp-field input[type='number'] {
+  appearance: textfield;
+}
+.dk-cp-field input::-webkit-inner-spin-button,
+.dk-cp-field input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.dk-cp-drop {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  box-sizing: border-box;
+  border-radius: 7px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  color: #3a4a3e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.dk-cp-drop:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* the colour's name over a swatch on hover (frame 11: a dark label) */
+.dk-cp-sw {
+  position: relative;
+}
+.dk-cp-sw:hover::after {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e2a22;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+.dk-cp-contrast {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 10px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: #f1f8f3;
+  border: 1px solid #bfdcc7;
+  font-size: 12.5px;
+  color: #2e6f40;
+  line-height: 1.5;
+}
+.dk-cp-warn {
+  background: #fdf3e3;
+  border-color: #ebd3a4;
+  color: #8a5a00;
+}
+.dk-cp-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ---------- status line ---------- */
+.dk-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 34px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+  font-size: 12px;
+  color: #5b6b60;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.dk-status-sel {
+  color: #2e6f40;
+  font-weight: 700;
+}
+.dk-status-btn {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  color: #5b6b60;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* the hover fill reaches 6 px past the words, which stay where the board puts them */
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: 6px;
+}
+.dk-status-btn:hover {
+  background: #f1f5f2;
+}
+
+/* ---------- format painter ---------- */
+.dk-painter {
+  position: absolute;
+  left: 50%;
+  bottom: 42px;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 6px 6px 6px 12px;
+  border-radius: 10px;
+  background: #1e2a22;
+  color: #e8f0ea;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(30, 42, 34, 0.3);
+}
+.dk-painter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #68ba7f;
+  flex: none;
+}
+.dk-painter button {
+  border: none;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  cursor: pointer;
+  flex: none;
+}
+.dk-painter-touch {
+  position: fixed;
+  bottom: calc(var(--dk-kb, 0px) + 64px);
+  min-height: 44px;
+}
+.dk-painter-touch button {
+  min-height: 36px;
+}
+.dk-painting .dk-pm {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%231e2a22' stroke-width='1.8'%3E%3Cpath d='M4 4h12v5H4zM16 6.5h3v6H11v3'/%3E%3Cpath d='M10 15.5h2V21h-2z'/%3E%3C/svg%3E")
+      4 4,
+    text;
+}
+
+/* ---------- paste chip ---------- */
+.dk-paste-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(30, 42, 34, 0.14);
+  padding: 2px;
+}
+.dk-paste-chip > button {
+  border: none;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-paste-chip > button:hover {
+  background: #f1f5f2;
+}
+.dk-paste-mode {
+  color: #5b6b60;
+  font-weight: 500;
+}
+.dk-paste-x {
+  font-size: 15px !important;
+  padding: 2px 6px !important;
+  color: #5b6b60 !important;
+}
+.dk-paste-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 320px;
+}
+.dk-paste-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e2a22;
+  padding: 6px 10px 0;
+}
+.dk-paste-opt {
+  align-items: flex-start !important;
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+}
+.dk-paste-check {
+  width: 14px;
+  flex: none;
+  padding-top: 2px;
+  color: #2e6f40;
+}
+.dk-paste-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #eef3ef;
+  margin-top: 4px;
+  padding: 8px 10px 4px;
+  font-size: 12px;
+  color: #3a4a3e;
+}
+.dk-paste-next button {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.dk-paste-setting .dk-mi {
+  cursor: pointer;
+}
+
+/* ---------- shortcut sheet ---------- */
+.dk-keys-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(80vh, 680px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(30, 42, 34, 0.24);
+  overflow: hidden;
+}
+.dk-keys-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 4px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-keys-head .dk-icobtn {
+  font-size: 20px;
+}
+.dk-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 18px 14px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.dk-keys-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dk-keys-top .dk-rb-search {
+  margin: 0;
+  flex: 1;
+}
+/* the keyboard switch of the shortcut sheet only: a bare .dk-seg here drew every segmented choice of the editor
+   (the code block's Theme, Page settings) as a bordered row bunched to the left */
+.dk-keys-top .dk-seg {
+  display: inline-flex;
+  border: 1px solid #c7d2cb;
+  border-radius: 7px;
+  overflow: hidden;
+  flex: none;
+}
+.dk-keys-top .dk-seg button {
+  border: none;
+  background: #ffffff;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3a4a3e;
+  cursor: pointer;
+}
+.dk-keys-top .dk-seg button[aria-checked='true'] {
+  background: #eaf0ec;
+  color: #1e2a22;
+}
+.dk-keys-cols {
+  columns: 2 300px;
+  column-gap: 28px;
+}
+.dk-keys-cols section {
+  break-inside: avoid;
+  margin-bottom: 10px;
+}
+.dk-keys-cols h3 {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  margin: 8px 0 4px;
+}
+.dk-keys-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f1f5f2;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+.dk-keys-k {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ---------- focus mode ---------- */
+.dk-editor-root.dk-focus-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  background: var(--dp-page, #ffffff);
+}
+/* the app's side bar (z-index 100) stays under Focus mode */
+body.dk-focus-on aside[aria-label='Project navigation'] {
+  z-index: auto;
+}
+/* a white page is written on the board's paper in Focus mode (Editor 56); a page with its own colour keeps it */
+.dk-focus-mode .dk-paged.dk-bg-white {
+  /* over the scroller's inline background: var(--dp-page), which the page's own settings set to white */
+  background: #fbf8f1 !important;
+}
+/* Focus mode (Editor 56): a 56 px bar with the save state and a "Leave Focus mode" pill at the right, and the word
+   count in a pill at the foot of the screen */
+.dk-focus-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 31;
+  height: 56px;
+  padding: 0 24px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.dk-focus-top > * {
+  pointer-events: auto;
+}
+.dk-focus-status {
+  font-size: 12px;
+  color: #5b6b60;
+}
+.dk-focus-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-focus-mode .dk-status {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 31;
+  height: 32px;
+  padding: 0 16px;
+  gap: 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+}
+.dk-focus-mode .dk-status > span[style] {
+  display: none;
+}
+.dk-focus-mode [data-testid='editor-scroll'] {
+  padding-top: 56px;
+  padding-bottom: 72px;
+}
+.dk-focus-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 10px;
+  z-index: 30;
+}
+.dk-focus-ribbon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 32;
+  box-shadow: 0 10px 24px rgba(30, 42, 34, 0.12);
+}
+.dk-focus-mode .dk-pm > * {
+  transition: opacity 0.2s;
+}
+.dk-focus-mode .dk-pm > *:not([data-caret-block]) {
+  opacity: 0.34;
+}
+
+/* ---------- the format 1 attributes in the editor ---------- */
+.dk-editor:not(.dk-paged .dk-editor) {
+  --rd-c-ink: #1e2a22;
+  --rd-c-slate: #5b6b60;
+  --rd-c-green: #2e6f40;
+  --rd-c-olive: #5c6b1e;
+  --rd-c-teal: #0f766e;
+  --rd-c-blue: #1f5a8e;
+  --rd-c-violet: #5b4bb5;
+  --rd-c-pink: #b02a6b;
+  --rd-c-red: #c4432a;
+  --rd-c-orange: #b4571f;
+  --rd-c-amber: #8a5a00;
+  --rd-c-brown: #6b4a2e;
+  --rd-hl-yellow: #ffe9a8;
+  --rd-hl-lime: #e6efb8;
+  --rd-hl-green: #cfe8d6;
+  --rd-hl-teal: #c8eae5;
+  --rd-hl-blue: #cfe3f5;
+  --rd-hl-violet: #e1daf6;
+  --rd-hl-pink: #f8d5e6;
+  --rd-hl-red: #f8d3cb;
+  --rd-hl-orange: #faddbf;
+  --rd-hl-sand: #efe3cc;
+  --rd-hl-grey: #e3e8e5;
+  --rd-hl-slate: #c9d3cc;
+}
+.dk-editor .dk-p-lead {
+  font-size: 1.17em;
+  line-height: 1.6;
+}
+.dk-editor .dk-p-small {
+  font-size: 0.86em;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-editor .dk-dropcap::first-letter {
+  float: left;
+  font-weight: 700;
+  color: var(--dk-dc, var(--dp-link, #2e6f40));
+  line-height: 0.82;
+  padding: 3px 7px 0 0;
+  margin: 0;
+}
+.dk-editor .dk-dropcap-3::first-letter {
+  font-size: 3.54em;
+}
+.dk-editor .dk-dropcap-5::first-letter {
+  font-size: 5.8em;
+}
+.dk-editor u {
+  text-underline-offset: 2px;
+}
+
+/* ---------- selection toolbar (Editor boards, frames 1 and 34 to 38) ---------- */
+.dk-bubble .dk-bubble-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  color: #e8f0ea;
+  flex: none;
+}
+.dk-bubble .dk-bubble-btn.dk-bubble-w40 {
+  width: 40px;
+}
+/* the highlight and its colours caret: 40 px in all, as the one button of the board */
+.dk-bubble .dk-bubble-btn.dk-bubble-hl {
+  width: 26px;
+}
+.dk-bubble .dk-bubble-btn.dk-bubble-caret {
+  width: 14px;
+  color: #9db0a3;
+}
+/* on a phone (Editor board, frame 39): 42×44 buttons */
+.dk-bubble.dk-bubble-touch {
+  gap: 1px;
+}
+.dk-bubble.dk-bubble-touch .dk-bubble-btn {
+  width: 42px;
+  height: 44px;
+}
+.dk-bubble.dk-bubble-touch .dk-bubble-btn.dk-bubble-hl {
+  width: 28px;
+}
+.dk-bubble.dk-bubble-touch .dk-bubble-btn.dk-bubble-caret {
+  width: 14px;
+}
+.dk-bubble .dk-rb-color {
+  font-size: 13px;
+  line-height: 13px;
+}
+.dk-bubble .dk-rb-color-bar {
+  width: 14px;
+  height: 3px;
+}
+.dk-bubble-chev {
+  color: #9db0a3;
+}
+.dk-bubble-sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+  flex: none;
+}
+.dk-bubble-btn.dk-rb-on {
+  background: rgba(255, 255, 255, 0.18);
+}
+.dk-bubble-btn.dk-rb-mixed {
+  outline: 1.5px dashed rgba(255, 255, 255, 0.55);
+  outline-offset: -3px;
+}
+.dk-bubble-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.dk-bubble-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  max-width: 280px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #9dd7ae;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .dk-ribbon,
+[data-theme='dark'] .dk-status {
+  background: #1b241e;
+  border-color: #2e3a32;
+}
+[data-theme='dark'] .dk-rb,
+[data-theme='dark'] .dk-status-btn {
+  color: #c9d6cd;
+}
+[data-theme='dark'] .dk-rb.dk-rb-on {
+  background: #2e3a32;
+  color: #ffffff;
+}
+[data-theme='dark'] .dk-rb-select,
+[data-theme='dark'] .dk-rb-size {
+  background: #17211a;
+  border-color: #2e3a32;
+  color: #e6eee8;
+}
+.dk-cp-contrast svg {
+  flex: none;
+  margin-top: 3px;
+}
+
+/* ---------- the link panel (Editor board, frame 30): the selection bar turns white and 360 wide ---------- */
+.dk-bubble.dk-bubble-linkp {
+  display: block !important;
+  width: 360px;
+  padding: 14px !important;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  color: #1e2a22 !important;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.18) !important;
+  white-space: normal !important;
+}
+.dk-linkp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.dk-linkp-head button {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.dk-linkp-field {
+  display: block;
+  margin-bottom: 8px;
+}
+.dk-linkp-field span {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  margin-bottom: 4px;
+}
+.dk-linkp-field input {
+  width: 100%;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1.5px solid #e3e8e5;
+  border-radius: 8px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+  outline: none;
+}
+.dk-linkp-field input:focus {
+  border-color: #2e6f40;
+}
+.dk-linkp-list {
+  margin: -2px 0 8px;
+}
+.dk-linkp-list button {
+  width: 100%;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: #5b6b60;
+  text-align: left;
+  cursor: pointer;
+}
+.dk-linkp-list button.on {
+  background: #f1f8f3;
+}
+.dk-linkp-label {
+  flex: 1;
+  min-width: 0;
+  color: #1e2a22;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-linkp-kind {
+  font-size: 11px;
+}
+.dk-linkp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  font-size: 13px;
+}
+.dk-linkp-row .dk-rb-switch {
+  cursor: default;
+}
+.dk-linkp-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ---------- the floating toolbar's colours (Start board, frame 16) ---------- */
+.dk-rb-pop:has(> .dk-bcp) {
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.16);
+}
+.dk-bcp {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.dk-bcp-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eef3ef;
+}
+.dk-bcp-tabs button {
+  flex: 1;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.dk-bcp-tabs button.on {
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.14);
+}
+.dk-bcp-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa8a0;
+  margin-bottom: 6px;
+}
+.dk-bcp-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 0;
+}
+.dk-bcp-cell {
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.dk-bcp-sw {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  flex: none;
+  box-sizing: border-box;
+}
+.dk-bcp-cell.on .dk-bcp-sw {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #2e6f40;
+}
+.dk-bcp-cell:hover:not(.on) .dk-bcp-sw {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #c7d2cb;
+}
+.dk-bcp-name {
+  font-size: 9.5px;
+  color: #5b6b60;
+  white-space: nowrap;
+}
+.dk-bcp-recent {
+  display: flex;
+  gap: 6px;
+  min-height: 22px;
+  align-items: center;
+}
+.dk-bcp-recent button {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 0;
+  cursor: pointer;
+}
+.dk-bcp-none {
+  font-size: 11.5px;
+  color: #9aa8a0;
+}
+.dk-bcp-free {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid #e3e8e5;
+  padding-top: 10px;
+}
+.dk-bcp-free .dk-bcp-sw {
+  border: 1px solid rgba(30, 42, 34, 0.12);
+}
+.dk-bcp-free input {
+  width: 120px;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  padding: 0 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #1e2a22;
+}
+.dk-bcp-free input:focus {
+  outline: 2px solid #2e6f40;
+  outline-offset: -1px;
+}
+.dk-bcp-freename {
+  flex: 1;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.dk-bcp-clear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+  align-self: flex-start;
+}

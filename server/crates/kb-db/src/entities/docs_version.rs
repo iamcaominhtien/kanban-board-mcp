@@ -21,6 +21,15 @@ pub struct Model {
     pub diagram_versions: String,
     /// The author accepted AI text in this version (History marks it; the page itself is never stamped)
     pub with_ai: bool,
+    /// `md` (Markdown in `markdown`) or `rich` (the page is the JSON in `content`)
+    #[serde(default = "markdown_format")]
+    pub format: String,
+    /// The page as rich JSON; None while `format` is `md`
+    #[serde(default)]
+    pub content: Option<String>,
+    /// Plain-text projection of `content`, for search and AI; None while `format` is `md`
+    #[serde(default)]
+    pub text: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -42,5 +51,13 @@ pub fn new() -> ActiveModel {
         created_at: Set(kb_base::time::now_iso()),
         diagram_versions: Set("{}".to_string()),
         with_ai: Set(false),
+        format: Set("md".to_string()),
+        content: Set(None),
+        text: Set(None),
     }
+}
+
+/// The `format` of a row written before format 1 (a dump of an older database has no such column).
+fn markdown_format() -> String {
+    "md".to_string()
 }

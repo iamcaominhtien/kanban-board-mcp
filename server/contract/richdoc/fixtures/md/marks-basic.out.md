@@ -1,0 +1,3 @@
+Plain **bold** and *italic* and ~~strike~~ and `code` text.
+
+Underscore **bold** and *italic* forms.

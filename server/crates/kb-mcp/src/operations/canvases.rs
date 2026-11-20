@@ -131,28 +131,86 @@ pub async fn diagram_guide() -> ToolResult {
     Ok(Value::Object(visual_guides::diagram_guide()))
 }
 
-/// How to work in Docs (in Claude Code it is the docs-pages skill; issue #268): {guide}.
-pub async fn docs_guide() -> ToolResult {
-    Ok(Value::Object(docs_guide::guide()))
+/// How to work in Docs (in Claude Code it is the docs-pages skill; issue #268): {guide}. With `section` (its number,
+/// `5`, or a word of its heading, `settings`), only that part of the guide, and `sections`: the headings of all.
+///
+/// # Errors
+/// A section the guide does not have (the answer lists them).
+pub async fn docs_guide(section: Option<&str>) -> ToolResult {
+    let Some(want) = section.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Ok(Value::Object(docs_guide::guide()));
+    };
+    let text = docs_guide::GUIDE;
+    // the parts: the text before the first `## ` heading, then one part per `## N. Heading`
+    let mut parts: Vec<(String, String)> = Vec::new();
+    for chunk in text.split("\n## ").skip(1) {
+        let heading = chunk.lines().next().unwrap_or_default().to_string();
+        if heading.split_once(". ").is_some_and(|(n, _)| n.chars().all(|c| c.is_ascii_digit())) {
+            parts.push((heading, format!("## {chunk}")));
+        } else if let Some(last) = parts.last_mut() {
+            // a `## ` line inside an example belongs to the part it is in
+            last.1.push_str(&format!("\n## {chunk}"));
+        }
+    }
+    let low = want.to_lowercase();
+    let found = parts.iter().find(|(h, _)| {
+        h.split_once(". ").is_some_and(|(n, _)| n == want.trim_end_matches('.')) || h.to_lowercase().contains(&low)
+    });
+    let sections: Vec<Value> = parts.iter().map(|(h, _)| json!(h)).collect();
+    match found {
+        Some((_, body)) => Ok(json!({"guide": body.trim_end(), "sections": sections})),
+        None => Err(ToolError::Value(format!(
+            "The guide has no section '{want}'. Its sections: {}.",
+            parts.iter().map(|(h, _)| h.as_str()).collect::<Vec<_>>().join("; ")
+        ))),
+    }
 }
 
-/// The board's shared guides for any role (in Claude Code they are its skills): {name: text} (issue #277).
-pub async fn shared_guides() -> ToolResult {
-    let mut out: Map<String, Value> =
-        kb_skills::shared_skills::guides().into_iter().map(|(name, text)| (name, Value::String(text))).collect();
+/// The shared guides read only when the work needs them (a deck, an office file, a demo video, a page's comment
+/// threads): `guides` without `query` lists them in `more` instead of giving their text.
+pub const GUIDES_ON_REQUEST: [&str; 4] = ["docs-comment-threads", "office-files", "slides", "demo-video"];
+
+/// The board's shared guides for any role (in Claude Code they are its skills; issue #277). Without `query`: the
+/// guides every ticket needs, `{name: text}`, and `more`: `{name: what it is for}` for the ones read on request.
+/// With `query` (a guide's name): `{name: text}` of that one.
+///
+/// # Errors
+/// An unknown name (the answer lists the names).
+pub async fn shared_guides(query: Option<&str>) -> ToolResult {
+    let mut texts: Vec<(String, String)> = kb_skills::shared_skills::guides();
     for (name, _files) in kb_skills::shared_skills::extra_files() {
         // the scripts and themes a guide refers to are files: say where they are on this machine
-        let mut text = out
-            .get(&name)
-            .and_then(Value::as_str)
-            .map(str::to_string)
-            .ok_or_else(|| ToolError::Other(kb_base::pytext::repr(&name)))?;
-        text.push_str(&format!(
-            "\n\nThis guide's folder (scripts/, themes/, examples/): {}\n",
-            hooks::skill_dir(&name)
-        ));
-        out.insert(name, Value::String(text));
+        let text =
+            texts.iter_mut().find(|(n, _)| *n == name).ok_or_else(|| ToolError::Other(kb_base::pytext::repr(&name)))?;
+        // its commands name the folder as Claude Code does (`${CLAUDE_SKILL_DIR}`): an agent outside it gets the path
+        let dir = hooks::skill_dir(&name);
+        text.1 = text.1.replace("${CLAUDE_SKILL_DIR}", &dir);
+        text.1.push_str(&format!("\n\nThis guide's folder (scripts/, themes/, examples/): {dir}\n"));
     }
+    if let Some(want) = query.map(str::trim).filter(|q| !q.is_empty()) {
+        return match texts.into_iter().find(|(n, _)| n == want) {
+            Some((name, text)) => Ok(json!({ name: text })),
+            None => Err(ToolError::Value(format!(
+                "No guide '{want}'. The guides: {}.",
+                kb_skills::shared_skills::guides().into_iter().map(|(n, _)| n).collect::<Vec<_>>().join(", ")
+            ))),
+        };
+    }
+    let mut out = Map::new();
+    let mut more = Map::new();
+    for (name, text) in texts {
+        if GUIDES_ON_REQUEST.contains(&name.as_str()) {
+            let what = kb_skills::shared_skills::SKILLS
+                .iter()
+                .find(|(n, _, _)| *n == name)
+                .map(|(_, desc, _)| desc.clone())
+                .unwrap_or_default();
+            more.insert(name, json!(what));
+        } else {
+            out.insert(name, Value::String(text));
+        }
+    }
+    out.insert("more".into(), Value::Object(more));
     Ok(Value::Object(out))
 }
 
@@ -360,7 +418,27 @@ pub async fn read_canvas(canvas_id: &str, board_id: Option<&str>, path: Option<&
             shown.insert("files".into(), Value::Array(inline));
             shown.insert("truncated".into(), json!(total > MAX_INLINE));
         }
-        result.insert("board".into(), Value::Object(shown));
+        // one frame read for its source: the canvas around it is not repeated (read it without board_id)
+        let mut one = Map::new();
+        for key in ["id", "title", "rev", "version"] {
+            one.insert(key.into(), result.get(key).cloned().unwrap_or(Value::Null));
+        }
+        let of_board = |key: &str| {
+            Value::Array(
+                result
+                    .get(key)
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter(|x| x["board_id"] == json!(board_id))
+                    .cloned()
+                    .collect(),
+            )
+        };
+        one.insert("comments".into(), of_board("comments"));
+        one.insert("locks".into(), of_board("locks"));
+        one.insert("board".into(), Value::Object(shown));
+        return Ok(Value::Object(one));
     }
     Ok(Value::Object(result))
 }
@@ -502,6 +580,50 @@ fn without_number(text: &str) -> String {
     if after.len() == rest.len() { text.to_string() } else { after.to_string() }
 }
 
+/// The `size` of a frame.json: a preset name or `[w, h]`; None when it is not there or has another shape.
+fn frame_size(meta: &Map<String, Value>) -> Result<Option<Size>, ToolError> {
+    Ok(match meta.get("size") {
+        Some(Value::Array(list)) if list.len() == 2 => Some(Size::Dims(py_int(&list[0])?, py_int(&list[1])?)),
+        Some(Value::String(name)) => Some(Size::Preset(name.clone())),
+        _ => None,
+    })
+}
+
+/// The layout fields a frame.json sets for an existing frame (`name`, `size`, `fit`, `x`, `y`, `page`), as the item
+/// `save` merges into the board; empty when the file says nothing about the layout. `page` counts only when a page
+/// tab of that name already exists.
+fn frame_layout_changes(meta: &Map<String, Value>, doc: &Map<String, Value>) -> Result<Map<String, Value>, ToolError> {
+    let mut out = Map::new();
+    if let Some(name) = meta.get("name").filter(|v| pyjson::truthy(v)) {
+        out.insert("name".into(), json!(pyjson::py_str(name).chars().take(120).collect::<String>()));
+    }
+    if let Some(size) = frame_size(meta)? {
+        let (w, h) = size.resolve().map_err(canvas_error)?;
+        out.insert("w".into(), json!(w));
+        out.insert("h".into(), json!(h));
+    }
+    if let Some(fit) = meta.get("fit") {
+        out.insert("fit".into(), json!(pyjson::truthy(fit)));
+    }
+    for key in ["x", "y"] {
+        let n = match meta.get(key) {
+            Some(Value::Number(n)) => n.as_f64(),
+            Some(Value::String(s)) => pytext::strip(s).parse::<f64>().ok(),
+            _ => None,
+        };
+        if let Some(n) = n {
+            out.insert(key.into(), json!(n));
+        }
+    }
+    if let Some(name) = page_name(meta.get("page")) {
+        let found = canvases::list(doc, "pages").iter().find(|p| pyjson::py_str(&p["name"]) == name);
+        if let Some(page) = found {
+            out.insert("page".into(), page["id"].clone());
+        }
+    }
+    Ok(out)
+}
+
 /// `_frames_of(root, title)`: the frames in a folder: each sub-folder with an .html page is one (named after it, or by
 /// its frame.json); loose pages at the top are one frame.
 fn frames_of(root: &Path, title: &str) -> Result<Vec<Frame>, ToolError> {
@@ -528,11 +650,7 @@ fn frames_of(root: &Path, title: &str) -> Result<Vec<Frame>, ToolError> {
     let mut frames = Vec::new();
     for d in dirs {
         let meta = json_file(&d.join("frame.json"))?;
-        let size = match meta.get("size") {
-            Some(Value::Array(list)) if list.len() == 2 => Some(Size::Dims(py_int(&list[0])?, py_int(&list[1])?)),
-            Some(Value::String(name)) => Some(Size::Preset(name.clone())),
-            _ => None,
-        };
+        let size = frame_size(&meta)?;
         let dir_name = d.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let is_root = d == root;
         let shown = if is_root { title.to_string() } else { dir_name.clone() };
@@ -868,7 +986,7 @@ pub async fn create_canvas_from_files(
                 same_project(project.as_deref())?;
                 let made = create_canvas(
                     &session,
-                    NewCanvas { owner_kind: kind, owner_id: id, title, start: "none", ..NewCanvas::default() },
+                    NewCanvas { owner_kind: project_kind, owner_id: id, title, start: "none", ..NewCanvas::default() },
                 )
                 .await
                 .map_err(canvas_error)?;
@@ -930,6 +1048,7 @@ pub async fn update_canvas_frame(canvas_id: &str, board_id: &str, path: &str, no
     notify_on_success(async {
         let root = ai_folder(path, false)?;
         let files = read_folder(&root, false)?;
+        let meta = json_file(&root.join("frame.json"))?;
         if files.is_empty() {
             return Err(ToolError::Value(format!("{} holds no files to put in the frame.", root.display())));
         }
@@ -975,7 +1094,24 @@ pub async fn update_canvas_frame(canvas_id: &str, board_id: &str, path: &str, no
         )
         .await
         .map_err(canvas_error)?;
-        let changed = &out["board"];
+        let mut changed = out["board"].clone();
+        let layout = frame_layout_changes(&meta, &doc)?;
+        if !layout.is_empty() {
+            let mut item = layout;
+            item.insert("id".into(), json!(board_id));
+            item.insert("rev".into(), changed["rev"].clone());
+            let args = SaveArgs {
+                base_rev: i64::from(c.rev),
+                upsert: vec![("boards".into(), vec![item])],
+                ..Default::default()
+            };
+            let saved = save(&session, canvas_id, args).await.map_err(canvas_error)?;
+            let boards = saved["doc"]["boards"].as_array().cloned().unwrap_or_default();
+            if let Some(board) = boards.iter().find(|b| b["id"] == json!(board_id)) {
+                changed = board.clone();
+            }
+        }
+        let changed = &changed;
         let mut names: Vec<&str> = files.iter().map(|(n, _)| n.as_str()).collect();
         names.sort_unstable();
         let mut reply = Map::new();
@@ -987,6 +1123,30 @@ pub async fn update_canvas_frame(canvas_id: &str, board_id: &str, path: &str, no
             reply.insert("note".into(), json!(note));
         }
         Ok(Value::Object(reply))
+    })
+    .await
+}
+
+/// Unlink a canvas. It is kept and can be restored; texts that embed it show it as missing. Returns {id, deleted_at}.
+pub async fn delete_canvas_by_id(canvas_id: &str) -> ToolResult {
+    notify_on_success(async {
+        let session = common::async_session();
+        let c = get_row(&session, canvas_id, false).await.map_err(canvas_error)?;
+        same_project(c.project_id.as_deref())?;
+        let out = kb_draw::canvases::rows::delete_canvas(&session, &c.id).await.map_err(canvas_error)?;
+        Ok(Value::Object(out))
+    })
+    .await
+}
+
+/// Bring an unlinked canvas back. Returns {id, title}.
+pub async fn restore_canvas_by_id(canvas_id: &str) -> ToolResult {
+    notify_on_success(async {
+        let session = common::async_session();
+        let c = get_row(&session, canvas_id, true).await.map_err(canvas_error)?;
+        same_project(c.project_id.as_deref())?;
+        let out = kb_draw::canvases::rows::restore_canvas(&session, &c.id).await.map_err(canvas_error)?;
+        Ok(json!({"id": out.get("id"), "title": out.get("title")}))
     })
     .await
 }

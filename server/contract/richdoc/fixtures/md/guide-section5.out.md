@@ -1,0 +1,28 @@
+## 5. The Markdown the editor keeps
+
+Write exactly these forms. They render in the reading view and survive a person's edit in the editor unchanged.
+
+| What | Write | Notes |
+| --- | --- | --- |
+| Section headings | `## Section`, `### Sub-section` | Body headings start at `##`. Each heading is a link target (`[[Page#Section]]`) and an entry in "On this page". |
+| Bold, italic, strike | `**bold**`, `*italic*`, `~~gone~~` | No underline (`<u>` is dropped). |
+| Highlight | `==the key sentence==` | A yellow marker over text, for the one thing a reader must not miss. Use it rarely. |
+| Inline code | `` `GET /tickets` `` | Names, paths, commands, values. |
+| Links | `[text](https://…)` | A bare URL becomes a link too. |
+| Link to a page | `[[Page]]`, `[[Page#Section]]`, `[[Page\|shown text]]` | Shown as a chip; the page lists you under "Referenced by". `docs_read(action='check_links', refs=[...])` says whether they resolve. A page that is renamed keeps its links (they are rewritten). |
+| Link to a ticket | `KAN-12` (the key, as it is) | Shown as a chip with the ticket's status; the ticket lists the page under its docs. Not inside code. |
+| Lists | `- item`, `1. item` | Nest with two spaces. |
+| Task list | `- [ ] open`, `- [x] done` | A person ticks them in the reading view. An open item with no ticket key can become a ticket (section 8). |
+| Table | `\| Method \| Path \|` / `\|---\|---\|` / rows | GitHub tables, one line per row, `\|` escaped in cells. No cell spans, no blocks in a cell. |
+| Code block | ` ```python ` … ` ``` ` | Name the language: it is coloured. |
+| Callout | `> [!INFO]`, `> [!WARNING]`, `> [!SUCCESS]` then `> text` lines | A coloured box: info (a note), warning (a risk, something not done yet), success (a confirmation). `NOTE`, `TIP`, `CAUTION`, `IMPORTANT` are read as one of these three. |
+| Quote | `> quoted text` |  |
+| Picture | `![what it shows](/uploads/…)`, width: `![what it shows\|640](/uploads/…)` | Upload it first (section 6). Alt text says what the picture shows. |
+| File | `[report.pdf](/uploads/…)` | Shown as a file card that opens in the preview. |
+| Diagram, sketch, canvas | `[Name](diagram:dg_…)`, `![Name](sketch:sk_…)`, `![Name](canvas:cv_…)` | On a line of their own, as `diagram_create`, `sketch_create`, `canvas_create` return them. `docs_read(action='diagram_guide')` says which one fits. |
+| Math | `$x^2$`, `$$ … $$` |  |
+| Divider | `---` on its own line |  |
+
+Mentions: `@Name` notifies a member **in a comment**, not in a page body (a page's `@Name` is plain text). Raw HTML
+is removed. A heading with only a link, an emoji in every heading or a table used for layout reads as machine-made:
+write plain sentences under clear headings, short paragraphs, one idea each.

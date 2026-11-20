@@ -952,7 +952,7 @@ mod tests {
 
     #[test]
     fn the_copy_order_is_the_metadata_order_and_every_table_has_a_key() {
-        assert_eq!(app_tables().len(), 77);
+        assert_eq!(app_tables().len(), 82);
         assert_eq!(app_tables()[0].name, "ai_account");
         assert!(app_tables().iter().all(|t| !primary_key(t).is_empty()));
         assert_eq!(app_tables().iter().filter(|t| serial_key(t).is_some()).count(), 8);

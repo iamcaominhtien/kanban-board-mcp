@@ -45,7 +45,9 @@
           "origin": "page",
           "context": "We follow Spec here.",
           "excerpt": "We follow [[Spec#Design]] here. Tracked in KAN-1.",
-          "target_anchor": "Design"
+          "target_anchor": "Design",
+          "source_block_id": "<bid:1>",
+          "target_block": null
         }
       ],
       "tickets": [
@@ -85,7 +87,9 @@
           "origin": "page",
           "context": "We follow Spec here.",
           "excerpt": "We follow [[Spec#Design]] here. Tracked in KAN-1.",
-          "target_anchor": "Design"
+          "target_anchor": "Design",
+          "source_block_id": "<bid:1>",
+          "target_block": null
         }
       ],
       "tickets": [
@@ -238,7 +242,41 @@
       "slug_path": "spec",
       "status": "published",
       "version": 1,
-      "markdown": "## Design\nthe plan",
+      "markdown": "## Design\n\nthe plan",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Design"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "the plan"
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,

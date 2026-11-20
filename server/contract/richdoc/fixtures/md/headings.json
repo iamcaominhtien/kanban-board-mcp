@@ -1,0 +1,136 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Title"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000002",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Section"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000003",
+        "level": 3
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Sub-section"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000004",
+        "level": 4
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Level four"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000005",
+        "level": 5
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Level five"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000006",
+        "level": 6
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Level six"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000007",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Heading with "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "code"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
+          "text": "bold"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000008",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Setext heading"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000009"
+      }
+    }
+  ]
+}

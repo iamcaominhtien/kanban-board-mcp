@@ -287,14 +287,9 @@ async fn test_add_comment() {
     let project = seed_project(&mcp, "Test", "CMT").await;
     let ticket = create_ticket(&mcp, &project["id"], "Commentable", json!({})).await;
     let result = add_comment(&mcp, &ticket["id"], "Hello world", "alice").await;
-    assert!(
-        result["comments"]
-            .as_array()
-            .expect("comments")
-            .iter()
-            .any(|c| c["text"] == "Hello world" && c["author"] == "alice"),
-        "{result}"
-    );
+    // the answer: the ticket in brief and the comment as it is now
+    assert!(result["comment"]["text"] == "Hello world" && result["comment"]["author"] == "alice", "{result}");
+    assert_eq!(result["ticket"]["comments"], 1, "{result}");
 }
 
 #[tokio::test]
@@ -319,7 +314,7 @@ async fn test_update_comment() {
     let project = seed_project(&mcp, "Test", "UCM").await;
     let ticket = create_ticket(&mcp, &project["id"], "Commentable", json!({})).await;
     let added = add_comment(&mcp, &ticket["id"], "Hello world", "alice").await;
-    let comment_id = added["comments"][0]["id"].clone();
+    let comment_id = added["comment"]["id"].clone();
 
     let result = call(
         &mcp,
@@ -327,8 +322,8 @@ async fn test_update_comment() {
         json!({"ticket_id": ticket["id"], "item": "comment", "action": "update", "item_id": comment_id, "text": "**Edited** message"}),
     )
     .await;
-    let updated =
-        result["comments"].as_array().expect("comments").iter().find(|c| c["id"] == comment_id).expect("found");
+    let updated = &result["comment"];
+    assert_eq!(updated["id"], comment_id);
     assert_eq!(updated["text"], "**Edited** message");
     assert_eq!(updated["author"], "alice");
 }
@@ -369,7 +364,7 @@ async fn test_delete_comment() {
     let project = seed_project(&mcp, "Test", "DCM").await;
     let ticket = create_ticket(&mcp, &project["id"], "Commentable", json!({})).await;
     let added = add_comment(&mcp, &ticket["id"], "Hello world", "alice").await;
-    let comment_id = added["comments"][0]["id"].clone();
+    let comment_id = added["comment"]["id"].clone();
 
     let result = call(
         &mcp,
@@ -377,7 +372,9 @@ async fn test_delete_comment() {
         json!({"ticket_id": ticket["id"], "item": "comment", "action": "delete", "item_id": comment_id}),
     )
     .await;
-    assert_eq!(result["comments"], json!([]));
+    // hidden: the ticket counts no comment, and the answer names the one deleted
+    assert!(result["ticket"].get("comments").is_none(), "{result}");
+    assert_eq!(result["deleted"], comment_id, "{result}");
 }
 
 #[tokio::test]
@@ -388,7 +385,7 @@ async fn test_list_and_restore_comment() {
     let ticket = create_ticket(&mcp, &project["id"], "Thread", json!({})).await;
     let first = add_comment(&mcp, &ticket["id"], "One", "alice").await;
     add_comment(&mcp, &ticket["id"], "Two", "bob").await;
-    let cid = first["comments"][0]["id"].clone();
+    let cid = first["comment"]["id"].clone();
     let listed = call(&mcp, "get_ticket", json!({"ticket_id": ticket["id"], "view": "comments"})).await;
     let texts = |listed: &Value| -> Vec<Value> {
         listed["comments"].as_array().expect("comments").iter().map(|c| c["text"].clone()).collect()
@@ -408,9 +405,7 @@ async fn test_list_and_restore_comment() {
         json!({"ticket_id": ticket["id"], "item": "comment", "action": "restore", "item_id": cid}),
     )
     .await;
-    let restored: Vec<Value> =
-        back["comments"].as_array().expect("comments").iter().map(|c| c["text"].clone()).collect();
-    assert_eq!(restored, [json!("One"), json!("Two")]);
+    assert!(back["comment"]["text"] == "One" && back["ticket"]["comments"] == 2, "{back}");
 }
 
 #[tokio::test]
@@ -440,14 +435,8 @@ async fn test_add_work_log() {
         json!({"ticket_id": ticket["id"], "item": "work_log", "action": "add", "author": "dev", "role": "Developer", "note": "Implemented feature X"}),
     )
     .await;
-    assert!(
-        result["work_log"]
-            .as_array()
-            .expect("work_log")
-            .iter()
-            .any(|w| w["author"] == "dev" && w["note"] == "Implemented feature X"),
-        "{result}"
-    );
+    let entry = &result["work_log"];
+    assert!(entry["author"] == "dev" && entry["note"] == "Implemented feature X", "{result}");
 }
 
 #[tokio::test]
@@ -477,14 +466,9 @@ async fn test_add_test_case() {
         json!({"ticket_id": ticket["id"], "item": "test_case", "action": "add", "title": "Login works", "status": "pending"}),
     )
     .await;
-    assert!(
-        result["test_cases"]
-            .as_array()
-            .expect("test_cases")
-            .iter()
-            .any(|tc| tc["title"] == "Login works" && tc["status"] == "pending"),
-        "{result}"
-    );
+    let case = &result["test_case"];
+    assert!(case["title"] == "Login works" && case["status"] == "pending", "{result}");
+    assert_eq!(result["ticket"]["test_cases"], json!({"passed": 0, "total": 1}));
 }
 
 #[tokio::test]
@@ -514,14 +498,15 @@ async fn test_update_test_case_status() {
         json!({"ticket_id": ticket["id"], "item": "test_case", "action": "add", "title": "Should pass"}),
     )
     .await;
-    let tc_id = with_tc["test_cases"][0]["id"].clone();
+    let tc_id = with_tc["test_case"]["id"].clone();
     let updated = call(
         &mcp,
         "ticket_items",
         json!({"ticket_id": ticket["id"], "item": "test_case", "action": "update", "item_id": tc_id, "status": "pass", "proof": "screenshot.png"}),
     )
     .await;
-    let tc = updated["test_cases"].as_array().expect("test_cases").iter().find(|tc| tc["id"] == tc_id).expect("found");
+    let tc = &updated["test_case"];
+    assert_eq!(tc["id"], tc_id);
     assert_eq!(tc["status"], "pass");
     assert_eq!(tc["proof"], "screenshot.png");
 }

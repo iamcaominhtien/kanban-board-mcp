@@ -563,3 +563,26 @@
   font-family: var(--font-mono, monospace);
   font-size: 12px;
 }
+
+/* the optional version note beside "Save to page" (Rich Docs, Embeds frame 24) */
+.noteInput {
+  height: 30px;
+  min-width: 0;
+  width: 200px;
+  padding: 0 10px;
+  border: 1px solid #d3dbd6;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+  background: #ffffff;
+}
+.noteInput:focus {
+  outline: 2px solid rgba(46, 111, 64, 0.35);
+  border-color: #2e6f40;
+}
+@media (max-width: 820px) {
+  .noteInput {
+    width: 130px;
+  }
+}

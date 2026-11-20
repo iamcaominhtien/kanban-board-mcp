@@ -1,0 +1,100 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "orderedList",
+      "attrs": {
+        "blockId": "b-000001",
+        "start": 3
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000002"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000003"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "starts at three"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000004"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000005"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "four"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000006"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000007"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "ten"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000008"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000009"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "eleven"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00000a"
+      }
+    }
+  ]
+}

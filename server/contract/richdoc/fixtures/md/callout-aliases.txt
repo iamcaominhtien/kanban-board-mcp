@@ -1,0 +1,6 @@
+A tip.
+Careful.
+Important.
+Fine.
+Warned.
+Lower case kind.

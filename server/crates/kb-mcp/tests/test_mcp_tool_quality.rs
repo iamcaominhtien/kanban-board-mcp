@@ -182,10 +182,20 @@ async fn test_the_tool_list_stays_compact() {
     let (plain, full) = (common::start().await, full_mcp().await);
     let (default, full) = (size(&tools(&plain.mcp()).await), size(&tools(&full.mcp()).await));
     // AI v2 removed the ai_team tool and the permission, handoff, workflow and Story actions; ai_run is seven actions
-    // (ask, message, reply, team, runs, report). Measured after that: 49,074 / 51,904 characters. The bounds
-    // leave about 3 % of room; raise them on purpose, with what was added, never by reflex.
-    assert!(default < 50_500, "default tool list is {default} characters (about {} tokens)", default / 4);
-    assert!(full < 53_400, "full tool list is {full} characters (about {} tokens)", full / 4);
+    // (ask, message, reply, team, runs, report). Measured after that: 49,074 / 51,904 characters. Rich Docs added
+    // the annotated view, the block and highlights reads, block edits (block_id, attrs) and the suggestions an AI
+    // team's change becomes: about 1,600 characters (52,030 / 54,860 measured). The Docs tools were then written
+    // short (one line per action, the details in docs_guide) while gaining settings, templates, export and table
+    // cells: 47,850 / 50,680 measured. A live run by an agent then added upload's alt, move's before_id, a limit
+    // to versions and docs_guide by section: 48,760 / 51,590. Then docs_write carries a short summary of the
+    // formatting most pages need (about 580 characters), so that a plain page needs no docs_guide (about 23,000):
+    // 49,340 / 52,170; with table cells, the common settings and upload's alt added to it (a live run read the
+    // guide for those): 49,680 / 52,510. Short answers of the ticket tools (what a field left out means, a create's
+    // criteria) and export's `print` page setup (paper up to A3, margins, header: a newspaper page needs them): 50,420
+    // / 53,250. Canvas delete and restore (an agent left a canvas it could not remove) and the "page" owner of a
+    // canvas: 50,721 / 53,551. The bounds leave some room; raise them on purpose, with what was added, never by reflex.
+    assert!(default < 50_900, "default tool list is {default} characters (about {} tokens)", default / 4);
+    assert!(full < 53_900, "full tool list is {full} characters (about {} tokens)", full / 4);
     if target() == Target::Python {
         assert!(default < full);
         // the measure is the Python test's: the numbers of its comment, within the bounds
@@ -314,8 +324,12 @@ async fn test_list_tickets_is_paginated_and_compact() {
     let rest = call(&mcp, "list_tickets", json!({"project_id": p["id"], "limit": 2, "offset": 4})).await;
     assert_eq!((&rest["count"], &rest["has_more"]), (&json!(1), &json!(false)));
     let summary = page["tickets"][0].as_object().expect("a summary");
-    for key in ["id", "title", "status", "priority", "blocked_by", "acceptance_criteria", "test_cases"] {
+    for key in ["id", "title", "status", "priority"] {
         assert!(summary.contains_key(key), "{key}");
+    }
+    // what says nothing is left out: no blocker, no criteria, no test cases yet
+    for key in ["blocked_by", "acceptance_criteria", "test_cases", "assignee", "tags", "pending"] {
+        assert!(!summary.contains_key(key), "{key}");
     }
     assert!(!summary.contains_key("description") && !summary.contains_key("activity_log"));
     let full = call(&mcp, "list_tickets", json!({"project_id": p["id"], "detail": true, "limit": 1})).await;
@@ -363,7 +377,7 @@ async fn test_sub_item_errors_list_the_valid_ids() {
         json!({"ticket_id": id, "item": "comment", "action": "add", "text": "hello", "author": "Claude"}),
     )
     .await;
-    let cid = created["comments"][0]["id"].as_str().expect("an id").to_string();
+    let cid = created["comment"]["id"].as_str().expect("an id").to_string();
     // used to "succeed" silently
     let text = call_err(
         &mcp,
@@ -397,7 +411,7 @@ async fn test_test_cases_and_branches_can_be_addressed_by_code_and_name() {
         json!({"ticket_id": i, "item": "test_case", "action": "update", "item_id": "TC-1", "status": "pass"}),
     )
     .await;
-    assert_eq!(updated["test_cases"][0]["status"], "pass");
+    assert!(updated["test_case"]["code"] == "TC-1" && updated["test_case"]["status"] == "pass", "{updated}");
     call(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "add", "name": "feat/x"})).await;
     // by name
     let renamed = call(
@@ -406,9 +420,9 @@ async fn test_test_cases_and_branches_can_be_addressed_by_code_and_name() {
         json!({"ticket_id": i, "action": "update", "branch": "feat/x", "pr_url": "https://example.com/pr/1"}),
     )
     .await;
-    assert_eq!(renamed["branches"][0]["pr_url"], "https://example.com/pr/1");
+    assert_eq!(renamed["branch"]["pr_url"], "https://example.com/pr/1");
     let after = call(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "delete", "branch": "feat/x"})).await;
-    assert_eq!(after["branches"], json!([]));
+    assert!(after["deleted"] == "feat/x" && after["ticket"].get("branches").is_none(), "{after}");
 }
 
 #[tokio::test]
@@ -548,13 +562,21 @@ async fn test_sketches_are_actions_of_the_docs_tools_not_tools_of_their_own() {
     let (Some(read), Some(write)) = (listed.get("docs_read"), listed.get("docs_write")) else { return };
     let (read_text, write_text) =
         (read["description"].as_str().expect("text"), write["description"].as_str().expect("text"));
+    // each action is named on the line that says what it takes (one line may list related actions)
+    let lists = |text: &str, action: &str| {
+        text.lines().any(|l| {
+            l.starts_with("- ")
+                && l.split([':', '|', '/', ',', ' ', '.']).any(|w| w == action)
+                && l.split_once(':').is_some_and(|(head, _)| head.contains(action) || l.contains(&format!("{action}:")))
+        })
+    };
     for action in ["sketches", "sketch"] {
         assert!(kb_mcp::tools::docs::DOCS_READ_OPS.iter().any(|(a, _)| *a == action), "{action}");
-        assert!(read_text.contains(&format!("- {action}:")), "{action}");
+        assert!(lists(read_text, action), "{action}");
     }
     for action in ["sketch_create", "sketch_save"] {
         assert!(kb_mcp::tools::docs::DOCS_WRITE_OPS.iter().any(|(a, _)| *a == action), "{action}");
-        assert!(write_text.contains(&format!("- {action}:")), "{action}");
+        assert!(lists(write_text, action), "{action}");
     }
     // the limits an agent must respect are in front of it
     assert!(write_text.contains("base_version") && write_text.contains("stale"));
@@ -562,6 +584,35 @@ async fn test_sketches_are_actions_of_the_docs_tools_not_tools_of_their_own() {
     assert!(props["source_path"]["description"].as_str().expect("text").contains("10 layers"));
     assert!(props["path"]["description"].as_str().expect("text").contains("4096"));
     assert!(properties(read).contains_key("sketch_id"));
+}
+
+/// Rich Docs: an agent reads a page with its block ids and writes it block by block, and is told that a team's change
+/// waits as suggestions (contract/richdoc/README.md "Annotated").
+#[tokio::test]
+async fn test_the_docs_tools_describe_rich_pages_and_block_edits() {
+    let full = full_mcp().await;
+    let listed = tools(&full.mcp()).await;
+    let (Some(read), Some(write)) = (listed.get("docs_read"), listed.get("docs_write")) else { return };
+    let (read_text, write_text) =
+        (read["description"].as_str().expect("text"), write["description"].as_str().expect("text"));
+    for action in ["block", "highlights"] {
+        assert!(kb_mcp::tools::docs::DOCS_READ_OPS.iter().any(|(a, _)| *a == action), "{action}");
+        assert!(read_text.contains(&format!("- {action}:")), "{action}");
+    }
+    for must in ["<!-- #b-xxxxxx", "[embed: …]", "highlights", "spans"] {
+        assert!(read_text.contains(must), "docs_read: {must}");
+    }
+    assert!(properties(read).contains_key("block_id"));
+    for must in ["block_id", "replace, after, delete or attrs", "suggestions", "locked for teams", "placeholders"] {
+        assert!(write_text.contains(must), "docs_write: {must}");
+    }
+    let props = properties(write);
+    let modes = enum_of(&props["mode"]).expect("an enum");
+    for mode in ["replace", "after", "delete", "attrs"] {
+        assert!(modes.contains(&json!(mode)), "{mode}");
+    }
+    assert!(props.contains_key("block_id") && props.contains_key("attrs"));
+    assert!(props["attrs"]["description"].as_str().expect("text").contains("align"));
 }
 
 // Not ported:

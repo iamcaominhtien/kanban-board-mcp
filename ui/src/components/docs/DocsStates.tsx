@@ -1,3 +1,4 @@
+import { StateBar } from './states/StateBar';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { docsErrorDetail } from '../../api/docs';
 import { useSimilarPages } from '../../api/docsPage';
@@ -71,12 +72,24 @@ export function TreeSkeleton({ width = 248 }: { width?: number }) {
 }
 
 /**
- * Loading placeholder for a page.
+ * Loading placeholder for a page: the shapes of its header, cover, title and paragraphs, so the page does not jump
+ * when it arrives.
  * @param props.title - Real page title to show instead of a placeholder bar.
  * @param props.note - Content shown above the skeleton, e.g. a slow-load note.
  * @param props.crumbs - Breadcrumb segments to show instead of a placeholder.
+ * @param props.cover - The page has a cover picture (a grey band where it will be).
  */
-export function PageSkeleton({ title, note, crumbs }: { title?: string; note?: ReactNode; crumbs?: string[] }) {
+export function PageSkeleton({
+  title,
+  note,
+  crumbs,
+  cover,
+}: {
+  title?: string;
+  note?: ReactNode;
+  crumbs?: string[];
+  cover?: boolean;
+}) {
   return (
     <div
       aria-busy="true"
@@ -111,6 +124,7 @@ export function PageSkeleton({ title, note, crumbs }: { title?: string; note?: R
             <div className="skel" style={{ width: 90, height: 10, flexShrink: 0 }} />
           </div>
         )}
+        {cover && <div className="skel" data-testid="skeleton-cover" style={{ height: 140, borderRadius: 10 }} />}
         {title ? (
           <h1
             style={{
@@ -231,8 +245,10 @@ function StateShell({
       }}
     >
       <div
+        className="dst-state"
         style={{
-          width: 380,
+          width: 400,
+          maxWidth: '100%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -242,10 +258,10 @@ function StateShell({
       >
         <div
           style={{
-            width: 48,
-            height: 48,
+            width: 52,
+            height: 52,
             borderRadius: '50%',
-            background: tone === 'error' ? '#FBE7E4' : '#EEF3EF',
+            background: tone === 'error' ? '#FBE7E4' : '#EAF0EC',
             color: tone === 'error' ? '#C4432A' : sage,
             display: 'flex',
             alignItems: 'center',
@@ -255,15 +271,23 @@ function StateShell({
         >
           {icon}
         </div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#1E2A22', marginTop: 4 }}>{title}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#1E2A22' }}>{title}</div>
         {children}
       </div>
     </div>
   );
 }
 
-const body = { fontSize: 13, lineHeight: 1.6, color: sage } as const;
-const btnRow = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 } as const;
+// Docs states F 38-48, L 81-83: 13.5 / 1.55 text, the buttons 4 px under it and wrapping
+const body = { fontSize: 13.5, lineHeight: 1.55, color: '#3A4A3E' } as const;
+const btnRow = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexWrap: 'wrap',
+  gap: 8,
+  marginTop: 4,
+} as const;
 
 /**
  * What a failed request looked like, for the E1 detail block.
@@ -363,7 +387,7 @@ export function LoadError({
           Retrying automatically in {secs}s
         </div>
       )}
-      <div style={btnRow}>
+      <div className="dst-state-btns" style={btnRow}>
         <button type="button" className="st-btn st-btn-primary" onClick={onRetry} data-testid="docs-retry">
           <Icon name="i41" size={14} strokeWidth={1.9} />
           Retry
@@ -468,7 +492,7 @@ export function NotFound({
           ))}
         </div>
       )}
-      <div style={btnRow}>
+      <div className="dst-state-btns" style={btnRow}>
         <button type="button" className="st-btn st-btn-primary" onClick={onHome}>
           <Icon name="i27" size={14} strokeWidth={1.9} />
           Go to Overview
@@ -527,7 +551,7 @@ export function DeletedPage({
       <div style={{ fontSize: 12, lineHeight: 1.5, color: '#9AA8A0' }}>
         Links to it show “In Recycle Bin” until it is restored.
       </div>
-      <div style={btnRow}>
+      <div className="dst-state-btns" style={btnRow}>
         <button
           type="button"
           className="st-btn st-btn-primary"
@@ -552,15 +576,19 @@ export function DeletedPage({
  * @param props.onOpenSettings - Called by "Open project settings"; the button is hidden when omitted.
  * @param props.onBack - Called by the back button; hidden when omitted.
  * @param props.isAdmin - False for people who can't turn Docs on: they see "Ask an admin to turn Docs on" instead.
+ * @param props.admin - The admin named in that line.
  */
 export function DocsDisabled({
   onOpenSettings,
   onBack,
   isAdmin = true,
+  admin,
 }: {
   onOpenSettings?: () => void;
   onBack?: () => void;
   isAdmin?: boolean;
+  /** The project admin named to those who cannot turn Docs on ("Ask An Nguyen, the project admin, …"). */
+  admin?: string;
 }) {
   return (
     <StateShell
@@ -569,9 +597,11 @@ export function DocsDisabled({
       title="Docs is turned off for this project"
     >
       <div style={body}>Pages are kept but hidden. An admin can turn Docs back on in the project settings.</div>
-      <div style={btnRow}>
+      <div className="dst-state-btns" style={btnRow}>
         {!isAdmin ? (
-          <span style={{ ...body, fontWeight: 600 }}>Ask an admin to turn Docs on</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#3A4A3E' }}>
+            {admin ? `Ask ${admin}, the project admin, to turn Docs on.` : 'Ask an admin to turn Docs on'}
+          </span>
         ) : (
           onOpenSettings && (
             <button type="button" className="st-btn st-btn-primary" onClick={onOpenSettings}>
@@ -637,16 +667,14 @@ export function NoAccess({
         </div>
       ) : (
         <>
-          <label
-            style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', marginTop: 6 }}
-          >
+          <label style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 5, textAlign: 'left' }}>
             <span
               style={{
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: 700,
                 textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: sage,
+                letterSpacing: '0.08em',
+                color: '#9AA8A0',
               }}
             >
               Note to admins (optional)
@@ -658,7 +686,15 @@ export function NoAccess({
               placeholder="I need to read the API docs"
               onChange={(e) => setNote(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && state !== 'sending' && void send()}
-              style={{ width: '100%', boxSizing: 'border-box' }}
+              style={{
+                width: '100%',
+                height: 36,
+                boxSizing: 'border-box',
+                border: '1px solid #C7D2CB',
+                borderRadius: 8,
+                padding: '0 11px',
+                fontSize: 13.5,
+              }}
             />
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: sage }}>
@@ -678,7 +714,7 @@ export function NoAccess({
           )}
         </>
       )}
-      <div style={btnRow}>
+      <div className="dst-state-btns" style={btnRow}>
         {state !== 'sent' && state !== 'asked' && (
           <button
             type="button"
@@ -726,36 +762,26 @@ export function OfflineBanner({
       ? `today ${time}`
       : `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${time}`;
   return (
-    <div
-      role="status"
-      data-testid="docs-offline-banner"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '10px 24px',
-        background: '#FEF6E7',
-        borderBottom: '1px solid #F0DBA8',
-        fontSize: 12.5,
-        color: '#1E2A22',
-        lineHeight: 1.45,
-        flexShrink: 0,
-      }}
-    >
-      <span style={{ color: '#B8860B', display: 'flex' }}>
-        <Icon name="i37" size={17} strokeWidth={1.9} />
-      </span>
-      <span style={{ flex: 1 }}>
-        <b style={{ fontWeight: 700 }}>You're offline.</b> Showing the saved copy of {pageTitle} from {when}
-        {version ? ` (v${version})` : ''}. Editing is off until you reconnect.
-      </span>
-      {onTryAgain && (
-        <button type="button" className="st-btn st-btn-sm" onClick={onTryAgain}>
-          <Icon name="i41" size={13} strokeWidth={2} />
-          Try again
-        </button>
-      )}
-    </div>
+    <StateBar
+      tone="grey"
+      icon="offline"
+      testId="docs-offline-banner"
+      title="You're offline"
+      text={
+        <>
+          Showing the saved copy of <b>{pageTitle}</b> from {when}
+          {version ? ` (v${version})` : ''}. Editing is off until you reconnect.
+        </>
+      }
+      actions={
+        onTryAgain && (
+          <button type="button" className="st-btn st-btn-sm" onClick={onTryAgain}>
+            <Icon name="i41" size={13} strokeWidth={2} />
+            Try again
+          </button>
+        )
+      }
+    />
   );
 }
 

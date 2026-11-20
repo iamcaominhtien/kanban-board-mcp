@@ -144,7 +144,7 @@ async fn test_restore_adds_new_version_and_diff() {
     publish(&c, &p, "## A\nnew", None).await;
     let r = c.post(&format!("/docs/pages/{}/versions/1/restore", id(&p)), json!({})).await;
     let body = r.json();
-    assert!(body["version"] == 3 && body["markdown"] == "## A\nold");
+    assert!(body["version"] == 3 && body["markdown"] == "## A\n\nold");
     let versions = c.get(&format!("/docs/pages/{}/versions", id(&p))).await.json();
     assert_eq!(versions[0]["note"], "Restored from v1");
     let d = c.get(&format!("/docs/pages/{}/versions/1/diff/2", id(&p))).await.json();

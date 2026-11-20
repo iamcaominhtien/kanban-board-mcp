@@ -1,0 +1,1955 @@
+/* The page tree, the gallery and the recent list, with the values of the boards' code ("Rich Docs — organising
+   pages", RichDocsTree1-5). Desktop rows are 32 px high; the touch layouts (.dk-touch) make every target 44 px and
+   keep nothing hover-only. */
+
+/* ---------- tree panel: header, search, toolbar ---------- */
+.tr-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px 8px 14px;
+}
+.dk-touch .tr-head {
+  padding-top: 16px;
+}
+.tr-head-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5b6b60;
+}
+.tr-head-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tr-head-name > span {
+  font-weight: 500;
+  color: #5b6b60;
+}
+.tr-headbtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  cursor: pointer;
+}
+.tr-headbtn:hover {
+  background: #eaf1ec;
+}
+.dk-touch .tr-headbtn {
+  width: 44px;
+  height: 44px;
+}
+.tr-search {
+  margin: 2px 12px 8px;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid #dce3de;
+  border-radius: 8px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  color: #5b6b60;
+  cursor: text;
+}
+.tr-search-on {
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.18);
+}
+.tr-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: #1e2a22;
+}
+.tr-search input::placeholder {
+  color: #5b6b60;
+  opacity: 1;
+}
+.dk-touch .tr-search {
+  height: 44px;
+  font-size: 14px;
+}
+.tr-search-clear {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e3e8e5;
+  color: #5b6b60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.tr-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 8px;
+  /* a narrow tree (an empty space on a tablet keeps the whole tree beside its start page): the last buttons wrap to
+     a second row instead of running over Filter and out of the pane */
+  flex-wrap: wrap;
+}
+.tr-toolbar-gap {
+  flex: 1;
+}
+.tr-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eaf0ec;
+  flex: none;
+}
+.tr-seg button {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.tr-seg button[aria-checked='true'] {
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.14);
+}
+.dk-touch .tr-seg button {
+  width: 52px;
+  height: 44px;
+}
+.tr-tool {
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #dce3de;
+  background: #ffffff;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3a4a3e;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+.tr-tool:hover {
+  background: #f6faf7;
+}
+.tr-tool-on,
+.tr-tool-on:hover {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #1f5a31;
+}
+.tr-tool-sq {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+}
+.dk-touch .tr-tool {
+  height: 44px;
+}
+.dk-touch .tr-tool-sq {
+  width: 44px;
+}
+.tr-badge {
+  min-width: 17px;
+  height: 17px;
+  box-sizing: border-box;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #1f5a31;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 8px;
+}
+.tr-chip {
+  height: 26px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: #1f5a31;
+  color: #ffffff;
+  border: 1px solid #1f5a31;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+}
+.tr-chip button {
+  width: 14px;
+  height: 14px;
+  margin-right: -4px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.tr-airows {
+  margin: 0 8px 4px;
+}
+.tr-airow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f5a31;
+  text-align: left;
+  cursor: pointer;
+}
+.tr-airow:hover {
+  background: #eaf1ec;
+}
+.tr-airow[aria-current='page'] {
+  background: #dceee1;
+}
+.dk-touch .tr-airow {
+  min-height: 44px;
+  font-size: 15px;
+}
+.tr-airow-count {
+  min-width: 20px;
+  height: 18px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: #1f5a31;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+.tr-airows-rule {
+  height: 1px;
+  background: #e3eae5;
+  margin: 4px 4px 2px;
+}
+.tr-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 4px;
+}
+.tr-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 1px 8px 2px;
+}
+.tr-newpage {
+  margin: 6px 12px;
+  display: flex;
+  gap: 4px;
+  position: relative;
+}
+.tr-newpage > button {
+  min-height: 34px;
+  box-sizing: border-box;
+  border: 1px dashed #c7d2cb;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2e6f40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.tr-newpage > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.tr-newpage > button + button {
+  width: 34px;
+  flex: none;
+}
+.tr-newpage > button:hover {
+  background: #f1f8f3;
+}
+.dk-touch .tr-newpage > button {
+  min-height: 44px;
+}
+.dk-touch .tr-newpage > button + button {
+  width: 44px;
+}
+.tr-binrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 0 14px 6px;
+  border: none;
+  border-top: 1px solid #eaf0ec;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b6b60;
+  text-align: left;
+  cursor: pointer;
+}
+.tr-binrow:hover {
+  color: #1e2a22;
+}
+.tr-binrow-count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3a4a3e;
+  background: #e3eae5;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.dk-touch .tr-binrow {
+  min-height: 44px;
+  padding-bottom: 0;
+}
+
+/* ---------- row pieces ---------- */
+.tr-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tr-icon img {
+  border-radius: 3px;
+  object-fit: cover;
+}
+.tr-emoji {
+  line-height: 1;
+  text-align: center;
+}
+.tr-chev {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.dk-touch .tr-chev {
+  width: 28px;
+  height: 28px;
+  margin-left: -4px;
+}
+.tr-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+.tr-dot-slot {
+  display: inline-flex;
+  width: 12px;
+  justify-content: center;
+  flex: none;
+}
+.tr-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  flex: none;
+}
+.tr-pill-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  box-sizing: border-box;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+}
+.tr-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.tr-spark {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #efe9fb;
+  color: #5b3fa8;
+  border: 1px solid #dcd0f4;
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+}
+.tr-booktag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f5a31;
+  border: 1px solid #9ccba8;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex: none;
+  white-space: nowrap;
+}
+.tr-kids {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  min-width: 10px;
+  text-align: right;
+  flex: none;
+}
+.tr-avatar {
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.tr-convert {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2f6fb0;
+  flex-shrink: 0;
+}
+.tr-convert-failed {
+  color: #c4432a;
+}
+.tr-chapter {
+  font-variant-numeric: tabular-nums;
+}
+.tr-row-chapter::before {
+  content: '';
+  position: absolute;
+  left: 30px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #bfdcc7;
+}
+.tr-row-book {
+  font-weight: 600;
+  color: #1e2a22;
+}
+.tr-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: #f1f3f1;
+  color: #3a4a3e;
+  font-size: 10.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.tr-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #5b6b60;
+  margin-left: 4px;
+}
+.tr-row-picked,
+.tr-row-picked:hover {
+  background: #e3f0e7;
+}
+.tr-row-lifted {
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(30, 42, 34, 0.18);
+}
+.tr-handle-on {
+  opacity: 1 !important;
+}
+.tr-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid #9aa8a0;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+  box-sizing: border-box;
+}
+.tr-check-on {
+  background: #2e6f40;
+  border-color: #2e6f40;
+}
+.tr-check-follow {
+  background: #9ccba8;
+  border-color: #9ccba8;
+}
+.tr-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.tr-drag-tip {
+  font-size: 11px;
+  font-weight: 500;
+  color: #5b6b60;
+}
+
+/* ---------- hover card ---------- */
+.tr-hovercard {
+  position: fixed;
+  z-index: 900;
+  width: 286px;
+  box-sizing: border-box;
+  pointer-events: none;
+  padding-left: 6px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.tr-hc-arrow {
+  position: absolute;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border-left: 1px solid #dce3de;
+  border-bottom: 1px solid #dce3de;
+  transform: rotate(45deg);
+  z-index: 2;
+}
+.tr-hc-box {
+  position: relative;
+  z-index: 1;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #dce3de;
+  box-shadow: 0 16px 40px rgba(30, 42, 34, 0.2);
+  overflow: hidden;
+}
+.tr-hc-cover {
+  height: 104px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tr-hc-emoji {
+  font-size: 43px;
+  line-height: 1;
+}
+.tr-hc-body {
+  padding: 12px 14px;
+}
+.tr-hc-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tr-hc-title > span:last-child {
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  color: #1e2a22;
+}
+.tr-hc-tags {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.tr-hc-text {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #3a4a3e;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tr-hc-progress {
+  margin-top: 8px;
+}
+.tr-hc-progress > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #5b6b60;
+  font-weight: 600;
+}
+.tr-hc-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: #e3eae5;
+  margin-top: 5px;
+}
+.tr-hc-bar > div {
+  height: 100%;
+  border-radius: 3px;
+  background: #2e6f40;
+}
+.tr-hc-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+
+/* ---------- menus: view, sort, filter ---------- */
+.tr-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 260px;
+  z-index: 70;
+  padding: 6px;
+}
+.tr-pop-head {
+  padding: 12px 14px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.tr-pop-sep {
+  height: 1px;
+  background: #eef3ef;
+  margin: 4px 6px;
+}
+.tr-mi {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+}
+.tr-mi-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.tr-filterpop {
+  position: fixed;
+  z-index: 300;
+  width: 320px;
+  padding-left: 6px;
+}
+.tr-filterpop > .tr-hc-arrow {
+  top: 20px;
+}
+.tr-filterpop > .dk-menu {
+  position: relative;
+  z-index: 1;
+  width: 320px;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.tr-fopt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 14px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+}
+.tr-fopt:hover {
+  background: #f6faf7;
+}
+.dk-touch .tr-fopt {
+  min-height: 44px;
+}
+.tr-fopt .tr-check {
+  border-radius: 5px;
+}
+.tr-fopt > span:nth-last-child(2) {
+  flex: 1;
+}
+.tr-fopt-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #5b6b60;
+}
+.tr-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 14px 8px;
+}
+.tr-pill {
+  height: 26px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #3a4a3e;
+  border: 1px solid #dce3de;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+.tr-pill-on {
+  background: #1f5a31;
+  border-color: #1f5a31;
+  color: #ffffff;
+}
+.dk-touch .tr-pill {
+  height: 36px;
+}
+.tr-filter-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+}
+.tr-filter-foot > .tr-link {
+  font-size: 12.5px;
+}
+.tr-filter-foot > span {
+  flex: 1;
+}
+.tr-modebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #e8f1fb;
+  border: 1px solid #b9d3ee;
+  font-size: 12.5px;
+}
+.tr-modebar > span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.tr-modebar small {
+  color: #5b6b60;
+}
+.tr-reorder-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 6px 6px 28px;
+}
+
+/* ---------- selection bar ---------- */
+.tr-selbar {
+  border-top: 1px solid #e3e8e5;
+  background: #ffffff;
+  padding: 10px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tr-selbar-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+.tr-selbar-count {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.tr-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.tr-selbar-actions {
+  display: flex;
+  gap: 6px;
+}
+.tr-selbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 7px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.tr-selbar-actions .tr-selbtn {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  min-height: 56px;
+  padding: 0;
+  border-color: #dce3de;
+  border-radius: 9px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  font-size: 11.5px;
+}
+.tr-selbtn:hover {
+  background: #f6faf7;
+}
+.tr-selbtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.tr-selbtn-danger {
+  color: #c4432a;
+}
+.dk-touch .tr-selbtn,
+.dk-touch .tr-link {
+  min-height: 44px;
+}
+.tr-del-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #1e2a22;
+}
+.tr-del-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+
+/* ---------- gallery and recent ---------- */
+.tr-view {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 22px 24px 40px;
+  box-sizing: border-box;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.tr-view-phone {
+  padding: 14px 16px 32px;
+}
+.tr-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #5b6b60;
+  margin-bottom: -6px;
+  flex-wrap: wrap;
+}
+.tr-crumbs button {
+  border: none;
+  background: none;
+  padding: 2px 3px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.tr-crumbs button[aria-current='page'] {
+  color: #1e2a22;
+  font-weight: 700;
+}
+.tr-view-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tr-view-head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.tr-view-sub {
+  font-size: 12.5px;
+  color: #5b6b60;
+  margin-top: 2px;
+}
+.tr-sort {
+  position: relative;
+}
+.tr-sort > button {
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #dce3de;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  background: #ffffff;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tr-sort > button > span {
+  color: #5b6b60;
+  font-weight: 500;
+}
+.tr-sort .dk-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 220px;
+  z-index: 70;
+}
+.tr-quick {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  overflow-x: auto;
+}
+.tr-quick .tr-pill {
+  height: 30px;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.tr-quick .tr-pill .tr-count {
+  font-size: 11px;
+  margin: 0;
+}
+.tr-quick .tr-pill-on .tr-count {
+  color: #ffffff;
+}
+.dk-touch .tr-quick .tr-pill {
+  height: 36px;
+}
+.tr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 17px;
+}
+.tr-view-tablet .tr-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.tr-view-phone .tr-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.tr-card {
+  position: relative;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid #dce3de;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.05);
+}
+.tr-card:hover {
+  box-shadow: 0 8px 22px rgba(30, 42, 34, 0.1);
+}
+.tr-card-over {
+  outline: 2px solid #2e6f40;
+}
+.tr-card-main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+.tr-card-cover {
+  position: relative;
+  height: 104px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tr-view-phone .tr-card-cover {
+  height: 72px;
+}
+.tr-card-emoji {
+  font-size: 43px;
+  line-height: 1;
+}
+.tr-view-phone .tr-card-emoji {
+  font-size: 32px;
+}
+.tr-card-badge {
+  position: absolute;
+  left: 12px;
+  top: 86px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(30, 42, 34, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.tr-view-phone .tr-card-badge {
+  top: 54px;
+}
+.tr-card-num {
+  font-size: 30px;
+  font-weight: 800;
+  color: rgba(30, 42, 34, 0.35);
+}
+.tr-card-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.tr-card-badged .tr-card-body {
+  padding-top: 24px;
+}
+.tr-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #1e2a22;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tr-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.tr-card-by {
+  font-size: 11.5px;
+  color: #5b6b60;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tr-card-marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tr-card-kids {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5b6b60;
+}
+.tr-card-more {
+  position: absolute !important;
+  right: 6px;
+  top: 6px;
+  opacity: 0;
+  background: rgba(255, 255, 255, 0.92) !important;
+}
+.tr-card:hover .tr-card-more,
+.tr-card-more:focus-visible,
+.dk-touch .tr-card-more {
+  opacity: 1;
+}
+.tr-card-add {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-style: dashed;
+  border-color: #c7d2cb;
+  box-shadow: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.tr-nomatch {
+  margin: 30px 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  text-align: center;
+}
+.tr-nomatch-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #eaf0ec;
+  color: #5b6b60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tr-nomatch-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.tr-nomatch-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5b6b60;
+  max-width: 320px;
+}
+.tr-recent {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  flex: none;
+}
+.tr-recent-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e3e8e5;
+  background: #fbfcfb;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.tr-col-ico {
+  width: 34px;
+  flex: none;
+}
+.tr-col-page {
+  flex: 1.6;
+  min-width: 0;
+}
+.tr-col-status,
+.tr-col-by {
+  width: 150px;
+  flex: none;
+}
+.tr-col-at {
+  width: 90px;
+  flex: none;
+}
+.tr-col-more {
+  width: 28px;
+  flex: none;
+}
+.tr-day {
+  padding: 12px 16px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.tr-recent-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-bottom: 1px solid #eef3ef;
+}
+.tr-recent-row:hover {
+  background: #f6faf7;
+}
+.tr-recent-main {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tr-recent-touch {
+  min-height: 64px;
+}
+.tr-recent-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #f1f6f2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.tr-recent-title > span,
+.tr-recent-title small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tr-recent-title > span {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.tr-recent-title small {
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.tr-recent-status {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.tr-recent-by {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: #1e2a22;
+  min-width: 0;
+}
+.tr-recent-at {
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.tr-recent-row .tr-card-more {
+  position: static !important;
+  opacity: 1;
+  background: none !important;
+  width: 28px;
+  color: #5b6b60;
+}
+.tr-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  font-size: 12px;
+  color: #5b6b60;
+}
+
+/* ---------- icon picker ---------- */
+.tr-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tr-picker-now {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.tr-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.tr-tab {
+  border: none;
+  background: none;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.tr-tab-on {
+  color: #1e2a22;
+  border-bottom-color: #2e6f40;
+}
+.tr-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.tr-picker-cell {
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3a4a3e;
+  cursor: pointer;
+}
+.tr-picker-cell:hover,
+.tr-picker-cell[aria-selected='true'] {
+  background: #eaf0ec;
+}
+.dk-touch .tr-picker-cell {
+  height: 44px;
+}
+.tr-picker-foot {
+  display: flex;
+  justify-content: space-between;
+}
+.tr-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+/* ---------- Recycle Bin ---------- */
+.tr-where {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #1e2a22;
+}
+.tr-where input {
+  margin-top: 3px;
+  accent-color: #2e6f40;
+}
+.tr-where small {
+  display: block;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.tr-where-on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.tr-where[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+.tr-counts {
+  display: flex;
+  gap: 18px;
+  font-size: 13px;
+  color: #3a4a3e;
+}
+.tr-counts b {
+  font-size: 20px;
+  color: #1e2a22;
+  margin-right: 4px;
+}
+.tr-counts small {
+  color: #9aa8a0;
+}
+.tr-days {
+  font-weight: 700;
+}
+.tr-binbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #f1f8f3;
+  border-bottom: 1px solid #dceee1;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+
+/* touch rows have only ⋯ (organising pages, A 2-3): adding a child page is in its menu */
+.dk-touch .dk-tree-actions [data-add-child] {
+  display: none;
+}
+.tr-link:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* the row menu beside the tree (frame 27): 250 wide, an arrow pointing at the row */
+.tr-rowmenu > .dk-menu {
+  left: 0 !important;
+  right: auto !important;
+  top: 0 !important;
+  width: 250px !important;
+}
+.tr-rowmenu-arrow {
+  position: absolute;
+  left: -6px;
+  top: calc(var(--tr-arrow, 24px) - 6px);
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-left: 1px solid #dce3de;
+  border-bottom: 1px solid #dce3de;
+  transform: rotate(45deg);
+  z-index: 61;
+}
+
+/* the Recycle Bin's head (frame 40): title 22/700, the note 13, then the All / Pages / Tickets pill, the sort and
+   Empty bin */
+.dk-bin-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 22px 24px 4px 28px;
+  flex-shrink: 0;
+}
+.dk-bin-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-bin-sub {
+  font-size: 13px;
+  color: #5b6b60;
+  margin-top: 2px;
+}
+.dk-bin-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 28px 14px;
+  border-bottom: 1px solid #eef3ef;
+  flex-shrink: 0;
+}
+.dk-bin-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #eef3ef;
+}
+.dk-bin-seg-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dk-bin-seg-on {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
+}
+.dk-bin-sort {
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #dce3de;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  background: #fff;
+  white-space: nowrap;
+}
+.dk-bin-sort > span {
+  color: #5b6b60;
+  font-weight: 500;
+}
+.st-btn.dk-bin-empty {
+  min-height: 34px;
+}
+
+/* ---------- gallery and recent on touch (Tree1 B 8-9, 13-14): a 60 px bar with Pages, the name and the switch ---------- */
+.tr-touchbar {
+  height: 60px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #e3e8e5;
+  background: #ffffff;
+}
+.tr-view-tablet > .tr-touchbar,
+.tr-view-phone > .tr-touchbar {
+  margin: -16px -18px 0;
+}
+.tr-view-phone > .tr-touchbar {
+  margin: -12px -14px 0;
+}
+.tr-touchbar-pages {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid #dce3de;
+  border-radius: 9px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+  flex: none;
+}
+.tr-touchbar-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tr-view-tablet {
+  padding: 16px 18px 32px;
+  gap: 12px;
+}
+.tr-view-phone {
+  padding: 12px 14px 32px;
+  gap: 10px;
+}
+.tr-view-tablet .tr-view-head h2 {
+  font-size: 19px;
+}
+.dk-touch .tr-view .tr-sort > button {
+  height: 44px;
+}
+/* the quick filters stay on one line and scroll, fading out at the right edge */
+.dk-touch .tr-quick {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, #000 88%, transparent);
+}
+.tr-view-phone .tr-quick {
+  margin-right: -14px;
+}
+.dk-touch .tr-quick .tr-pill {
+  height: 44px;
+  padding: 0 13px;
+  flex: none;
+  white-space: nowrap;
+}
+.tr-view-tablet .tr-grid {
+  gap: 14px;
+}
+.tr-view-phone .tr-grid {
+  gap: 12px;
+}
+/* phone cards: a 78 px cover, the ⋯ a 32 px white circle in a 44 px corner target */
+.tr-view-phone .tr-card-cover {
+  height: 78px !important;
+}
+.dk-touch .tr-card .tr-card-more {
+  right: 0 !important;
+  top: 0 !important;
+  width: 44px !important;
+  height: 44px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+.dk-touch .tr-card .tr-card-more > svg {
+  box-sizing: content-box;
+  padding: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 1px 4px rgba(30, 42, 34, 0.25);
+  color: #1e2a22;
+}
+/* recent on touch: 64 px rows of two lines, a 44 px ⋯ */
+.dk-touch .tr-recent-touch {
+  min-height: 64px;
+  padding: 6px 6px 6px 16px;
+}
+.dk-touch .tr-recent-touch .tr-recent-title > span {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.dk-touch .tr-recent-touch .tr-recent-title > small {
+  font-size: 12px;
+}
+.tr-view > * {
+  flex-shrink: 0;
+}
+.tr-crumbs[hidden],
+.tr-view-head[hidden] {
+  display: none;
+}
+
+/* the row menu as an action sheet on a phone (Tree3 29) */
+.tr-msheet-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 8px 10px 20px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.tr-msheet-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eaf1ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.tr-msheet-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e2a22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tr-msheet-sub {
+  font-size: 12px;
+  color: #5b6b60;
+}
+.tr-msheet-head .dk-icobtn {
+  width: 44px;
+  height: 44px;
+  color: #5b6b60;
+}
+[data-testid='tree-menu-sheet'] .dk-sheet-body {
+  padding: 0 0 20px;
+}
+[data-testid='tree-menu-sheet'] .dk-menu-sheet .dk-mi {
+  min-height: 50px;
+  gap: 14px;
+  padding: 2px 20px;
+  border-radius: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+[data-testid='tree-menu-sheet'] .dk-menu-sheet .dk-mi svg {
+  width: 20px;
+  height: 20px;
+}
+[data-testid='tree-menu-sheet'] .dk-menu-sheet > div > div:first-child:not(.dk-mi) {
+  display: none;
+}
+
+/* the filter sheet of a phone (Tree1 16) */
+.tr-fsheet-head {
+  padding: 4px 20px 10px;
+}
+.tr-fsheet-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.tr-fsheet-sub {
+  font-size: 12.5px;
+  color: #5b6b60;
+  margin-top: 1px;
+}
+[data-testid='tree-filter-sheet'] .dk-sheet-body {
+  padding: 0 0 24px;
+}
+[data-testid='tree-filter-sheet'] .tr-pop-head {
+  padding: 12px 20px 4px;
+  font-size: 11px;
+}
+[data-testid='tree-filter-sheet'] .tr-fopt {
+  min-height: 48px;
+  gap: 12px;
+  padding: 0 20px;
+  border-radius: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+[data-testid='tree-filter-sheet'] .tr-fopt .tr-check {
+  width: 22px;
+  height: 22px;
+}
+[data-testid='tree-filter-sheet'] .tr-fopt .tr-check svg {
+  width: 16px;
+  height: 16px;
+}
+[data-testid='tree-filter-sheet'] .tr-fopt-count {
+  font-size: 12.5px;
+}
+[data-testid='tree-filter-sheet'] .tr-pills {
+  padding: 4px 20px 8px;
+  gap: 8px;
+}
+[data-testid='tree-filter-sheet'] .tr-pill {
+  height: 44px;
+  padding: 0 13px;
+}
+[data-testid='tree-filter-sheet'] .tr-filter-foot {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px 0;
+  border-top: none;
+  background: none;
+}
+[data-testid='tree-filter-sheet'] .tr-filter-foot > span {
+  display: none;
+}
+[data-testid='tree-filter-sheet'] .tr-filter-foot > button {
+  flex: 1;
+  min-height: 48px;
+  justify-content: center;
+}
+[data-testid='tree-filter-sheet'] .tr-filter-foot > .tr-link {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e2a22;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+/* touch: 20 px checkboxes while picking pages (Tree2 24-25) */
+.dk-touch .dk-tree-row .tr-check {
+  width: 20px;
+  height: 20px;
+}
+.dk-touch .dk-tree-row .tr-check svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* the Recycle Bin as a page on a tablet (Tree3 41) and a phone (42): 20/19 px title, 44 px Empty bin and filter */
+.dk-bin-touch .dk-bin-head {
+  align-items: center;
+  gap: 10px;
+  padding: 18px 18px 10px 8px;
+}
+.dk-bin-back {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.dk-bin-touch .dk-bin-title {
+  font-size: 20px;
+}
+.dk-bin-touch .dk-bin-sub {
+  font-size: 12.5px;
+}
+.dk-bin-touch .st-btn.dk-bin-empty {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.dk-bin-touch .dk-bin-tools {
+  gap: 10px;
+  padding: 2px 18px 10px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.dk-bin-touch .dk-bin-seg-btn {
+  padding: 12px 14px;
+}
+.dk-bin-phone .dk-bin-head {
+  gap: 8px;
+  padding: 12px 14px 8px 4px;
+}
+.dk-bin-phone .dk-bin-title {
+  font-size: 19px;
+}
+.dk-bin-phone .dk-bin-tools {
+  padding: 2px 14px 8px;
+}
+
+/* inside a book (Tree1 10): 84 px pictures, the number in a white badge over a picture or large on the paper
+   colour, a "Chapter N" tag on top; "Add a chapter" with its plus in a green circle */
+.tr-card-chapter .tr-card-cover {
+  height: 84px;
+  background-color: #efe9d8;
+}
+.tr-card-chapter .tr-card-num {
+  font-size: 35px;
+  font-weight: 400;
+  color: #1e2a22;
+}
+.tr-card-chapter .tr-card-badge {
+  top: 66px;
+  font-weight: 400;
+  color: #1e2a22;
+}
+.tr-card-chtag {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  height: 24px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.94);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1f5a31;
+  pointer-events: none;
+}
+.tr-card:hover .tr-card-chtag,
+.dk-touch .tr-card-chtag {
+  opacity: 0;
+}
+.tr-card-add {
+  min-height: 170px;
+  border: 1.5px dashed #bfd2c5;
+  font-weight: 700;
+}
+.tr-card-add-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e6f2ea;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tr-view-open {
+  flex: none;
+}

@@ -1,0 +1,28 @@
+Section
+Sub-section
+bold, italic, gone
+the key sentence
+GET /tickets
+text
+Page, Page › Section, shown text
+KAN-12
+- item
+- nested item
+- item
+- [ ] open
+- [x] done
+Method | Path
+GET | /tickets
+print("hi")
+A note.
+A risk.
+A confirmation.
+quoted text
+what it shows
+what it shows
+report.pdf
+Name
+Name
+Name
+x^2
+x^2 + y^2

@@ -6,6 +6,7 @@ import type {
   DocsDeletedEntry,
   DocsDiff,
   DocsErrorDetail,
+  DocsLinkTargets,
   DocsPage,
   DocsRefRequest,
   DocsRefResult,
@@ -14,7 +15,11 @@ import type {
   DocsTreeNode,
   DocsVersionDetail,
   DocsVersionSummary,
+  RichDoc,
 } from '../types/docs';
+
+/** Request keys that hold rich JSON: sent as they are (the client snake_cases every other key). */
+const RAW_CONTENT = { rawKeys: ['content'] } as const;
 
 /** The `{code, message, ...}` body of a failed docs request, if there is one. */
 export function docsErrorDetail(err: unknown): (DocsErrorDetail & { status?: number }) | null {
@@ -49,6 +54,16 @@ export function useDocsTree(projectId: string) {
     queryKey: docsKeys.tree(projectId),
     queryFn: async () => (await client.get<DocsTreeNode[]>(`/projects/${projectId}/docs/tree`)).data,
     enabled: !!projectId,
+  });
+}
+
+/** Query what a link can point at in a page: its headings and the blocks worth linking (disabled while null). */
+export function useDocsLinkTargets(pageId: string | null) {
+  return useQuery({
+    queryKey: ['docs', 'link-targets', pageId ?? ''] as const,
+    queryFn: async () => (await client.get<DocsLinkTargets>(`/docs/pages/${pageId}/link-targets`)).data,
+    enabled: !!pageId,
+    staleTime: 30_000,
   });
 }
 
@@ -177,7 +192,9 @@ export function useDocsRecycleBin(projectId: string) {
 export function useTicketDocs(ticketId: string) {
   return useQuery({
     queryKey: docsKeys.ticketDocs(ticketId),
-    queryFn: async () => (await client.get<DocsTicketDoc[]>(`/tickets/${ticketId}/docs`)).data,
+    // rows of rich pages name the heading or block they point at (RichDocsLinks H 47)
+    queryFn: async () =>
+      (await client.get<DocsTicketDoc[]>(`/tickets/${ticketId}/docs`, { params: { blocks: true } })).data,
     enabled: !!ticketId,
   });
 }
@@ -288,16 +305,23 @@ export function usePurgePage(projectId: string) {
   }, projectId);
 }
 
-/** Mutation: save your draft. */
+/**
+ * Mutation: save your draft. `content` (the rich JSON) is what the editor sends; `markdown` is still taken by the
+ * server for a caller that only has Markdown. Give one of them.
+ */
 export function useSaveDraft(projectId: string) {
   return useDocsMutation(
-    async (v: { pageId: string; markdown: string; title?: string; baseVersion?: number }) =>
+    async (v: { pageId: string; content?: RichDoc; markdown?: string; title?: string; baseVersion?: number }) =>
       (
-        await client.put<DocsPage>(`/docs/pages/${v.pageId}/draft`, {
-          markdown: v.markdown,
-          title: v.title,
-          baseVersion: v.baseVersion,
-        })
+        await client.put<DocsPage>(
+          `/docs/pages/${v.pageId}/draft`,
+          {
+            ...(v.content !== undefined ? { content: v.content } : { markdown: v.markdown }),
+            title: v.title,
+            baseVersion: v.baseVersion,
+          },
+          RAW_CONTENT,
+        )
       ).data,
     projectId,
   );
@@ -311,28 +335,47 @@ export function useDiscardDraft(projectId: string) {
   );
 }
 
-/** Mutation: publish the draft as a new version. */
+/**
+ * Mutation: publish the draft as a new version. With `content` (rich JSON) or `markdown` the page is published with
+ * that text (`content` wins); with neither, the saved draft is.
+ */
 export function usePublishPage(projectId: string) {
   return useDocsMutation(
     async (v: {
       pageId: string;
       baseVersion: number;
       note?: string;
+      content?: RichDoc;
       markdown?: string;
       title?: string;
       notify?: boolean;
     }) =>
       (
-        await client.post<DocsPage>(`/docs/pages/${v.pageId}/publish`, {
-          notify: v.notify ?? false,
-          baseVersion: v.baseVersion,
-          note: v.note,
-          markdown: v.markdown,
-          title: v.title,
-        })
+        await client.post<DocsPage>(
+          `/docs/pages/${v.pageId}/publish`,
+          {
+            notify: v.notify ?? false,
+            baseVersion: v.baseVersion,
+            note: v.note,
+            ...(v.content !== undefined ? { content: v.content } : { markdown: v.markdown }),
+            title: v.title,
+          },
+          RAW_CONTENT,
+        )
       ).data,
     projectId,
   );
+}
+
+/**
+ * Sends a change of page settings (`PATCH /docs/pages/:id/settings`): the keys are merged into the stored ones and
+ * a `null` value removes a key (back to its default). Keys stay camelCase, as the contract names them.
+ * @param pageId - The page.
+ * @param settings - Keys to change.
+ * @returns The page as GET /docs/pages/:id returns it.
+ */
+export async function patchPageSettings(pageId: string, settings: Record<string, unknown>): Promise<DocsPage> {
+  return (await client.patch<DocsPage>(`/docs/pages/${pageId}/settings`, { settings }, { rawKeys: ['settings'] })).data;
 }
 
 /** Mutation: restore an old version as a new one. */

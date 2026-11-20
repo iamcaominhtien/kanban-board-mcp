@@ -11,10 +11,11 @@ use super::read::DOCS_READ_OPS;
 use super::write::run_write;
 use crate::common::{self, ToolError, ToolResult};
 use crate::operations::docs::docs_error;
+use crate::operations::docs_rich;
 use crate::tools::routing::dispatch;
 
-/// `_EDIT_KEYS`.
-const EDIT_KEYS: [&str; 4] = ["section", "find", "markdown", "mode"];
+/// `_EDIT_KEYS`, and the keys of a block edit.
+const EDIT_KEYS: [&str; 7] = ["section", "find", "block_id", "markdown", "mode", "attrs", "cells"];
 
 /// `given.get(key) is not None`.
 fn given_key<'a>(given: &'a Map<String, Value>, key: &str) -> Option<&'a Value> {
@@ -45,7 +46,7 @@ fn thousands(n: usize) -> String {
 /// `_no_unpublished_draft`: an edit works on the published text. When the caller's own draft of the page holds text
 /// that was never published (an import with publish=false, say), editing would publish the old text and drop the
 /// draft: refuse.
-async fn no_unpublished_draft(page_id: &str, page: &Value) -> Result<(), ToolError> {
+async fn no_unpublished_draft(page_id: &str, page: &Map<String, Value>) -> Result<(), ToolError> {
     // the name an MCP write is made under (`common::notify_on_success`): the AI team's, else "agent"
     let me = activity::current_ai()
         .and_then(|ai| ai.get("member_name").and_then(Value::as_str).map(str::to_string))
@@ -57,7 +58,7 @@ async fn no_unpublished_draft(page_id: &str, page: &Value) -> Result<(), ToolErr
     if pytext::strip(&draft.markdown).is_empty() {
         return Ok(());
     }
-    let published = page["markdown"].as_str().unwrap_or_default();
+    let published = page.get("markdown").and_then(Value::as_str).unwrap_or_default();
     if pytext::strip(&draft.markdown) == pytext::strip(published) {
         return Ok(());
     }
@@ -67,7 +68,7 @@ async fn no_unpublished_draft(page_id: &str, page: &Value) -> Result<(), ToolErr
          base_version={}), then edit.",
         thousands(draft.markdown.chars().count()),
         thousands(published.chars().count()),
-        pyjson::py_str(&page["version"]),
+        pyjson::py_str(page.get("version").unwrap_or(&Value::Null)),
     )))
 }
 
@@ -77,24 +78,66 @@ fn edit_of(e: &Map<String, Value>) -> docs_edit::Edit {
     docs_edit::Edit { markdown: text("markdown"), mode: text("mode"), section: text("section"), find: text("find") }
 }
 
-/// `docs_write(edit)`: read the page, change one part (or several, in order), publish it as one new version through
-/// `update`, so an AI run's edit goes through the same checks and history as a whole-page update.
+/// `docs_write(edit)`: read the page, change one part (or several, in order) and save it as one change: published as
+/// one new version, or, for an AI team on a page that suggests first, block suggestions for a person.
+///
+/// On a rich page the parts are named by a block id (`block_id` + `mode`: replace, after, delete, attrs) or, as on a
+/// Markdown page, by `section` or `find` in the annotated text `docs_read(get)` returns; the text is read back with
+/// the page's ids, so the blocks an edit does not touch keep their formatting.
 pub fn edit(given: Map<String, Value>) -> futures::future::BoxFuture<'static, ToolResult> {
     Box::pin(edit_page(given))
 }
 
+/// The edit as one call of the AI guard: an AI run's edit is made (and suggested) under the team's name.
 async fn edit_page(given: Map<String, Value>) -> ToolResult {
+    common::guarded("docs_write", "edit", given, Box::new(|g| Box::pin(edit_inner(g)))).await
+}
+
+/// What one edit changed, for the answer's `changed` and the version note.
+fn changed_label(e: &Map<String, Value>) -> String {
+    if let Some(id) = given_key(e, "block_id").map(pyjson::py_str) {
+        let mode = given_text(e, "mode").unwrap_or_else(|| "replace".into());
+        return match mode.as_str() {
+            "after" => format!("after block {id}"),
+            "delete" => format!("removed block {id}"),
+            "attrs" => format!("the format of block {id}"),
+            _ => format!("block {id}"),
+        };
+    }
+    if e.get("section").is_some_and(pyjson::truthy) {
+        format!("section '{}'", pyjson::py_str(&e["section"]))
+    } else if given_key(e, "find").is_some() {
+        "a passage".to_string()
+    } else {
+        "the end of the page".to_string()
+    }
+}
+
+async fn edit_inner(given: Map<String, Value>) -> ToolResult {
     let page_id = given.get("page_id").filter(|v| pyjson::truthy(v)).map(pyjson::py_str);
     let Some(page_id) = page_id else {
         return Err(ToolError::value("docs_write(action='edit') requires page_id."));
     };
-    let allowed = ["page_id", "base_version", "note", "publish", "items", "section", "find", "markdown", "mode"];
+    let allowed = [
+        "page_id",
+        "base_version",
+        "note",
+        "publish",
+        "items",
+        "section",
+        "find",
+        "block_id",
+        "markdown",
+        "mode",
+        "attrs",
+        "cells",
+    ];
     let extra: Vec<&str> =
         given.iter().filter(|(k, v)| !v.is_null() && !allowed.contains(&k.as_str())).map(|(k, _)| k.as_str()).collect();
     if !extra.is_empty() {
         return Err(ToolError::Value(format!(
-            "docs_write(action='edit') does not use: {}. It takes page_id, markdown, section | find [, mode, \
-             base_version, note, publish] or items.",
+            "docs_write(action='edit') does not use: {}. It takes page_id, markdown, section | find | block_id [, \
+             mode, attrs, cells, base_version, note, publish] or items.",
             extra.join(", ")
         )));
     }
@@ -102,11 +145,13 @@ async fn edit_page(given: Map<String, Value>) -> ToolResult {
     let edits: Vec<Value> = match &many {
         Some(many) => {
             if EDIT_KEYS.iter().any(|k| given_key(&given, k).is_some()) {
-                return Err(ToolError::value("edit: give items, or one edit (section | find, markdown), not both."));
+                return Err(ToolError::value(
+                    "edit: give items, or one edit (section | find | block_id, markdown), not both.",
+                ));
             }
             match many {
-                Value::Array(list) if !list.is_empty() && list.len() <= 25 => list.clone(),
-                _ => return Err(ToolError::value("items: a list of 1 to 25 edits.")),
+                Value::Array(list) if !list.is_empty() && list.len() <= 100 => list.clone(),
+                _ => return Err(ToolError::value("items: a list of 1 to 100 edits.")),
             }
         }
         None => {
@@ -115,53 +160,112 @@ async fn edit_page(given: Map<String, Value>) -> ToolResult {
             vec![Value::Object(one)]
         }
     };
-    let page = dispatch("docs_read", DOCS_READ_OPS, "get", json_map(json!({"page_id": page_id}))).await?;
-    no_unpublished_draft(&page_id, &page).await?;
-    let current = page["version"].as_i64().unwrap_or_default();
+    let session = common::async_session();
+    let page = docs_rich::load(&session, &page_id).await?;
+    no_unpublished_draft(&page_id, &page.detail).await?;
+    let current = page.version();
     let base_version = given_key(&given, "base_version").and_then(Value::as_i64);
-    let mut base: Option<String> = None;
+    // the page as the caller read it, when that was an older version
+    let mut base: Option<(String, Option<Value>)> = None;
     if let Some(base_version) = base_version.filter(|b| *b != current) {
         if base_version > current || base_version < 1 {
             return Err(ToolError::Value(format!("base_version {base_version}: the page is at v{current}.")));
         }
-        let old = dispatch(
-            "docs_read",
-            DOCS_READ_OPS,
-            "version",
-            json_map(json!({"page_id": page_id, "version": base_version})),
-        )
-        .await?;
-        base = old["markdown"].as_str().map(str::to_string);
+        let old = kb_docs::docs::get_version(&session, &page_id, base_version).await.map_err(docs_error)?;
+        let doc = old.get("content").filter(|c| c.is_object()).cloned();
+        let text = match &doc {
+            Some(doc) if page.doc.is_some() => kb_richdoc::doc_to_annotated(doc),
+            _ => old.get("markdown").and_then(Value::as_str).unwrap_or_default().to_string(),
+        };
+        base = Some((text, doc));
     }
-    let published = page["markdown"].as_str().unwrap_or_default().to_string();
+    let published = page.view();
     let mut text = published.clone();
+    let mut doc = page.doc.clone();
     let mut changed: Vec<String> = Vec::new();
     for (i, e) in edits.iter().enumerate() {
+        let wher = if many.is_some() { format!("items[{i}]: ") } else { String::new() };
         let Value::Object(e) = e else {
-            return Err(ToolError::Value(format!("items[{i}]: an object {{section | find, markdown, mode}}.")));
+            return Err(ToolError::Value(format!(
+                "items[{i}]: an object {{section | find | block_id, markdown, mode}}."
+            )));
         };
         let unknown: Vec<&str> = e.keys().map(String::as_str).filter(|k| !EDIT_KEYS.contains(k)).collect();
         if !unknown.is_empty() {
             return Err(ToolError::Value(format!("items[{i}] does not use: {}.", unknown.join(", "))));
         }
-        // a later edit in the same call works on the text the earlier ones made
-        text = docs_edit::apply(&text, &edit_of(e), if i == 0 { base.as_deref() } else { None }).map_err(|exc| {
-            let wher = if many.is_some() { format!("items[{i}]: ") } else { String::new() };
-            ToolError::Value(format!("{wher}{} Nothing was changed.", exc.0))
-        })?;
-        changed.push(if e.get("section").is_some_and(pyjson::truthy) {
-            format!("section '{}'", pyjson::py_str(&e["section"]))
-        } else if given_key(e, "find").is_some() {
-            "a passage".to_string()
+        let failed = |err: ToolError| match err {
+            ToolError::Value(m) => {
+                let stop = if m.ends_with('.') { "" } else { "." };
+                ToolError::Value(format!("{wher}{m}{stop} Nothing was changed."))
+            }
+            other => other,
+        };
+        if let Some(block_id) = given_key(e, "block_id").map(pyjson::py_str) {
+            if given_key(e, "section").is_some() || given_key(e, "find").is_some() {
+                return Err(failed(ToolError::value("Give block_id, section or find, not two of them.")));
+            }
+            let Some(now) = doc.as_ref() else {
+                return Err(failed(ToolError::value(
+                    "This page is not in the rich format, so it has no block ids: use section or find.",
+                )));
+            };
+            // a block changed since the version the caller read is not overwritten
+            if let Some((_, Some(then))) = &base {
+                let (was, is) = (docs_rich::find_block(then, &block_id), docs_rich::find_block(now, &block_id));
+                if let (Some(was), Some(is)) = (was, is) {
+                    if !docs_rich::same_doc(was, is) {
+                        let reads = docs_rich::block_view(is).unwrap_or_default();
+                        return Err(failed(ToolError::Value(format!(
+                            "conflict: block {block_id} was changed since the version you read. It now reads:\n\n\
+                             {reads}\n\nApply your change to this text and retry with the page's current version as \
+                             base_version."
+                        ))));
+                    }
+                }
+            }
+            let mode = given_text(e, "mode").filter(|m| !m.is_empty()).unwrap_or_else(|| "replace".into());
+            let markdown = given_text(e, "markdown");
+            let cells = given_text(e, "cells");
+            let new = docs_rich::block_edit(
+                now,
+                &block_id,
+                &mode,
+                markdown.as_deref(),
+                given_key(e, "attrs"),
+                cells.as_deref(),
+            )
+            .map_err(failed)?;
+            text = kb_richdoc::doc_to_annotated(&new);
+            doc = Some(new);
         } else {
-            "the end of the page".to_string()
-        });
+            if given_key(e, "attrs").is_some() || given_key(e, "cells").is_some() {
+                return Err(failed(ToolError::value("attrs and cells work with block_id and mode='attrs'.")));
+            }
+            // a later edit in the same call works on the text the earlier ones made
+            let base_text = if i == 0 { base.as_ref().map(|(t, _)| t.as_str()) } else { None };
+            let new_text = docs_edit::apply(&text, &edit_of(e), base_text)
+                .map_err(|exc| ToolError::Value(format!("{wher}{} Nothing was changed.", exc.0)))?;
+            if let Some(now) = doc.as_ref() {
+                let new = docs_rich::read_markdown(&new_text, Some(now)).map_err(failed)?;
+                docs_rich::check_placeholders_kept(&text, &new).map_err(failed)?;
+                text = kb_richdoc::doc_to_annotated(&new);
+                doc = Some(new);
+            } else {
+                text = new_text;
+            }
+        }
+        changed.push(changed_label(e));
     }
-    if text == published {
+    let same = match (&doc, &page.doc) {
+        (Some(new), Some(old)) => docs_rich::same_doc(new, old),
+        _ => text == published,
+    };
+    if same {
         return Ok(json!({
-            "id": page["id"],
-            "title": page["title"],
-            "version": page["version"],
+            "id": page.detail.get("id"),
+            "title": page.detail.get("title"),
+            "version": page.detail.get("version"),
             "published": false,
             "changed": [],
             "message": "The text is the same as the published page; nothing was changed.",
@@ -179,13 +283,33 @@ async fn edit_page(given: Map<String, Value>) -> ToolResult {
             format!("Edited {}", distinct.join(", "))
         }
     };
-    let mut update =
-        json_map(json!({"page_id": page_id, "markdown": text, "base_version": page["version"], "note": note}));
-    if let Some(publish) = given_key(&given, "publish") {
-        update.insert("publish".into(), publish.clone());
-    }
-    let out = run_write("update".to_string(), update).await?;
-    let Value::Object(mut out) = out else { return Ok(out) };
+    let publish = given_key(&given, "publish");
+    let mut out = match doc {
+        Some(doc) => {
+            let publish = publish.is_none_or(pyjson::truthy);
+            let page_id = page_id.clone();
+            let saved = common::notify_on_success(async move {
+                let session = common::async_session();
+                Ok(Value::Object(docs_rich::save(&session, &page_id, &doc, current, Some(&note), publish).await?))
+            })
+            .await?;
+            match saved {
+                Value::Object(out) => out,
+                _ => Map::new(),
+            }
+        }
+        None => {
+            let mut update =
+                json_map(json!({"page_id": page_id, "markdown": text, "base_version": current, "note": note}));
+            if let Some(publish) = publish {
+                update.insert("publish".into(), publish.clone());
+            }
+            match run_write("update".to_string(), update).await? {
+                Value::Object(out) => out,
+                other => return Ok(other),
+            }
+        }
+    };
     out.insert("changed".into(), json!(changed));
     let last = edits.last().and_then(Value::as_object).cloned().unwrap_or_default();
     if last.get("section").is_some_and(pyjson::truthy) && out.get("published").is_none_or(pyjson::truthy) {
@@ -220,9 +344,11 @@ async fn upload_file(given: Map<String, Value>) -> ToolResult {
         "path",
         "data",
         "name",
+        "alt",
         "page_id",
         "section",
         "find",
+        "block_id",
         "mode",
         "note",
         "base_version",
@@ -234,15 +360,17 @@ async fn upload_file(given: Map<String, Value>) -> ToolResult {
         given.iter().filter(|(k, v)| !v.is_null() && !allowed.contains(&k.as_str())).map(|(k, _)| k.as_str()).collect();
     if !extra.is_empty() {
         return Err(ToolError::Value(format!(
-            "docs_write(action='upload') does not use: {}. It takes path | data+name [, page_id, section, find, \
-             mode, ticket_id, body, author].",
+            "docs_write(action='upload') does not use: {}. It takes path | data+name [, alt, page_id, section, \
+             find, block_id, mode, ticket_id, body, author].",
             extra.join(", ")
         )));
     }
     let truthy = |key: &str| given.get(key).filter(|v| pyjson::truthy(v)).cloned();
     let (page_id, ticket_id) = (truthy("page_id"), truthy("ticket_id"));
-    if page_id.is_none() && ["section", "find", "mode"].iter().any(|k| given_key(&given, k).is_some()) {
-        return Err(ToolError::value("upload: section, find and mode place the file on a page: give page_id."));
+    if page_id.is_none() && ["section", "find", "block_id", "mode"].iter().any(|k| given_key(&given, k).is_some()) {
+        return Err(ToolError::value(
+            "upload: section, find, block_id and mode place the file on a page: give page_id.",
+        ));
     }
     if ticket_id.is_none() && given_key(&given, "body").is_some() {
         return Err(ToolError::value("upload: body is the comment's text on a ticket: give ticket_id."));
@@ -251,18 +379,39 @@ async fn upload_file(given: Map<String, Value>) -> ToolResult {
         .iter()
         .map(|k| (k.to_string(), given.get(*k).cloned().unwrap_or(Value::Null)))
         .collect();
-    let stored = run_write("upload".to_string(), just).await?;
+    let mut stored = run_write("upload".to_string(), just).await?;
+    // a picture says what it shows (the guide's rule): `alt` replaces the file name the Markdown starts with
+    if let Some(alt) = truthy("alt").map(|a| pyjson::py_str(&a).replace(['[', ']', '\n'], " ")) {
+        let md = pyjson::py_str(&stored["markdown"]);
+        if let Some(rest) = md.strip_prefix("![").and_then(|r| r.split_once("](")).map(|(_, url)| url.to_string()) {
+            stored["markdown"] = json!(format!("![{}]({rest}", alt.trim()));
+        }
+    }
     let mut out = stored.as_object().cloned().unwrap_or_default();
+    // where the server keeps its files says nothing an agent can use (a warning about it stays)
+    out.remove("stored_in");
     if let Some(page_id) = page_id {
         let by_text = given_key(&given, "find").is_some();
-        // by default the file goes at the end of the page or of the section, or in a paragraph of its own after `find`
+        let by_block = given_key(&given, "block_id").is_some();
+        // by default the file goes at the end of the page or of the section, in a paragraph of its own after `find`,
+        // or in a block of its own after `block_id`
         let mode = match truthy("mode") {
             Some(mode) => pyjson::py_str(&mode),
-            None => (if by_text { "after" } else { "append" }).to_string(),
+            None => (if by_text || by_block { "after" } else { "append" }).to_string(),
         };
         let mut snippet = pyjson::py_str(&stored["markdown"]);
+        let mut find = given.get("find").cloned().unwrap_or(Value::Null);
         if by_text && (mode == "before" || mode == "after") {
             snippet = if mode == "before" { format!("{snippet}\n\n") } else { format!("\n\n{snippet}") };
+            // the file goes next to the whole block that holds the passage, not into its line (a canvas reference
+            // `![Name](canvas:cv_…)` is one line: splitting it would break it)
+            let session = common::async_session();
+            if let Ok(page) = docs_rich::load(&session, &pyjson::py_str(&page_id)).await {
+                let view = page.view();
+                if let Some(block) = docs_edit::block_around(&view, &pyjson::py_str(&find)) {
+                    find = json!(block);
+                }
+            }
         }
         let note = match truthy("note") {
             Some(note) => pyjson::py_str(&note),
@@ -272,7 +421,8 @@ async fn upload_file(given: Map<String, Value>) -> ToolResult {
             "page_id": page_id,
             "markdown": snippet,
             "section": given.get("section").cloned().unwrap_or(Value::Null),
-            "find": given.get("find").cloned().unwrap_or(Value::Null),
+            "find": find,
+            "block_id": given.get("block_id").cloned().unwrap_or(Value::Null),
             "mode": mode,
             "note": note,
             "base_version": given.get("base_version").cloned().unwrap_or(Value::Null),
@@ -325,6 +475,10 @@ async fn tickets_of_page(given: Map<String, Value>) -> ToolResult {
     };
     let page = dispatch("docs_read", DOCS_READ_OPS, "get", json_map(json!({"page_id": page_id}))).await?;
     let markdown = page["markdown"].as_str().unwrap_or_default().to_string();
+    // the answer of get no longer names the project: read it from the page
+    let session = common::async_session();
+    let project_id =
+        docs_rich::load(&session, &page_id).await?.detail.get("project_id").cloned().unwrap_or(Value::Null);
     let drafts_given = given_key(&given, "items").cloned();
     let mut lines: Vec<Option<String>> = Vec::new();
     let mut skipped: Vec<Value> = Vec::new();
@@ -404,7 +558,7 @@ async fn tickets_of_page(given: Map<String, Value>) -> ToolResult {
         let heading: String = pytext::strip(&pyjson::py_str(&d["title"])).chars().take(200).collect();
         let mut args = json_map(json!({
             "action": "create",
-            "project_id": page["project_id"],
+            "project_id": project_id,
             "title": heading,
             "description": description,
             "type": d.get("type").filter(|v| pyjson::truthy(v)).cloned().unwrap_or(json!("task")),
@@ -451,6 +605,11 @@ async fn tickets_of_page(given: Map<String, Value>) -> ToolResult {
     Ok(Value::Object(out))
 }
 
+/// The refusal of `assign` for a member that is no AI team of the project, and where to find one.
+const NO_TEAM: &str = "Pick an AI team of this project.";
+const NO_TEAM_HINT: &str = "member_id is an AI team's member id (get_projects with project_id lists the members); a person adds a team in \
+     the app (AI Team).";
+
 /// `docs_write(assign)`: a ticket that gives the page to an AI team to write or review; its lead starts on it.
 pub fn assign(given: Map<String, Value>) -> futures::future::BoxFuture<'static, ToolResult> {
     Box::pin(assign_page(given))
@@ -482,6 +641,8 @@ async fn assign_page(given: Map<String, Value>) -> ToolResult {
     .await
     .map_err(|err| match err {
         // `str(exc)`: a DocsError is its message
+        kb_docs::Error::Value(m) if m == NO_TEAM => ToolError::Value(format!("{m} {NO_TEAM_HINT}")),
+        kb_docs::Error::Docs(exc) if exc.message == NO_TEAM => ToolError::Value(format!("{NO_TEAM} {NO_TEAM_HINT}")),
         kb_docs::Error::Docs(exc) => ToolError::Value(exc.message),
         other => docs_error(other),
     })?;

@@ -205,7 +205,7 @@ async fn post_project_answers_the_same() {
         dump["project"],
         json!([{"id": "<uuid:1>", "name": "My Project", "prefix": "MYP1", "color": "#ff0000", "ticket_counter": 0,
             "repo_path": null, "worktree_template": null, "worktree_by_default": 0, "docs_enabled": 1,
-            "docs_edit_policy": "members"}])
+            "docs_edit_policy": "members", "docs_settings": null}])
     );
     assert_eq!(
         dump["member"],

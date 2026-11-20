@@ -821,6 +821,186 @@ fn edge_point(box4: Box4, toward: Point) -> Point {
     (cx + dx * scale, cy + dy * scale)
 }
 
+/// Whether a style is a swimlane (a lane or pool with a header band and a body).
+fn is_swimlane(style: &str) -> bool {
+    style_keys(style).contains(&"swimlane") || style_get(style, "shape") == Some("swimlane")
+}
+
+/// The header band of a swimlane and its label: `startSize` thick (23 when not given), along the top, or down the
+/// left side with the label turned upwards when the style says `horizontal=0`.
+fn lane_header(style: &str, label: &str, (x, y, w, h): Box4, fill: &str, stroke: &str) -> String {
+    let vertical = style_get(style, "horizontal") == Some("0");
+    let along = if vertical { h } else { w };
+    let start = style_get(style, "startSize").and_then(|v| py_float(v).ok()).unwrap_or(23.0).clamp(0.0, along);
+    let (hx, hy, hw, hh) = if vertical { (x, y, start.min(w), h) } else { (x, y, w, start.min(h)) };
+    let mut out = format!(
+        "<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"1.5\"/>",
+        f1(hx),
+        f1(hy),
+        f1(hw),
+        f1(hh),
+        esc(fill),
+        esc(stroke)
+    );
+    if label.is_empty() {
+        return out;
+    }
+    let size = style_get(style, "fontSize").map_or(Ok(12.0), py_float).unwrap_or(12.0);
+    let color = style_get(style, "fontColor").unwrap_or("#000000");
+    let bold = style_get(style, "fontStyle").and_then(|v| v.parse::<u32>().ok()).is_some_and(|v| v & 1 == 1);
+    let (cx, cy) = (hx + hw / 2.0, hy + hh / 2.0);
+    let lines = wrap(label, (if vertical { hh } else { hw }) - 10.0, size);
+    let first = cy - (lines.len() as f64 - 1.0) * size * 0.6 + size * 0.35;
+    let spans: String = lines
+        .iter()
+        .enumerate()
+        .map(|(i, line)| {
+            format!("<tspan x=\"{}\" y=\"{}\">{}</tspan>", f1(cx), f1(first + i as f64 * size * 1.2), esc(line))
+        })
+        .collect();
+    let turn = if vertical { format!(" transform=\"rotate(-90 {} {})\"", f1(cx), f1(cy)) } else { String::new() };
+    let weight = if bold { " font-weight=\"bold\"" } else { "" };
+    out.push_str(&format!(
+        "<text text-anchor=\"middle\" font-size=\"{}\" fill=\"{}\"{weight}{turn}>{spans}</text>",
+        fmt_g(size),
+        esc(color)
+    ));
+    out
+}
+
+/// Where a link leaves or enters a shape and which way it heads out of it.
+#[derive(Debug, Clone, Copy)]
+pub struct Port {
+    /// The point on (or beside) the shape.
+    pub at: Point,
+    /// Unit step away from the shape: `(0, 1)` down, `(-1, 0)` left, ...
+    pub out: Point,
+}
+
+/// The fixed point a link style asks for on a shape (`prefix` is `exit` or `entry`): `<prefix>X` / `<prefix>Y` are
+/// fractions of the shape's box, `<prefix>Dx` / `<prefix>Dy` offsets in pixels, and `<prefix>Perimeter` (on unless
+/// `0`) pushes the point onto the outline of an ellipse or a diamond. `None` when the style names no point.
+pub fn port(style: &str, prefix: &str, b: Box4, shape: &str) -> Option<Port> {
+    let get = |suffix: &str| style_get(style, &format!("{prefix}{suffix}")).and_then(|v| py_float(v).ok());
+    let (fx, fy) = (get("X"), get("Y"));
+    if fx.is_none() && fy.is_none() {
+        return None;
+    }
+    let (fx, fy) = (fx.unwrap_or(0.5), fy.unwrap_or(0.5));
+    let mut at = (b.0 + fx * b.2 + get("Dx").unwrap_or(0.0), b.1 + fy * b.3 + get("Dy").unwrap_or(0.0));
+    if matches!(shape, "ellipse" | "diamond") && style_get(style, &format!("{prefix}Perimeter")) != Some("0") {
+        at = edge_point(b, at);
+    }
+    // the nearest side of the box tells which way the link heads out
+    let gaps = [(1.0 - fx, (1.0, 0.0)), (fx, (-1.0, 0.0)), (1.0 - fy, (0.0, 1.0)), (fy, (0.0, -1.0))];
+    let out = gaps.iter().fold(gaps[0], |best, g| if g.0 < best.0 - 1e-9 { *g } else { best }).1;
+    Some(Port { at, out })
+}
+
+/// The side of a box that faces `toward`, at its middle (what an editor does for a link with no fixed point).
+fn facing(b: Box4, toward: Point) -> Port {
+    let (cx, cy) = (b.0 + b.2 / 2.0, b.1 + b.3 / 2.0);
+    let (dx, dy) = (toward.0 - cx, toward.1 - cy);
+    if dy.abs() >= dx.abs() {
+        let down = dy >= 0.0;
+        Port { at: (cx, if down { b.1 + b.3 } else { b.1 }), out: (0.0, if down { 1.0 } else { -1.0 }) }
+    } else {
+        let right = dx > 0.0;
+        Port { at: (if right { b.0 + b.2 } else { b.0 }, cy), out: (if right { 1.0 } else { -1.0 }, 0.0) }
+    }
+}
+
+/// How far a link runs straight out of a shape before it may turn when the two ports do not face each other.
+const STUB: f64 = 20.0;
+
+/// An orthogonal path from `s` (leaving along `ds`) to `e` (arriving against `de`), starting vertically.
+fn elbow_vertical(s: Point, ds: Point, e: Point, de: Point) -> Vec<Point> {
+    let (s1, e1) = ((s.0 + ds.0 * STUB, s.1 + ds.1 * STUB), (e.0 + de.0 * STUB, e.1 + de.1 * STUB));
+    if de.1 != 0.0 {
+        let facing = ds.1 * (e.1 - s.1) > 0.0 && de.1 * (s.1 - e.1) > 0.0;
+        if facing {
+            if (s.0 - e.0).abs() < 0.5 {
+                return vec![s, e];
+            }
+            let mid = (s.1 + e.1) / 2.0;
+            return vec![s, (s.0, mid), (e.0, mid), e];
+        }
+        if ds == de {
+            let y = if ds.1 > 0.0 { s.1.max(e.1) + STUB } else { s.1.min(e.1) - STUB };
+            return vec![s, (s.0, y), (e.0, y), e];
+        }
+        let xm = if (s.0 - e.0).abs() > 0.5 { (s.0 + e.0) / 2.0 } else { s.0 + 2.0 * STUB };
+        return vec![s, s1, (xm, s1.1), (xm, e1.1), e1, e];
+    }
+    if ds.1 * (e.1 - s.1) > 0.0 && de.0 * (s.0 - e.0) > 0.0 {
+        return vec![s, (s.0, e.1), e];
+    }
+    vec![s, s1, (s1.0, e1.1), e1, e]
+}
+
+/// An orthogonal path between two ports with no bends in between.
+fn elbow(s: Port, e: Port) -> Vec<Point> {
+    let swap = |p: Point| (p.1, p.0);
+    let mut path = if s.out.1 != 0.0 {
+        elbow_vertical(s.at, s.out, e.at, e.out)
+    } else {
+        elbow_vertical(swap(s.at), swap(s.out), swap(e.at), swap(e.out)).into_iter().map(swap).collect()
+    };
+    path.dedup_by(|a, b| (a.0 - b.0).abs() < 0.01 && (a.1 - b.1).abs() < 0.01);
+    path
+}
+
+/// `route`, with the fixed points a link style names (`sp` at the source, `tp` at the target). Without any it is
+/// exactly `route`. A link leaves and enters along the side its fixed point is on; with waypoints, the segments next
+/// to a fixed point run out of it first.
+pub fn route_ports(
+    a: Box4,
+    b: Box4,
+    bends: &[Point],
+    orthogonal: bool,
+    sp: Option<Port>,
+    tp: Option<Port>,
+    clip: &dyn Fn(Box4, Point) -> Point,
+) -> Vec<Point> {
+    if sp.is_none() && tp.is_none() {
+        return route(a, b, bends, orthogonal, clip);
+    }
+    let ca = (a.0 + a.2 / 2.0, a.1 + a.3 / 2.0);
+    let cb = (b.0 + b.2 / 2.0, b.1 + b.3 / 2.0);
+    if bends.is_empty() && orthogonal {
+        let s = sp.unwrap_or_else(|| facing(a, tp.map_or(cb, |t| t.at)));
+        let e = tp.unwrap_or_else(|| facing(b, sp.map_or(ca, |p| p.at)));
+        return elbow(s, e);
+    }
+    let first = bends.first().copied();
+    let last = bends.last().copied();
+    let start = sp.map_or_else(|| clip(a, first.or(tp.map(|t| t.at)).unwrap_or(cb)), |p| p.at);
+    let end = tp.map_or_else(|| clip(b, last.or(sp.map(|p| p.at)).unwrap_or(ca)), |p| p.at);
+    let mut path = vec![start];
+    path.extend_from_slice(bends);
+    path.push(end);
+    if !orthogonal {
+        return path;
+    }
+    let mut out = vec![path[0]];
+    let count = path.len();
+    for (i, p) in path.iter().enumerate().skip(1) {
+        let q = out[out.len() - 1];
+        if (p.0 - q.0).abs() > 0.5 && (p.1 - q.1).abs() > 0.5 {
+            // the first segment leaves a fixed point along its side, the last one arrives along its own
+            let vertical_first = i == 1 && sp.is_some_and(|s| s.out.1 != 0.0);
+            let horizontal_last = i == count - 1 && tp.is_some_and(|t| t.out.0 != 0.0);
+            if vertical_first || horizontal_last {
+                out.push((q.0, p.1));
+            } else {
+                out.push((p.0, q.1));
+            }
+        }
+        out.push(*p);
+    }
+    out
+}
+
 /// An insertion-ordered map where a later key replaces the value of an earlier one (a Python dict).
 struct Ordered<V>(Vec<(String, V)>);
 
@@ -889,15 +1069,27 @@ pub fn render_svg(source: &str) -> Result<String, Error> {
         xe = boxes.values().map(|b| b.0 + b.2).collect();
         ye = boxes.values().map(|b| b.1 + b.3).collect();
     }
-    // a link's own bends (waypoints) count too, so a loop drawn around the outside is not cut off
-    let mut bends: Ordered<Vec<Point>> = Ordered::new();
+    // every link is routed first: its bends and stubs count for the size of the picture, so a loop drawn around the
+    // outside is not cut off
+    let mut routes: Vec<(&Element, Vec<Point>)> = Vec::new();
     for e in &elements {
         let c = d.cell(e);
-        if c.get("edge") == Some("1") {
-            bends.set(e.get("id").unwrap_or("").to_string(), waypoints(c));
+        if c.get("edge") != Some("1") {
+            continue;
         }
+        let (Some(a), Some(b)) = (boxes.get(c.get("source").unwrap_or("")), boxes.get(c.get("target").unwrap_or("")))
+        else {
+            continue;
+        };
+        let style = c.get("style").unwrap_or("");
+        let style_of = |id: &str| d.find(id).map_or("", |el| d.cell(el).get("style").unwrap_or(""));
+        let sp = port(style, "exit", *a, shape_of(style_of(c.get("source").unwrap_or(""))));
+        let tp = port(style, "entry", *b, shape_of(style_of(c.get("target").unwrap_or(""))));
+        let orthogonal = matches!(style_get(style, "edgeStyle"), Some("orthogonalEdgeStyle" | "elbowEdgeStyle"));
+        let path = route_ports(*a, *b, &waypoints(c), orthogonal, sp, tp, &edge_point);
+        routes.push((e, path));
     }
-    for pts in bends.values() {
+    for (_, pts) in &routes {
         xs.extend(pts.iter().map(|p| p.0));
         ys.extend(pts.iter().map(|p| p.1));
         xe.extend(pts.iter().map(|p| p.0));
@@ -909,24 +1101,9 @@ pub fn render_svg(source: &str) -> Result<String, Error> {
     let (ox, oy) = (min(&xs) - pad, min(&ys) - pad);
     let (width, height) = (max(&xe) - min(&xs) + 2.0 * pad, max(&ye) - min(&ys) + 2.0 * pad);
 
-    for e in &elements {
+    for (e, path) in &routes {
         let c = d.cell(e);
-        if c.get("edge") != Some("1") {
-            continue;
-        }
-        let (Some(a), Some(b)) = (boxes.get(c.get("source").unwrap_or("")), boxes.get(c.get("target").unwrap_or("")))
-        else {
-            continue;
-        };
         let style = c.get("style").unwrap_or("");
-        let no_bends: Vec<Point> = Vec::new();
-        let path = route(
-            *a,
-            *b,
-            bends.get(e.get("id").unwrap_or("")).unwrap_or(&no_bends),
-            style_get(style, "edgeStyle") == Some("orthogonalEdgeStyle"),
-            &edge_point,
-        );
         let color = style_get(style, "strokeColor").unwrap_or("#333333");
         let pts: Vec<String> = path.iter().map(|(x, y)| format!("{},{}", f1(x - ox), f1(y - oy))).collect();
         edge_parts.push(format!(
@@ -964,7 +1141,13 @@ pub fn render_svg(source: &str) -> Result<String, Error> {
         let shape = shape_of(style);
         let fill = style_get(style, "fillColor").unwrap_or("#ffffff");
         let stroke = style_get(style, "strokeColor").unwrap_or("#333333");
+        let lane = is_swimlane(style);
         let mut attrs = format!("fill=\"{}\" stroke=\"{}\" stroke-width=\"1.5\"", esc(fill), esc(stroke));
+        if lane {
+            // a lane's own fill is its header's; the body keeps `swimlaneFillColor`, else shows what is behind it
+            let body = style_get(style, "swimlaneFillColor").unwrap_or("none");
+            attrs = format!("fill=\"{}\" stroke=\"{}\" stroke-width=\"1.5\"", esc(body), esc(stroke));
+        }
         if shape == "text" {
             attrs = "fill=\"none\" stroke=\"none\"".to_string();
         }
@@ -1022,6 +1205,10 @@ pub fn render_svg(source: &str) -> Result<String, Error> {
             }
         }
         let label = Drawing::label_of(e);
+        if lane {
+            parts.push(lane_header(style, &label, (x, y, w, h), fill, stroke));
+            continue;
+        }
         if !label.is_empty() {
             let size = style_get(style, "fontSize").map_or(Ok(12.0), py_float).unwrap_or(12.0);
             let color = style_get(style, "fontColor").unwrap_or("#000000");

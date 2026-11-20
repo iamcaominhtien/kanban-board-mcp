@@ -26,6 +26,9 @@ pub struct Model {
     pub created_at: String,
     pub resolved_by: Option<String>,
     pub resolved_at: Option<String>,
+    /// Id of the rich-format block the thread is anchored to; None for a Markdown page
+    #[serde(default)]
+    pub anchor_block_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -51,5 +54,6 @@ pub fn new() -> ActiveModel {
         created_at: Set(kb_base::time::now_iso()),
         resolved_by: Set(None),
         resolved_at: Set(None),
+        anchor_block_id: Set(None),
     }
 }

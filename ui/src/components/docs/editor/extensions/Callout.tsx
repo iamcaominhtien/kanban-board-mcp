@@ -1,9 +1,8 @@
 import { Node, mergeAttributes, wrappingInputRule } from '@tiptap/core';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
-import { useEffect, useRef, useState } from 'react';
-import { Icon } from '../../Icon';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import { CalloutView } from '../blocks/CalloutView';
 import { CALLOUT_ALIASES, CALLOUT_STYLE, type CalloutKind } from '../constants';
 
 declare module '@tiptap/core' {
@@ -14,114 +13,6 @@ declare module '@tiptap/core' {
       setCalloutKind: (kind: CalloutKind) => ReturnType;
     };
   }
-}
-
-const KINDS: CalloutKind[] = ['info', 'warning', 'success'];
-
-function CalloutView({ node, decorations, updateAttributes }: NodeViewProps) {
-  const kind = (node.attrs.kind as CalloutKind) ?? 'info';
-  const s = CALLOUT_STYLE[kind];
-  const focused = decorations.some((d) =>
-    (d.type as unknown as { attrs?: { class?: string } }).attrs?.class?.includes('is-focused'),
-  );
-  const [open, setOpen] = useState(false);
-  const [hover, setHover] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Element)) setOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
-
-  return (
-    <NodeViewWrapper
-      className="dk-callout-wrap"
-      data-callout={kind}
-      style={{ position: 'relative', margin: '0 0 14px' }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      {(focused || open || hover) && (
-        <div ref={ref} contentEditable={false} style={{ position: 'absolute', right: 12, top: -14, zIndex: 2 }}>
-          <button
-            type="button"
-            aria-label="Callout type"
-            data-testid="callout-type"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setOpen((o) => !o)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              height: 22,
-              padding: '0 7px',
-              borderRadius: 5,
-              background: '#1E2A22',
-              color: '#EEF3EF',
-              fontSize: 11,
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            <Icon name={s.icon} size={12} /> {s.label}
-            <Icon name="chevronDown" size={10} />
-          </button>
-          {open && (
-            <div className="dk-menu" style={{ position: 'absolute', right: 0, top: 26, width: 170, zIndex: 4 }}>
-              {KINDS.map((k) => (
-                <div
-                  key={k}
-                  role="menuitem"
-                  className={`dk-mi${k === kind ? ' dk-mi-on' : ''}`}
-                  style={{ gap: 9, padding: '6px 10px' }}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    updateAttributes({ kind: k });
-                    setOpen(false);
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 3,
-                      background: CALLOUT_STYLE[k].bg,
-                      border: `1px solid ${CALLOUT_STYLE[k].border}`,
-                    }}
-                  />
-                  <span>{CALLOUT_STYLE[k].label}</span>
-                  {k === kind && (
-                    <span style={{ marginLeft: 'auto', color: '#2E6F40', display: 'flex' }}>
-                      <Icon name="i10" size={14} />
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      <div
-        className="dk-callout"
-        style={{
-          background: s.bg,
-          border: focused ? `1.5px solid ${s.fg}` : `1px solid ${s.border}`,
-          boxShadow: focused ? `0 0 0 3px ${s.fg}26` : undefined,
-          margin: 0,
-        }}
-      >
-        <span contentEditable={false} style={{ color: s.fg, marginTop: 2, display: 'flex' }}>
-          <Icon name={s.icon} size={17} />
-        </span>
-        <NodeViewContent style={{ flex: 1, minWidth: 0 }} />
-      </div>
-    </NodeViewWrapper>
-  );
 }
 
 const focusKey = new PluginKey('calloutFocus');
@@ -268,6 +159,8 @@ export const Callout = Node.create({
     const kind = (node.attrs?.kind as CalloutKind) ?? 'info';
     const body = h.renderChildren(node.content ?? [], '\n\n');
     const lines = body.split('\n').map((l) => (l ? `> ${l}` : '>'));
-    return [`> [!${CALLOUT_STYLE[kind]?.marker ?? 'INFO'}]`, ...lines].join('\n');
+    // a title (format 1) goes on the marker line: read back, it is the first line of the body (today's rule)
+    const title = typeof node.attrs?.title === 'string' ? node.attrs.title.replace(/\s+/g, ' ').trim() : '';
+    return [`> [!${CALLOUT_STYLE[kind]?.marker ?? 'INFO'}]${title ? ` ${title}` : ''}`, ...lines].join('\n');
   },
 });

@@ -1,0 +1,311 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "underline"
+            }
+          ],
+          "text": "Under"
+        },
+        {
+          "type": "text",
+          "text": " and x"
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "superscript"
+            }
+          ],
+          "text": "2"
+        },
+        {
+          "type": "text",
+          "text": " and H"
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "subscript"
+            }
+          ],
+          "text": "2"
+        },
+        {
+          "type": "text",
+          "text": "O."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "textStyle",
+              "attrs": {
+                "color": "red"
+              }
+            }
+          ],
+          "text": "Red"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "textStyle",
+              "attrs": {
+                "color": "#1f5a8e"
+              }
+            }
+          ],
+          "text": "custom"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "textStyle",
+              "attrs": {
+                "fontFamily": "lora",
+                "fontSize": 18
+              }
+            }
+          ],
+          "text": "Lora 18"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "bold"
+            },
+            {
+              "type": "underline"
+            },
+            {
+              "type": "textStyle",
+              "attrs": {
+                "color": "teal",
+                "fontFamily": "caveat",
+                "fontSize": 24
+              }
+            }
+          ],
+          "text": "all of them"
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000003"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight"
+            }
+          ],
+          "text": "yellow"
+        },
+        {
+          "type": "text",
+          "text": " then "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight",
+              "attrs": {
+                "color": "pink"
+              }
+            }
+          ],
+          "text": "pink"
+        },
+        {
+          "type": "text",
+          "text": " then "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight",
+              "attrs": {
+                "color": "#ffe9a8"
+              }
+            }
+          ],
+          "text": "hex"
+        },
+        {
+          "type": "text",
+          "text": " then "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "bold"
+            },
+            {
+              "type": "highlight",
+              "attrs": {
+                "color": "lime"
+              }
+            }
+          ],
+          "text": "bold mark"
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000004"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Coloured "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "https://example.com"
+              }
+            },
+            {
+              "type": "textStyle",
+              "attrs": {
+                "color": "violet"
+              }
+            }
+          ],
+          "text": "link"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "italic"
+            },
+            {
+              "type": "underline"
+            }
+          ],
+          "text": "italic under"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "strike"
+            },
+            {
+              "type": "subscript"
+            }
+          ],
+          "text": "struck sub"
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000005"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Adjacent "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight",
+              "attrs": {
+                "color": "pink"
+              }
+            }
+          ],
+          "text": "pink"
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight",
+              "attrs": {
+                "color": "blue"
+              }
+            }
+          ],
+          "text": "blue"
+        },
+        {
+          "type": "text",
+          "text": " highlights."
+        }
+      ]
+    }
+  ]
+}

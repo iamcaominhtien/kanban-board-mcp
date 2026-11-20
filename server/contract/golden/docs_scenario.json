@@ -37,7 +37,10 @@
       "base_version": 0,
       "updated_at": "<time>",
       "saves": 1,
-      "ai_source": null
+      "ai_source": null,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"draft with \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Spec\"}}]}]}",
+      "text": "draft with Spec"
     },
     {
       "id": "<id>",
@@ -48,31 +51,41 @@
       "base_version": 2,
       "updated_at": "<time>",
       "saves": 1,
-      "ai_source": null
+      "ai_source": null,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"mia's draft\"}]}]}",
+      "text": "mia's draft"
     },
     {
       "id": "<id>",
       "page_id": "<page:roadmap-copy>",
       "author": "user",
       "title": "Roadmap (copy)",
-      "markdown": "## Aims\nship\n## Risks\nnone",
+      "markdown": "## Aims\n\nship\n\n## Risks\n\nnone",
       "base_version": 0,
       "updated_at": "<time>",
       "saves": 1,
-      "ai_source": null
+      "ai_source": null,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Aims\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"ship\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Risks\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"none\"}]}]}",
+      "text": "Aims\nship\nRisks\nnone"
     },
     {
       "id": "<id>",
       "page_id": "<page:spec-2>",
       "author": "user",
       "title": "Spec",
-      "markdown": "## Design\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]",
+      "markdown": "## Design\n\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]",
       "base_version": 0,
       "updated_at": "<time>",
       "saves": 1,
-      "ai_source": null
+      "ai_source": null,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Design\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"see \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Roadmap\",\"section\":\"Goals\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"docRef\",\"attrs\":{\"label\":\"risks\",\"page\":\"Roadmap\",\"section\":\"Risks\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"ticketRef\",\"attrs\":{\"key\":\"KAN-1\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Ghost\"}}]}]}",
+      "text": "Design\nsee Roadmap › Goals and risks and KAN-1 and Ghost"
     }
   ],
+  "docs_export": [],
   "docs_fts": [
     {
       "page_id": "<page:notes-2>",
@@ -86,30 +99,31 @@
       "project_id": "<project>",
       "title": "Plan",
       "headings": "Goals\nRisks",
-      "body": "## Goals\nship\n## Risks\nnone"
+      "body": "## Goals\n\nship\n\n## Risks\n\nnone"
     },
     {
       "page_id": "<page:roadmap-copy>",
       "project_id": "<project>",
       "title": "Roadmap (copy)",
       "headings": "Aims\nRisks",
-      "body": "## Aims\nship\n## Risks\nnone"
+      "body": "## Aims\n\nship\n\n## Risks\n\nnone"
     },
     {
       "page_id": "<page:spec-2>",
       "project_id": "<project>",
       "title": "Spec",
       "headings": "Design",
-      "body": "## Design\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]"
+      "body": "## Design\n\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]"
     },
     {
       "page_id": "<page:spec>",
       "project_id": "<project>",
       "title": "Spec",
       "headings": "Design",
-      "body": "## Design\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]"
+      "body": "## Design\n\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]"
     }
   ],
+  "docs_highlight": [],
   "docs_link": [
     {
       "id": "<id>",
@@ -121,7 +135,9 @@
       "target_ticket_id": null,
       "display_text": null,
       "snippet": "see Roadmap and risks and KAN-1 and Ghost",
-      "origin": "page"
+      "origin": "page",
+      "source_block_id": "<bid>",
+      "target_block_id": null
     },
     {
       "id": "<id>",
@@ -133,7 +149,9 @@
       "target_ticket_id": null,
       "display_text": null,
       "snippet": "see Roadmap and risks and KAN-1 and Ghost",
-      "origin": "page"
+      "origin": "page",
+      "source_block_id": "<bid>",
+      "target_block_id": null
     },
     {
       "id": "<id>",
@@ -145,7 +163,9 @@
       "target_ticket_id": null,
       "display_text": "risks",
       "snippet": "see Roadmap and risks and KAN-1 and Ghost",
-      "origin": "page"
+      "origin": "page",
+      "source_block_id": "<bid>",
+      "target_block_id": null
     },
     {
       "id": "<id>",
@@ -157,7 +177,9 @@
       "target_ticket_id": "KAN-1",
       "display_text": null,
       "snippet": "see Roadmap and risks and KAN-1 and Ghost",
-      "origin": "page"
+      "origin": "page",
+      "source_block_id": "<bid>",
+      "target_block_id": null
     }
   ],
   "docs_page": [
@@ -177,7 +199,10 @@
       "deleted_at": "<time>",
       "deleted_by": "user",
       "deleted_root_id": "<page:archive>",
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:notes-2>",
@@ -195,7 +220,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:plan>",
@@ -213,7 +241,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:roadmap-copy>",
@@ -231,7 +262,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:spec-2>",
@@ -249,7 +283,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:spec>",
@@ -267,7 +304,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     }
   ],
   "docs_page_seen": [
@@ -279,6 +319,9 @@
       "seen_at": "<time>"
     }
   ],
+  "docs_public_link": [],
+  "docs_suggestion": [],
+  "docs_template": [],
   "docs_title_aliases": [
     {
       "id": "<id>",
@@ -297,67 +340,85 @@
       "note": null,
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"old\"}]}]}",
+      "text": "old"
     },
     {
       "id": "<id>",
       "page_id": "<page:plan>",
       "version": 1,
       "title": "Plan",
-      "markdown": "## Goals\nship\n## Risks\nnone",
+      "markdown": "## Goals\n\nship\n\n## Risks\n\nnone",
       "author": "user",
       "note": "first",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Goals\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"ship\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Risks\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"none\"}]}]}",
+      "text": "Goals\nship\nRisks\nnone"
     },
     {
       "id": "<id>",
       "page_id": "<page:plan>",
       "version": 2,
       "title": "Plan",
-      "markdown": "## Aims\nship\n## Risks\nnone",
+      "markdown": "## Aims\n\nship\n\n## Risks\n\nnone",
       "author": "user",
       "note": "renamed a heading",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Aims\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"ship\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Risks\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"none\"}]}]}",
+      "text": "Aims\nship\nRisks\nnone"
     },
     {
       "id": "<id>",
       "page_id": "<page:plan>",
       "version": 3,
       "title": "Plan",
-      "markdown": "## Goals\nship\n## Risks\nnone",
+      "markdown": "## Goals\n\nship\n\n## Risks\n\nnone",
       "author": "user",
       "note": "Restored from v1",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Goals\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"ship\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Risks\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"none\"}]}]}",
+      "text": "Goals\nship\nRisks\nnone"
     },
     {
       "id": "<id>",
       "page_id": "<page:spec>",
       "version": 1,
       "title": "Spec",
-      "markdown": "## Design\nsee [[Plan#Goals]] and [[Plan#Risks|risks]] and KAN-1 and [[Ghost]]",
+      "markdown": "## Design\n\nsee [[Plan#Goals]] and [[Plan#Risks|risks]] and KAN-1 and [[Ghost]]",
       "author": "user",
       "note": null,
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Design\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"see \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Plan\",\"section\":\"Goals\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"docRef\",\"attrs\":{\"label\":\"risks\",\"page\":\"Plan\",\"section\":\"Risks\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"ticketRef\",\"attrs\":{\"key\":\"KAN-1\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Ghost\"}}]}]}",
+      "text": "Design\nsee Plan › Goals and risks and KAN-1 and Ghost"
     },
     {
       "id": "<id>",
       "page_id": "<page:spec>",
       "version": 2,
       "title": "Spec",
-      "markdown": "## Design\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]",
+      "markdown": "## Design\n\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]",
       "author": "user",
       "note": "Link to \"Roadmap\" updated",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Design\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"see \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Roadmap\",\"section\":\"Goals\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"docRef\",\"attrs\":{\"label\":\"risks\",\"page\":\"Roadmap\",\"section\":\"Risks\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"ticketRef\",\"attrs\":{\"key\":\"KAN-1\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Ghost\"}}]}]}",
+      "text": "Design\nsee Roadmap › Goals and risks and KAN-1 and Ghost"
     }
   ]
 }

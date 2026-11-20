@@ -6,6 +6,11 @@
 //!
 //! Safety: a passage edit names the exact text it replaces, so it fails when that text changed. A section edit made
 //! from an older `base_version` goes on only when that section still reads as it did in that version.
+//!
+//! The same functions work on the annotated Markdown of a rich page (`server/contract/richdoc/README.md`), where a
+//! marker line (`<!-- #b-3f2a9c -->`) stands before every block: a heading's marker belongs to its section, and the
+//! markers before the next heading are not part of the section before it, so a section edit keeps the ids of the
+//! blocks around it.
 
 use std::collections::HashMap;
 
@@ -45,8 +50,56 @@ pub struct Section {
     pub slug: String,
     /// Line index of the heading.
     pub start: usize,
-    /// Line index after the section's last line (sub-sections included).
+    /// Line index after the section's last line (sub-sections included; the block markers right before the next
+    /// heading are not part of it).
     pub end: usize,
+    /// Line index where the section starts: the heading's block marker in annotated Markdown, else `start`.
+    #[serde(skip)]
+    pub head: usize,
+}
+
+/// Whether a line is a block marker of annotated Markdown (`<!-- #b-3f2a9c align=center -->`, `<!-- column -->`):
+/// a whole-line HTML comment that does not close a `columns` block.
+pub fn is_marker(line: &str) -> bool {
+    let line = pystr::strip(line);
+    let Some(inner) = line.strip_prefix("<!--").and_then(|l| l.strip_suffix("-->")) else { return false };
+    let inner = pystr::strip(inner);
+    !inner.is_empty() && !inner.starts_with('/') && !inner.contains("-->")
+}
+
+/// The text with the block ids taken out of its marker lines (`<!-- #b-3f2a9c align=center -->` reads
+/// `<!-- align=center -->`), to compare two versions of a passage by what it says and how it looks.
+pub fn without_block_ids(text: &str) -> String {
+    text.split('\n')
+        .map(|line| {
+            let trimmed = pystr::strip(line);
+            match trimmed.strip_prefix("<!-- #") {
+                Some(rest) if is_marker(line) => {
+                    let after_id = rest.split_once(char::is_whitespace).map_or("-->", |(_, tail)| tail);
+                    format!("<!-- {}", pystr::lstrip(after_id))
+                }
+                _ => line.to_string(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// The first line of the block markers (and blank lines between them) that end just before line `at`, not before
+/// line `floor`; `at` when no marker is there.
+fn markers_before(lines: &[&str], at: usize, floor: usize) -> usize {
+    let mut first = at;
+    loop {
+        let mut k = first;
+        while k > floor && pystr::strip(lines[k - 1]).is_empty() {
+            k -= 1;
+        }
+        if k > floor && is_marker(lines[k - 1]) {
+            first = k - 1;
+        } else {
+            return first;
+        }
+    }
 }
 
 /// The page's sections in order, with the same slugs as `heading_anchors` (duplicates get -2, -3...).
@@ -72,10 +125,11 @@ pub fn sections(markdown: &str) -> Vec<Section> {
         let mut end = lines.len();
         for (j, lvl, _) in &found[n + 1..] {
             if lvl <= level {
-                end = *j;
+                end = markers_before(&lines, *j, i + 1);
                 break;
             }
         }
+        let head = if *i > 0 && is_marker(lines[i - 1]) { i - 1 } else { *i };
         let mut base = slugify(text);
         if base.is_empty() {
             base = "section".to_string();
@@ -83,7 +137,7 @@ pub fn sections(markdown: &str) -> Vec<Section> {
         let count = seen.get(&base).copied().unwrap_or(0) + 1;
         seen.insert(base.clone(), count);
         let slug = if count == 1 { base } else { format!("{base}-{count}") };
-        out.push(Section { level: *level, text: text.clone(), slug, start: *i, end });
+        out.push(Section { level: *level, text: text.clone(), slug, start: *i, end, head });
     }
     out
 }
@@ -131,11 +185,11 @@ pub fn find_section(markdown: &str, name: &str) -> Result<Section, EditError> {
     ))
 }
 
-/// The Markdown of one section, its heading line included.
+/// The Markdown of one section, its heading line (and, in annotated Markdown, the heading's marker) included.
 pub fn section_text(markdown: &str, name: &str) -> Result<String, EditError> {
     let s = find_section(markdown, name)?;
     let lines: Vec<&str> = markdown.split('\n').collect();
-    Ok(lines[s.start..s.end].join("\n").trim_matches('\n').to_string())
+    Ok(lines[s.head..s.end].join("\n").trim_matches('\n').to_string())
 }
 
 /// `_block`: `text.strip("\n").split("\n")`.
@@ -205,7 +259,7 @@ pub fn edit_section(markdown: &str, name: &str, new: &str, mode: &str) -> Result
         return Ok(join(&splice(&lines, s.start + 1, s.start + 1, blk)));
     }
     if mode == "before" {
-        return Ok(join(&splice(&lines, s.start, s.start, blk)));
+        return Ok(join(&splice(&lines, s.head, s.head, blk)));
     }
     // append and after: at the end of the section, before its trailing blank lines
     let mut end = s.end;
@@ -247,6 +301,23 @@ pub fn edit_passage(markdown: &str, find: &str, new: &str, mode: &str) -> Result
         "before" => format!("{}{new}{}", &markdown[..at], &markdown[at..]),
         _ => format!("{}{new}{}", &markdown[..at + find.len()], &markdown[at + find.len()..]),
     })
+}
+
+/// The whole block of the page's text that holds the one place where `find` occurs: from the blank line before it
+/// (its marker line included) to the blank line after it.
+///
+/// A new block put before or after a passage then lands next to the block instead of inside its line. `None` when
+/// `find` is not on the page exactly once (the edit then reports it).
+pub fn block_around<'a>(markdown: &'a str, find: &str) -> Option<&'a str> {
+    if find.is_empty() || markdown.matches(find).count() != 1 {
+        return None;
+    }
+    let at = markdown.find(find)?;
+    let end_of_find = at + find.len();
+    let start = markdown[..at].rfind("\n\n").map_or(0, |i| i + 2);
+    let end = markdown[end_of_find..].find("\n\n").map_or(markdown.len(), |i| end_of_find + i);
+    let block = markdown[start..end].trim_matches('\n');
+    (!block.is_empty()).then_some(block)
 }
 
 /// `new` as the last block of the page.
@@ -299,7 +370,8 @@ pub fn apply(markdown: &str, edit: &Edit, base: Option<&str>) -> Result<String, 
             if base != markdown {
                 let then = section_text(base, section).ok();
                 let now = section_text(markdown, section)?;
-                if then.as_deref() != Some(now.as_str()) {
+                // a block that only got a new id (the page was sent back without its markers) did not change
+                if then.as_deref().map(without_block_ids) != Some(without_block_ids(&now)) {
                     return err(format!(
                         "conflict: section '{section}' was changed since the version you read. It now reads:\n\n{now}\n\n\
                          Apply your change to this text and retry with the page's current version as base_version."
@@ -315,4 +387,41 @@ pub fn apply(markdown: &str, edit: &Edit, base: Option<&str>) -> Result<String, 
         );
     }
     Ok(append_page(markdown, new))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ANNOTATED: &str = "<!-- #b-000001 -->\n## A\n\n<!-- #b-000002 align=center -->\nOne.\n\n<!-- #b-000003 -->\n## B\n\n<!-- #b-000004 -->\nTwo.\n";
+
+    #[test]
+    fn the_block_around_a_passage_runs_from_blank_line_to_blank_line() {
+        let text =
+            "<!-- #b-000001 -->\nOne.\n\n<!-- #b-000002 -->\n![Plan](canvas:cv_abc)\n\n<!-- #b-000003 -->\nTwo.\n";
+        assert_eq!(block_around(text, "Plan"), Some("<!-- #b-000002 -->\n![Plan](canvas:cv_abc)"));
+        assert_eq!(block_around(text, "One."), Some("<!-- #b-000001 -->\nOne."));
+        assert_eq!(block_around(text, "Two."), Some("<!-- #b-000003 -->\nTwo."));
+        assert_eq!(block_around(text, "nope"), None);
+    }
+
+    #[test]
+    fn a_section_of_annotated_markdown_owns_its_heading_marker_and_not_the_next_one() {
+        assert_eq!(
+            section_text(ANNOTATED, "A").unwrap(),
+            "<!-- #b-000001 -->\n## A\n\n<!-- #b-000002 align=center -->\nOne."
+        );
+        let out = edit_section(ANNOTATED, "A", "Uno.", "replace").unwrap();
+        assert_eq!(out, "<!-- #b-000001 -->\n## A\n\nUno.\n\n<!-- #b-000003 -->\n## B\n\n<!-- #b-000004 -->\nTwo.\n");
+        let out = edit_section(ANNOTATED, "B", "## Before B", "before").unwrap();
+        assert!(out.contains("One.\n\n## Before B\n\n<!-- #b-000003 -->\n## B"), "{out}");
+        let out = edit_section(ANNOTATED, "A", "More.", "append").unwrap();
+        assert!(out.contains("One.\n\nMore.\n\n<!-- #b-000003 -->\n## B"), "{out}");
+        assert!(is_marker("<!-- #b-3f2a9c columns ratio=1:2 -->") && is_marker("<!-- column -->"));
+        assert_eq!(
+            without_block_ids("<!-- #b-3f2a9c align=center -->\n## A\n<!-- #b-000001 -->"),
+            "<!-- align=center -->\n## A\n<!-- -->"
+        );
+        assert!(!is_marker("<!-- /columns -->") && !is_marker("text <!-- x -->"));
+    }
 }

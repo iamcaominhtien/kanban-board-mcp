@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { docsErrorDetail, useDocsPage } from '../../api/docs';
+import { useQueryClient } from '@tanstack/react-query';
+import { docsErrorDetail, docsKeys, patchPageSettings, useDocsPage } from '../../api/docs';
 import { useRenamePreview, useRenameWithLinks } from '../../api/docsActions';
 import { extractError } from '../../api/extractError';
-import type { DocsPage } from '../../types/docs';
+import type { DocsLayout } from '../../hooks/useDocsLayout';
+import type { DocsPage, DocsTreeNode } from '../../types/docs';
+import { IconPicker } from './tree/IconPicker';
+import { PageIcon } from './tree/treeParts';
 import { useToast } from '../Toast';
 import { Icon } from './Icon';
 import { FooterNote, ModalShell, Spacer, plural } from './docsShared';
+import { RenameLinkGroups, mentionKey } from './links/RenameGroups';
+import type { RenameMention } from '../../types/docsActions';
+import './links/links.css';
 
 interface RenameDialogProps {
   projectId: string;
@@ -13,6 +20,9 @@ interface RenameDialogProps {
   newTitle: string;
   onClose: () => void;
   onRenamed: (page: DocsPage) => void;
+  /** The tree: a title another page under the same parent has is refused, and the icon shows from it. */
+  nodes?: DocsTreeNode[];
+  layout?: DocsLayout;
 }
 
 const mono: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace" };
@@ -23,10 +33,26 @@ const mono: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace" };
  * @param props.newTitle - Proposed new title.
  * @param props.onClose - Called to dismiss the dialog.
  * @param props.onRenamed - Called with the renamed page.
+ * @param props.nodes - The tree, to refuse a title a sibling has and to show the page icon.
+ * @param props.layout - The Docs area's layout (the icon picker is a sheet on a phone).
  */
-export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: RenameDialogProps) {
+export function RenameDialog({
+  projectId,
+  page,
+  newTitle,
+  onClose,
+  onRenamed,
+  nodes,
+  layout = 'desktop',
+}: RenameDialogProps) {
   const toast = useToast();
+  const qc = useQueryClient();
   const full = useDocsPage(page.id);
+  const node = nodes?.find((n) => n.id === page.id);
+  const [icon, setIcon] = useState<string | null | undefined>(undefined);
+  const [picking, setPicking] = useState(false);
+  const shownIcon =
+    icon !== undefined ? icon : ((full.data?.settings?.icon as string | undefined) ?? node?.icon ?? null);
   const rename = useRenameWithLinks(projectId);
   const [title, setTitle] = useState(newTitle);
   const [debounced, setDebounced] = useState(newTitle);
@@ -34,6 +60,34 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmed = title.trim();
   const unchanged = trimmed === page.title;
+  // the field says what is wrong; Rename stays off until it is fixed
+  const sibling =
+    !unchanged && node
+      ? nodes?.find(
+          (n) => n.id !== page.id && n.parentId === node.parentId && n.title.toLowerCase() === trimmed.toLowerCase(),
+        )
+      : undefined;
+  const problem = !trimmed
+    ? 'Give the page a title.'
+    : sibling
+      ? `A page called “${sibling.title}” already exists here. Use another title.`
+      : null;
+
+  /** The icon is part of the name: it is saved as soon as it is picked. */
+  async function saveIcon(next: string | null) {
+    setPicking(false);
+    setIcon(next);
+    try {
+      const saved = await patchPageSettings(page.id, { icon: next });
+      qc.setQueryData<DocsPage>(docsKeys.page(page.id), (old) => (old ? { ...old, ...saved } : saved));
+      qc.setQueryData<DocsTreeNode[]>(docsKeys.tree(projectId), (old) =>
+        old?.map((n) => (n.id === page.id ? { ...n, icon: next } : n)),
+      );
+    } catch (e) {
+      setIcon(undefined);
+      toast.error("Couldn't change the page icon", docsErrorDetail(e)?.message ?? extractError(e));
+    }
+  }
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -44,7 +98,20 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
     return () => window.clearTimeout(t);
   }, [title]);
 
-  const preview = useRenamePreview(page.id, debounced, !!debounced.trim() && debounced.trim() !== page.title);
+  const preview = useRenamePreview(page.id, debounced, !!debounced.trim() && debounced.trim() !== page.title, true);
+  // the plain-text mentions change only where the person ticks them (H 44)
+  const [chosen, setChosen] = useState<ReadonlySet<string>>(() => new Set());
+  const mentions = useMemo(() => preview.data?.mentions ?? [], [preview.data]);
+  const chosenMentions = mentions.filter((m) => chosen.has(mentionKey(m)));
+  const chosenCount = chosenMentions.reduce((n, m) => n + m.count, 0);
+  const chosenPages = new Set(chosenMentions.map((m) => m.pageId)).size;
+  const toggleMention = (m: RenameMention) =>
+    setChosen((old) => {
+      const next = new Set(old);
+      if (next.has(mentionKey(m))) next.delete(mentionKey(m));
+      else next.add(mentionKey(m));
+      return next;
+    });
   const affected = useMemo(
     () => (preview.data && debounced.trim() === trimmed ? preview.data.affectedPages : []),
     [preview.data, debounced, trimmed],
@@ -55,19 +122,22 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
   const hasLinks = affected.length > 0 && links > 0;
 
   async function run(rewriteLinks: boolean) {
-    if (!trimmed || unchanged) return;
+    if (!trimmed || unchanged || problem) return;
     setError(null);
     const oldTitle = page.title;
     try {
-      const res = await rename.mutateAsync({ pageId: page.id, title: trimmed, rewriteLinks });
+      const rewriteMentions = chosenMentions.map((m) => ({ pageId: m.pageId, blockId: m.blockId }));
+      const res = await rename.mutateAsync({ pageId: page.id, title: trimmed, rewriteLinks, rewriteMentions });
       const updated = rewriteLinks ? (res.rewritten ?? links) : 0;
+      const changed = res.mentionsChanged ?? 0;
+      const lines = [
+        rewriteLinks && updated ? `${plural(updated, 'link')} on ${plural(affected.length, 'page')} updated.` : '',
+        changed ? `${plural(changed, 'plain-text mention')} changed.` : '',
+      ].filter(Boolean);
       toast.showToast({
         variant: 'success',
         title: `Renamed to “${res.title}”`,
-        message:
-          rewriteLinks && updated
-            ? `${plural(updated, 'link')} on ${plural(affected.length, 'page')} updated.`
-            : undefined,
+        message: lines.length ? lines.join(' ') : undefined,
         duration: 8000,
         action: {
           label: 'Undo',
@@ -98,9 +168,15 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
       bodyStyle={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}
       footer={
         <>
-          {hasLinks ? (
+          {chosenCount > 0 ? (
             <FooterNote>
-              Creates a version on each of the {affected.length} {affected.length === 1 ? 'page' : 'pages'}
+              Changes {plural(chosenCount, 'plain-text mention')} · creates a version on{' '}
+              {chosenPages === 1 ? 'that page' : 'those pages'}
+            </FooterNote>
+          ) : hasLinks ? (
+            <FooterNote>
+              Updates {plural(links, 'link')} written as text · creates a version on{' '}
+              {affected.length === 1 ? 'that page' : `those ${affected.length} pages`}
             </FooterNote>
           ) : (
             <FooterNote>Links to this page keep working.</FooterNote>
@@ -109,25 +185,15 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
           <button type="button" className="st-btn" onClick={onClose}>
             Cancel
           </button>
-          {hasLinks && (
-            <button
-              type="button"
-              className="st-btn"
-              disabled={!trimmed || unchanged || rename.isPending}
-              onClick={() => void run(false)}
-            >
-              Rename only
-            </button>
-          )}
           <button
             type="button"
             className="st-btn st-btn-primary"
             data-testid="confirm-rename"
-            disabled={!trimmed || unchanged || rename.isPending}
+            disabled={!trimmed || unchanged || !!problem || rename.isPending}
             onClick={() => void run(hasLinks)}
           >
             <Icon name="i10" size={14} />
-            {rename.isPending ? 'Renaming…' : hasLinks ? 'Rename and update links' : 'Rename'}
+            {rename.isPending ? 'Renaming…' : 'Rename'}
           </button>
         </>
       }
@@ -142,129 +208,64 @@ export function RenameDialog({ projectId, page, newTitle, onClose, onRenamed }: 
         <label className="st-field-label" htmlFor="rename-title">
           New title
         </label>
-        <input
-          id="rename-title"
-          ref={inputRef}
-          className="st-input"
-          style={{ borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)' }}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </form>
-      {hasLinks && (
-        <>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 12px',
-              borderRadius: 8,
-              background: '#FCEFD9',
-              border: '1px solid #EBD3A6',
-              fontSize: 13,
-              color: '#1E2A22',
-              lineHeight: 1.45,
-            }}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
+          <button
+            type="button"
+            className="st-btn"
+            aria-label={shownIcon ? 'Change the page icon' : 'Add a page icon'}
+            title="Page icon"
+            data-testid="rename-icon"
+            style={{ padding: '0 10px', flexShrink: 0 }}
+            onClick={() => setPicking(true)}
           >
-            <span style={{ color: '#B4791E', display: 'flex' }}>
-              <Icon name="i11" size={16} strokeWidth={2} />
-            </span>
-            <span>
-              <b>
-                {plural(links, 'link')} on {plural(affected.length, 'page')}
-              </b>{' '}
-              will be updated so they keep pointing here.
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                paddingBottom: 6,
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: '#5B6B60',
-              }}
-            >
-              Affected pages
-            </div>
-            <div style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}>
-              {affected.map((a, i) => (
-                <div
-                  key={a.pageId}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10,
-                    padding: '9px 12px',
-                    borderBottom: i < affected.length - 1 ? '1px solid #EEF3EF' : undefined,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: 4,
-                      background: '#2E6F40',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginTop: 3,
-                      color: '#fff',
-                    }}
-                  >
-                    <Icon name="i10" size={11} strokeWidth={3} />
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: '#1E2A22',
-                      }}
-                    >
-                      {a.title}
-                      {a.space && <span style={{ fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>{a.space}</span>}
-                      <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>
-                        {plural(a.count, 'link')}
-                      </span>
-                    </div>
-                    <div
-                      style={{ ...mono, fontSize: 11.5, lineHeight: 1.55, color: '#5B6B60', overflowWrap: 'anywhere' }}
-                    >
-                      [[
-                      <span
-                        style={{
-                          background: 'rgba(196,67,42,0.14)',
-                          color: '#A5321E',
-                          borderRadius: 2,
-                          textDecoration: 'line-through',
-                        }}
-                      >
-                        {page.title}
-                      </span>
-                      ]] <span style={{ color: '#2E6F40' }}>→</span> [[
-                      <span style={{ background: 'rgba(46,111,64,0.16)', color: '#1F5A31', borderRadius: 2 }}>
-                        {trimmed}
-                      </span>
-                      ]]
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.5, paddingTop: 8 }}>
-              Links with your own display text keep that text. Tickets mentioning the page are not rewritten: they link
-              by page id and show the new title.
-            </div>
-          </div>
-        </>
+            <PageIcon icon={shownIcon} size={18} />
+          </button>
+          <input
+            id="rename-title"
+            ref={inputRef}
+            className="st-input"
+            aria-invalid={!!problem && !unchanged}
+            aria-describedby={problem ? 'rename-problem' : undefined}
+            style={
+              problem && title !== page.title
+                ? { flex: 1, borderColor: '#C4432A', boxShadow: '0 0 0 3px rgba(196,67,42,0.15)' }
+                : { flex: 1, borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)' }
+            }
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+        {problem && title !== page.title ? (
+          <span id="rename-problem" role="alert" style={{ fontSize: 12, color: '#A5321E' }}>
+            {problem}
+          </span>
+        ) : (
+          <span className="st-hint" style={{ fontSize: 12, color: '#5B6B60' }}>
+            Links to this page keep working: they point at the page, and show the new title. The old address keeps
+            working too.
+          </span>
+        )}
+      </form>
+      {picking && (
+        <IconPicker
+          projectId={projectId}
+          title={trimmed || page.title}
+          current={shownIcon}
+          layout={layout}
+          onClose={() => setPicking(false)}
+          onPick={(v) => void saveIcon(v)}
+        />
+      )}
+      {/* what happens to the links (RichDocsLinks H 44): they follow; links with their own text keep it */}
+      {!unchanged && trimmed && !problem && (
+        <RenameLinkGroups
+          pageId={page.id}
+          oldTitle={page.title}
+          newTitle={trimmed}
+          mentions={debounced.trim() === trimmed ? mentions : []}
+          chosen={chosen}
+          onToggle={toggleMention}
+        />
       )}
       {error && (
         <div role="alert" style={{ fontSize: 12.5, color: '#A5321E' }}>

@@ -255,13 +255,13 @@
 }
 .dk-callout {
   display: flex;
-  gap: 10px;
-  padding: 11px 13px;
+  gap: 11px;
+  padding: 11px 14px;
   border-radius: 8px;
   margin: 0 0 14px;
   font-size: 14px;
-  line-height: 1.6;
-  color: #3a4a3e;
+  line-height: 1.55;
+  color: #2b3a2f;
 }
 .dk-chip {
   display: inline-flex;
@@ -306,32 +306,32 @@
 }
 .dk-table {
   width: 100%;
-  border-collapse: separate;
+  /* the Blocks board draws tables as a collapsed grid (frame 27): one 1 px line between every cell */
+  border-collapse: collapse;
   border-spacing: 0;
-  font-size: 13.5px;
-  line-height: 1.45;
-  border: 1px solid #e3e8e5;
-  border-radius: 8px;
-  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
 }
 .dk-table th {
   text-align: left;
-  font-size: 12px;
   font-weight: 700;
   color: #1e2a22;
-  background: #f6faf7;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e3e8e5;
+  background: #f1f5f2;
 }
 .dk-table th,
 .dk-table td {
+  height: 38px;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  border: 1px solid #d5ddd8;
+  vertical-align: middle;
   /* A long word breaks only when its cell cannot hold it (`break-word`, unlike `anywhere`, does not lower the cell's
      minimum width, so the automatic layout keeps a short column like "A-001" or "Verdict" as wide as its longest word and
      takes the room from the long text). A very long link that still does not fit is wrapped by the table wrap's scroll. */
   overflow-wrap: break-word;
   word-break: normal;
   /* an id like "A-001" or "KAN-123" may break at its hyphen: keep a column at least as wide as a short word */
-  min-width: calc(5ch + 24px); /* the cell padding (12px each side) plus five characters */
+  min-width: calc(5ch + 20px); /* the cell padding (10px each side) plus five characters */
 }
 .dk-table a,
 .dk-table code {
@@ -340,17 +340,119 @@
   overflow-wrap: anywhere;
 }
 .dk-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid #eef3ef;
   color: #3a4a3e;
-  vertical-align: top;
 }
-.dk-table tr:last-child td {
-  border-bottom: none;
+/* the table styles (frame 32): banded rows, header row and column (stored as "boxed"), rows and minimal lines */
+.dk-table-striped th,
+table[data-style='striped'] th {
+  background: #2e6f40;
+  color: #ffffff;
 }
-.dk-table td + td,
-.dk-table th + th {
-  border-left: 1px solid #eef3ef;
+.dk-table-striped tbody tr:nth-child(even) td,
+table[data-style='striped'] tr:nth-child(odd) td:not([data-background]) {
+  background: #f1f8f3;
+}
+.dk-table-boxed td:first-child,
+table[data-style='boxed'] td:first-child {
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-table-lined th,
+.dk-table-lined td,
+.dk-table-minimal th,
+.dk-table-minimal td,
+table[data-style='lined'] th,
+table[data-style='lined'] td,
+table[data-style='minimal'] th,
+table[data-style='minimal'] td {
+  border-left: none;
+  border-right: none;
+}
+.dk-table-minimal th,
+.dk-table-minimal td,
+table[data-style='minimal'] th,
+table[data-style='minimal'] td {
+  border-top: none;
+  background: none;
+}
+.dk-table-minimal th,
+table[data-style='minimal'] th {
+  border-bottom: 2px solid #1e2a22;
+}
+/* Table properties (Blocks board, F 31): banded rows, borders, cell spacing, alignment and caption; Cell properties
+   (F 30): the sides with a line, their style and colour, and the padding. The reader writes the same data-* attributes
+   on its table and cells as the editor. */
+:is(.dk-editor, .dk-rich) table[data-banded='true'] tr:nth-child(odd) td:not([data-background]) {
+  background: #f6faf7;
+}
+.dk-rich table.dk-table[data-banded='true'] tr:nth-child(odd) td:not([data-background]) {
+  background: none;
+}
+.dk-rich table.dk-table[data-banded='true'] tbody tr:nth-child(even) td:not([data-background]) {
+  background: #f6faf7;
+}
+:is(.dk-editor, .dk-rich) table[data-borders='rows'] :is(th, td) {
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+:is(.dk-editor, .dk-rich) table[data-borders='outer'] {
+  outline: 1px solid #d5ddd8;
+  outline-offset: -1px;
+}
+:is(.dk-editor, .dk-rich) table[data-borders='outer'] :is(th, td),
+:is(.dk-editor, .dk-rich) table[data-borders='none'] :is(th, td) {
+  border-color: transparent;
+}
+:is(.dk-editor, .dk-rich) table[data-spacing='tight'] :is(th, td),
+:is(.dk-editor, .dk-rich) table :is(th, td)[data-padding='tight'] {
+  height: 30px;
+  padding: 2px 8px;
+}
+:is(.dk-editor, .dk-rich) table[data-spacing='roomy'] :is(th, td),
+:is(.dk-editor, .dk-rich) table :is(th, td)[data-padding='roomy'] {
+  height: 48px;
+  padding: 10px 14px;
+}
+:is(.dk-editor, .dk-rich) table[data-align='center'],
+:is(.dk-editor, .dk-rich) table[data-align='right'] {
+  margin-left: auto;
+}
+:is(.dk-editor, .dk-rich) table[data-align='center'] {
+  margin-right: auto;
+}
+:is(.dk-editor, .dk-rich) table[data-align] {
+  width: auto;
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border] {
+  --dk-cb-line: 1px solid var(--dk-cb, #d5ddd8);
+  border-color: transparent;
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border-style='thick'] {
+  --dk-cb-line: 2px solid var(--dk-cb, #d5ddd8);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border-style='dashed'] {
+  --dk-cb-line: 1px dashed var(--dk-cb, #d5ddd8);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border~='top'] {
+  border-top: var(--dk-cb-line);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border~='right'] {
+  border-right: var(--dk-cb-line);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border~='bottom'] {
+  border-bottom: var(--dk-cb-line);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border~='left'] {
+  border-left: var(--dk-cb-line);
+}
+.dk-table-caption {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: #5b6b60;
+  text-align: center;
+}
+.dk-table-caption[data-empty] {
+  color: #9aa8a0;
 }
 .dk-code {
   position: relative;
@@ -369,19 +471,28 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 4px;
-  height: 30px;
-  padding: 0 8px 0 14px;
-  border-radius: 6px;
+  gap: 6px;
+  min-height: 32px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 7px;
   font-size: 13px;
   font-weight: 500;
   color: #3a4a3e;
   box-sizing: border-box;
   cursor: pointer;
+  outline: none;
 }
-.dk-tree-row:hover,
-.dk-tree-hover {
-  background: #eaf0ec;
+.dk-tree-row:hover {
+  background: #eaf1ec;
+}
+/* the row whose menu is open (organising pages, A 4 "Menu open") */
+.dk-tree-hover,
+.dk-tree-hover:hover {
+  background: #eaf3ec;
+}
+.dk-tree-row:focus-visible {
+  outline: 2.5px solid #2f6fb0;
+  outline-offset: 1px;
 }
 .dk-hov {
   opacity: 0;
@@ -390,25 +501,29 @@
 .dk-tree-hover .dk-hov {
   opacity: 1;
 }
+/* the hover actions (+ and ⋯) sit after the status dot, 24 px each */
 .dk-tree-actions {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
   display: none;
   align-items: center;
-  padding-left: 6px;
-  border-radius: 6px;
-  background: inherit;
-  box-shadow: -8px 0 6px -2px #eaf0ec;
+  gap: 1px;
+  flex: none;
 }
-.dk-tree-active .dk-tree-actions {
-  box-shadow: -8px 0 6px -2px #dceee1;
+.dk-tree-actions .dk-icobtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  color: #3a4a3e;
+}
+.dk-tree-actions .dk-icobtn:hover {
+  background: #dce8df;
+}
+.dk-tree-hover .dk-tree-actions .dk-icobtn[aria-expanded='true'] {
+  background: #cfe0d4;
 }
 .dk-tree-row:hover .dk-tree-actions,
 .dk-tree-hover .dk-tree-actions,
 .dk-tree-row:focus-within .dk-tree-actions {
-  display: flex;
+  display: inline-flex;
 }
 .dk-tree-resize {
   position: absolute;
@@ -426,13 +541,11 @@
   background: rgba(46, 111, 64, 0.35);
   outline: none;
 }
-.dk-tree-active {
+.dk-tree-active,
+.dk-tree-active:hover {
   background: #dceee1;
   color: #1e2a22;
   font-weight: 700;
-}
-.dk-tree-active:hover {
-  background: #dceee1;
 }
 .dk-menu {
   background: #ffffff;
@@ -548,12 +661,34 @@ input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type
 .dk-md ul,
 .dk-md ol {
   margin: 0 0 12px;
-  padding-left: 22px;
+  padding-left: 24px;
+}
+/* lists (Blocks board, frame 48): the marker in a 14 px (bullet) or 18 px (number) column 10 px before the text,
+   slate; a nested list sits 26 px in and steps disc, circle, square */
+.dk-md ol {
+  padding-left: 28px;
+}
+.dk-md li::marker {
+  color: #5b6b60;
+  font-variant-numeric: tabular-nums;
+}
+.dk-md ul ul,
+.dk-md ol ol {
+  margin: 0;
+}
+.dk-md ul ul:not([data-list-style]):not([style*='list-style']) {
+  list-style-type: circle;
+}
+.dk-md ul ul ul:not([data-list-style]):not([style*='list-style']) {
+  list-style-type: square;
+}
+.dk-md ol ol:not([data-list-style]):not([style*='list-style']) {
+  list-style-type: lower-alpha;
 }
 /* "Changed in vN": paragraphs edited since the reader last looked (design/screens/docs-actions.md F) */
 .dk-md .dk-changed {
   position: relative;
-  margin-top: 22px;
+  margin-top: 24px;
 }
 .dk-md .dk-changed::before {
   content: '';
@@ -595,7 +730,7 @@ input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type
 }
 
 .dk-md li {
-  margin: 2px 0;
+  margin: 0;
 }
 .dk-md li > p {
   margin: 0;
@@ -614,14 +749,16 @@ input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type
 }
 .dk-md hr {
   border: none;
-  border-top: 1px solid #e3e8e5;
+  border-top: 1px solid #c7d2cb;
   margin: 20px 0;
 }
 .dk-md blockquote {
   margin: 0 0 14px;
-  padding: 2px 0 2px 14px;
-  border-left: 3px solid #dce6df;
-  color: #5b6b60;
+  padding: 2px 0 2px 16px;
+  border-left: 3px solid #c7d2cb;
+  font-size: 1.0345em;
+  line-height: 1.65;
+  color: #3a4a3e;
 }
 .dk-md img {
   max-width: 100%;
@@ -669,9 +806,8 @@ input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  padding: 2px 0;
-  font-size: 14.5px;
-  line-height: 1.6;
+  padding: 0;
+  line-height: 1.7;
   list-style: none;
 }
 .dk-md ul.dk-tasks {
@@ -721,10 +857,9 @@ input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type
 :is(h1, h2, h3, h4, h5, h6) .dk-chip-ticket-title {
   display: none;
 }
+/* the page being dragged stays in place at half strength (organising pages, C 18) */
 .dk-tree-row.dk-row-dim {
-  opacity: 0.45;
-  border: 1px dashed #9aa8a0;
-  background: #ffffff;
+  opacity: 0.5;
 }
 .dk-tree-row.dk-row-nest {
   background: #dceee1;
@@ -735,12 +870,13 @@ input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type
 .dk-rail-btn {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 9px;
   border: none;
   background: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: none;
   cursor: pointer;
   color: #5b6b60;
   padding: 0;
@@ -748,9 +884,10 @@ input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type
 .dk-rail-btn:hover {
   background: #eaf0ec;
 }
-.dk-rail-btn-on {
-  background: #dceee1 !important;
-  color: #2e6f40 !important;
+.dk-rail-btn-on,
+.dk-rail-btn-on:hover {
+  background: #eaf0ec;
+  color: #1e2a22;
 }
 .dk-hero-card:hover {
   border-color: #2e6f40 !important;
@@ -907,6 +1044,25 @@ mark.docs-find-mark.docs-find-cur {
 .fx-findbtn:hover {
   background: #eaf0ec;
 }
+/* the editor's find and replace (Editor board, frame 46): 34 px buttons with a border, Close without one */
+.fx-find-edit .fx-findbtn {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  color: #3a4a3e;
+  font-size: 13px;
+  font-weight: 700;
+}
+.fx-find-edit .fx-findbtn-x {
+  border-color: transparent;
+}
+.fx-find-edit {
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.18);
+}
 .fx-findbtn-on,
 .fx-findbtn-on:hover {
   background: #dceee1;
@@ -1034,4 +1190,1788 @@ mark.docs-find-mark.docs-find-cur {
 [data-theme='dark'] .dk-md mark:not(.docs-find-mark),
 [data-theme='dark'] .dk-editor mark {
   background: rgba(232, 185, 58, 0.32);
+}
+
+/* ---------- Rich Docs reader (format 1, RichDocView) ----------
+   Colours by name, from server/contract/richdoc/palette.json on the white page background. A page drawn with its
+   settings (.dk-paged) sets them for its own background (pageSettings.ts lookVars), so they are not set again here. */
+.dk-rich:not(.dk-paged .dk-rich) {
+  --rd-c-ink: #1e2a22;
+  --rd-c-slate: #5b6b60;
+  --rd-c-green: #2e6f40;
+  --rd-c-olive: #5c6b1e;
+  --rd-c-teal: #0f766e;
+  --rd-c-blue: #1f5a8e;
+  --rd-c-violet: #5b4bb5;
+  --rd-c-pink: #b02a6b;
+  --rd-c-red: #c4432a;
+  --rd-c-orange: #b4571f;
+  --rd-c-amber: #8a5a00;
+  --rd-c-brown: #6b4a2e;
+  --rd-hl-yellow: #ffe9a8;
+  --rd-hl-lime: #e6efb8;
+  --rd-hl-green: #cfe8d6;
+  --rd-hl-teal: #c8eae5;
+  --rd-hl-blue: #cfe3f5;
+  --rd-hl-violet: #e1daf6;
+  --rd-hl-pink: #f8d5e6;
+  --rd-hl-red: #f8d3cb;
+  --rd-hl-orange: #faddbf;
+  --rd-hl-sand: #efe3cc;
+  --rd-hl-grey: #e3e8e5;
+  --rd-hl-slate: #c9d3cc;
+}
+.dk-rich::after {
+  content: '';
+  display: block;
+  clear: both;
+}
+.dk-rich h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1e2a22;
+  margin: 32px 0 10px;
+  line-height: 1.25;
+}
+.dk-rich h4,
+.dk-rich h5,
+.dk-rich h6 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+  margin: 16px 0 4px;
+}
+.dk-rich mark {
+  background: var(--rd-hl-yellow);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.dk-rich td > p,
+.dk-rich th > p,
+.dk-rich .dk-task-body > p {
+  margin: 0;
+}
+.dk-rich .dk-task-body {
+  flex: 1;
+  min-width: 0;
+}
+.dk-rich ul.dk-list-dash {
+  list-style: none;
+}
+.dk-rich ul.dk-list-dash > li::before {
+  content: '–';
+  margin-left: -16px;
+  width: 16px;
+  display: inline-block;
+}
+.dk-rich ul.dk-list-dash > li > p:first-child {
+  display: inline;
+}
+.dk-rich ol.dk-list-paren {
+  list-style: none;
+  counter-reset: dk-paren;
+}
+.dk-rich ol.dk-list-paren > li {
+  counter-increment: dk-paren;
+}
+.dk-rich ol.dk-list-paren > li::before {
+  content: counter(dk-paren) ')';
+  margin-left: -22px;
+  width: 22px;
+  display: inline-block;
+}
+.dk-rich ol.dk-list-paren > li > p:first-child {
+  display: inline;
+}
+/* paragraphs: lead, small, drop cap */
+.dk-rich .dk-p-lead {
+  font-size: 17px;
+  line-height: 1.6;
+  color: #1e2a22;
+}
+.dk-rich .dk-p-small {
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+/* the drop cap (Editor board, frame 1): 62 px at 17.5 px text (3.54em), 700, the page's link green, line 0.82 */
+.dk-rich .dk-dropcap::first-letter {
+  float: left;
+  font-weight: 700;
+  color: var(--dk-dc, var(--dp-link, #2e6f40));
+  line-height: 0.82;
+  padding: 3px 7px 0 0;
+  margin: 0;
+}
+.dk-rich .dk-dropcap-3::first-letter {
+  font-size: 3.54em;
+}
+.dk-rich .dk-dropcap-5::first-letter {
+  font-size: 5.8em;
+}
+/* Drop cap (Editor board, frame 25): 2 to 5 lines, dropped or raised, its own colour, the heading or body font */
+:is(.dk-editor, .dk-rich) .dk-dropcap::first-letter {
+  font-family: var(--dp-heading-font, inherit);
+  color: var(--dk-dc, var(--dp-link, #2e6f40));
+}
+:is(.dk-editor, .dk-rich) .dk-dropcap-2::first-letter {
+  font-size: 2.4em;
+}
+:is(.dk-editor, .dk-rich) .dk-dropcap-4::first-letter {
+  font-size: 4.7em;
+}
+:is(.dk-editor, .dk-rich) .dk-dropcap.dk-dropcap-body::first-letter {
+  font-family: inherit;
+}
+:is(.dk-editor, .dk-rich) .dk-dropcap.dk-dropcap-raised::first-letter {
+  float: none;
+  line-height: 1;
+  padding: 0 2px 0 0;
+}
+/* quotes and dividers, in the editor and the reader alike (Blocks board, frames 44 to 46); sizes in em of the
+   14.5 px body, so a page with its own text size keeps the proportions */
+.dk-md blockquote.dk-quote-serif {
+  border-left: none;
+  padding: 2px 18px;
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 1.1724em;
+  line-height: 1.6;
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-md blockquote.dk-quote-card {
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  padding: 14px 18px;
+  line-height: 1.6;
+  color: #2b3a2f;
+}
+.dk-md blockquote.dk-quote-card p:first-of-type:not(li p, blockquote blockquote p)::before {
+  content: '\201C';
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  font-size: 30px;
+  line-height: 0.5;
+  color: #2e6f40;
+}
+.dk-md .dk-quote-source,
+.dk-md .dk-pullquote figcaption {
+  display: block;
+  margin-top: 6px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-md .dk-pullquote {
+  margin: 6px 0 14px;
+  padding: 16px 10px;
+  border-top: 2px solid var(--dp-ink, #1e2a22);
+  border-bottom: 2px solid var(--dp-ink, #1e2a22);
+}
+.dk-md .dk-pullquote > p,
+.dk-md .dk-pullquote .dk-pq-text {
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  font-size: 1.4483em;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--dp-ink, #1e2a22);
+  margin: 0;
+}
+.dk-md .dk-pullquote figcaption {
+  font-size: 11.5px;
+}
+/* rules: line, thick, short, dotted (stored as "wave"), double; and the scene breaks drawn as glyphs */
+.dk-md hr.dk-rule-short {
+  width: 64px;
+  border-top: 2px solid var(--dp-ink, #1e2a22);
+  margin-left: auto;
+  margin-right: auto;
+}
+.dk-md hr.dk-rule-thick {
+  height: 4px;
+  border: none;
+  border-radius: 2px;
+  background: var(--dp-ink, #1e2a22);
+}
+.dk-md hr.dk-rule-double {
+  border-top: 3px double #c7d2cb;
+}
+.dk-md hr.dk-rule-wave {
+  border-top: 2px dotted #9aa8a0;
+}
+.dk-md div.dk-rule {
+  text-align: center;
+  margin: 20px 0;
+  white-space: pre;
+}
+.dk-md div.dk-rule-stars {
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  font-size: 18px;
+  letter-spacing: 0.6em;
+  /* the spacing after the last star would push the row off centre */
+  text-indent: 0.6em;
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-md div.dk-rule-dots {
+  font-size: 28px;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  line-height: 0.6;
+  color: #5b6b60;
+}
+.dk-md div.dk-rule-fleuron {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  color: #2e6f40;
+}
+.dk-md div.dk-rule-fleuron::before,
+.dk-md div.dk-rule-fleuron::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #c7d2cb;
+}
+/* images */
+.dk-rich .dk-img {
+  margin: 0 0 14px;
+  max-width: 100%;
+}
+.dk-rich .dk-img img {
+  display: block;
+  max-width: 100%;
+}
+.dk-rich .dk-img-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+.dk-rich .dk-img-center img {
+  margin: 0 auto;
+}
+.dk-rich .dk-img-right {
+  margin-left: auto;
+}
+.dk-rich .dk-img-right img {
+  margin-left: auto;
+}
+.dk-rich .dk-img-floatLeft {
+  float: left;
+  max-width: 60%;
+}
+.dk-rich .dk-img-floatRight {
+  float: right;
+  max-width: 60%;
+}
+.dk-rich .dk-img figcaption,
+.dk-rich .dk-video figcaption {
+  font-size: 11.5px;
+  line-height: 1.4;
+  font-style: italic;
+  color: #5b6b60;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* code with a file name */
+.dk-rich .dk-code-file {
+  margin: 0 0 14px;
+}
+.dk-rich .dk-code-filename {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: #5b6b60;
+  margin-bottom: 4px;
+}
+/* tables */
+.dk-rich .dk-table-full {
+  width: 100%;
+}
+/* columns */
+.dk-rich .dk-columns {
+  display: grid;
+  margin: 0 0 14px;
+}
+.dk-rich .dk-column {
+  min-width: 0;
+}
+.dk-rich .dk-columns-line > .dk-column + .dk-column {
+  border-left: 1px solid #e3e8e5;
+  padding-left: var(--dk-gap, 24px);
+}
+@media (max-width: 640px) {
+  .dk-rich .dk-columns {
+    grid-template-columns: 1fr !important;
+  }
+}
+/* embeds: drawings, video, HTML, link, page and ticket cards, files */
+.dk-rich .dk-embed,
+.dk-rich .dk-file-block {
+  margin: 0 0 14px;
+  max-width: 100%;
+}
+.dk-rich .dk-video {
+  margin: 0 0 14px;
+  max-width: 100%;
+}
+.dk-rich .dk-video video {
+  width: 100%;
+  border-radius: 8px;
+  background: #1e2a22;
+}
+.dk-rich .dk-video-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  background: #1e2a22 center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dk-rich .dk-video-play {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1e2a22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.dk-rich .dk-video-provider {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.dk-rich .dk-embed-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  background: #fbfcfb;
+  color: inherit;
+  text-decoration: none;
+}
+.dk-rich a.dk-embed-card:hover {
+  border-color: #c7d2cb;
+}
+.dk-rich .dk-embed-card img {
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.dk-rich .dk-embed-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #eef3ef;
+  color: #2e6f40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.dk-rich .dk-embed-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.dk-rich .dk-embed-text > span {
+  color: #5b6b60;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dk-rich .dk-embed-site {
+  font-size: 12px;
+  color: #9aa8a0 !important;
+}
+.dk-rich .dk-math-block {
+  margin: 0 0 14px;
+  padding: 14px;
+  text-align: center;
+  overflow-x: auto;
+}
+.dk-rich .dk-math-block .katex-display {
+  margin: 0;
+}
+/* a formula that cannot be read stays as its text, in red (Embeds board, frame 69) */
+.dk-rich .katex-error {
+  font: 12.5px var(--font-mono, monospace);
+  color: #c4432a !important;
+  white-space: nowrap;
+  background: #fdf1ee;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.dk-rich .dk-callout-title {
+  color: #1e2a22;
+}
+
+/* ---------- conversion to the rich format (design board "States") ---------- */
+.dk-convert-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-bottom: 16px;
+}
+.dk-convert-bar-info {
+  background: #e8f1fb;
+  border: 1px solid #b9d3ee;
+  color: #1f4f80;
+}
+.dk-convert-bar-warn {
+  background: #fef6e7;
+  border: 1px solid #f0dba8;
+  color: #7a4f08;
+}
+/* the converted page notice (Start board, frame 37): a blue bar above the title, 32 px buttons on the right */
+.dk-convert-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: #e8f1fa;
+  border: 1px solid #c9ddf0;
+  color: #244e78;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.dk-convert-note-text {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+.dk-convert-note-text svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.dk-convert-note-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.dk-convert-note-actions .st-btn {
+  min-height: 32px;
+}
+/* on a tablet or a phone the notice stacks and its buttons are 44 px (Start board, frame 38) */
+:is(.dk-layout-tablet, .dk-layout-phone) .dk-convert-note {
+  flex-direction: column;
+  align-items: flex-start;
+}
+:is(.dk-layout-tablet, .dk-layout-phone) .dk-convert-note-actions .st-btn {
+  min-height: 44px;
+}
+
+/* ---------- Rich Docs: the app frame (design board "Rich Docs — app frame & responsive") ---------- */
+/* the page bar: where you are, the status and the page actions; it stays while the page scrolls */
+.dk-page-scroll {
+  background: var(--dp-page, #ffffff);
+}
+.dk-pagebar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 0 24px 0 36px;
+  background: var(--dp-page, #ffffff);
+  box-sizing: border-box;
+}
+.dk-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.dk-crumb {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  flex-shrink: 1;
+  min-width: 0;
+}
+.dk-crumb:hover {
+  color: var(--dp-ink, #1e2a22) !important;
+}
+.dk-crumb-sep {
+  color: var(--dp-muted, #5b6b60);
+  font-size: 12.5px;
+  flex-shrink: 0;
+}
+.dk-crumb-here {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--dp-ink, #1e2a22);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.dk-pagebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.dk-bar-more {
+  border: 1px solid #e3e8e5;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+.dk-bar-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+}
+.dk-doc-col {
+  width: min(var(--dp-col, 680px), calc(100% - 72px));
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+.dk-statusrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0 6px;
+}
+.dk-doc-col {
+  padding: 30px 0 60px;
+  container-type: inline-size;
+  container-name: dkdoc;
+}
+.dk-doc-col-edit {
+  container-type: inline-size;
+  container-name: dkdoc;
+}
+.dk-page-info {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+.dk-doc-rule {
+  height: 1px;
+  background: var(--dp-rule, #e3e8e5);
+  margin: 20px 0 4px;
+}
+.dk-toc-head {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dp-muted, #5b6b60);
+  margin-bottom: 8px;
+}
+.dk-toc-sheet .dk-toc-link {
+  min-height: 44px;
+  display: flex !important;
+  align-items: center;
+  font-size: 14px !important;
+}
+
+/* the page header: cover, eyebrow, title, byline (page settings › Header and Cover) */
+.dk-ph {
+  display: flex;
+  flex-direction: column;
+}
+.dk-ph-center {
+  align-items: center;
+  text-align: center;
+}
+/* the title scales with the page's text size (Reader boards: plain 2.2x, serif 2.55x, display 2.5x; phone 1.9-2.1x) */
+.dk-ph-eyebrow {
+  margin-bottom: 12px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dp-link, #2e6f40);
+}
+.dk-ph-title {
+  margin: 0;
+  font-family: var(--dp-heading-font, inherit);
+  font-size: calc(var(--dp-size, 14.5px) * 2.2);
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -0.012em;
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-ph-title-serif {
+  font-family: 'Source Serif 4', 'Lora', Georgia, serif;
+  font-size: calc(var(--dp-size, 14.5px) * 2.55);
+}
+.dk-ph-title-display {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: calc(var(--dp-size, 14.5px) * 2.5);
+}
+.dk-ph-center .dk-ph-title {
+  text-align: center;
+}
+/* the book look (Editor board, frame 1): a centred title "With eyebrow" is a chapter opening; the eyebrow is muted
+   and widely spaced, the title 40/1.1 at 17.5 px text, and a rule, a diamond and a rule close it */
+.dk-ph-center[data-title-style='eyebrow'] {
+  padding: 30px 0 6px;
+}
+.dk-ph-center[data-title-style='eyebrow'] .dk-ph-eyebrow {
+  margin-bottom: 12px;
+  letter-spacing: 0.22em;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-ph-center[data-title-style='eyebrow'] .dk-ph-title {
+  margin-bottom: 14px;
+  font-size: calc(var(--dp-size, 14.5px) * 2.29);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.dk-ph-ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.dk-ph-ornament span {
+  width: 34px;
+  height: 1px;
+  background: #68ba7f;
+}
+.dk-ph-ornament i {
+  width: 7px;
+  height: 7px;
+  background: var(--dp-link, #2e6f40);
+  transform: rotate(45deg);
+}
+/* in a serif page, a justified paragraph that follows another starts indented with no space between (frame 1) */
+.dk-fonted
+  p:is([style*='text-align: justify'], [style*='text-align:justify'])
+  + p:is([style*='text-align: justify'], [style*='text-align:justify']) {
+  margin-top: 0;
+  text-indent: 1.6em;
+}
+.dk-ph-byline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-ph-center .dk-ph-byline {
+  justify-content: center;
+}
+.dk-ph-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dk-ph-name {
+  font-weight: 600;
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-title-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+}
+.dk-title-input::placeholder {
+  color: var(--dp-muted, #9aa8a0);
+}
+.dk-edit-titlebox {
+  padding-bottom: 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--dp-rule, #e3e8e5);
+}
+.dk-cover {
+  position: relative;
+  border-radius: 10px;
+  background-color: var(--dp-surface, #f6faf7);
+  background-size: cover;
+  background-repeat: no-repeat;
+  margin: -12px 0 34px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+.dk-cover-titled {
+  padding: 24px;
+  box-sizing: border-box;
+}
+.dk-cover-titled::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 70%);
+}
+.dk-cover-titled .dk-ph {
+  position: relative;
+  width: 100%;
+}
+.dk-cover-titled .dk-ph-title,
+.dk-cover-titled .dk-ph-eyebrow,
+.dk-cover-titled .dk-ph-byline,
+.dk-cover-titled .dk-ph-name {
+  color: #ffffff;
+}
+
+/* a page drawn with its settings: fonts, text size, line height and the colours of its background */
+.dk-paged {
+  background: var(--dp-page);
+}
+.dk-paged .dk-md,
+.dk-paged .dk-editor .ProseMirror {
+  font-family: var(--dp-body-font);
+  font-size: var(--dp-size);
+  line-height: var(--dp-lh);
+  color: var(--dp-text);
+}
+.dk-paged .dk-md h1,
+.dk-paged .dk-md h2,
+.dk-paged .dk-md h3,
+.dk-paged .dk-md h4,
+.dk-paged .dk-md h5,
+.dk-paged .dk-md h6 {
+  font-family: var(--dp-heading-font);
+  color: var(--dp-ink);
+}
+.dk-paged .dk-md h1 {
+  font-size: calc(var(--dp-size) * 1.8);
+}
+.dk-paged .dk-md h2 {
+  font-size: calc(var(--dp-size) * 1.38);
+}
+.dk-paged .dk-md h3 {
+  font-size: calc(var(--dp-size) * 1.035);
+}
+.dk-paged .dk-md strong,
+.dk-paged .dk-rich .dk-p-lead,
+.dk-paged .dk-rich .dk-pullquote > p,
+.dk-paged .dk-rich .dk-callout-title {
+  color: var(--dp-ink);
+}
+.dk-paged .dk-md blockquote,
+.dk-paged .dk-rich .dk-p-small,
+.dk-paged .dk-rich .dk-img figcaption,
+.dk-paged .dk-rich .dk-quote-source {
+  color: var(--dp-muted);
+}
+.dk-paged .dk-md hr {
+  border-top-color: var(--dp-rule);
+}
+.dk-paged .dk-md table.dk-table td,
+.dk-paged .dk-md table.dk-table th {
+  border-color: var(--dp-rule);
+}
+/* the dark page: the light surfaces of the reader become the page's own tint */
+.dk-bg-night .dk-md code:not(pre code) {
+  background: var(--dp-surface);
+  color: var(--rd-c-green);
+}
+.dk-bg-night .dk-md table.dk-table th,
+.dk-bg-night .dk-rich .dk-table-striped tbody tr:nth-child(even) td,
+.dk-bg-night .dk-rich blockquote.dk-quote-card,
+.dk-bg-night .dk-rich .dk-embed-card {
+  background: var(--dp-surface);
+  color: var(--dp-text);
+  border-color: var(--dp-rule);
+}
+.dk-bg-night .dk-md a.dk-ext {
+  color: var(--rd-c-blue);
+}
+
+/* long-form rules on a narrow column: floats stack below 600 px, columns below 640 px, the first column of a
+   table that scrolls stays in view */
+@container dkdoc (max-width: 600px) {
+  /* Blocks board, frame 24: a floated picture takes the full width on its own row; the stored width is an inline
+     style, hence the !important */
+  .dk-rich .dk-img.dk-img-floatLeft,
+  .dk-rich .dk-img.dk-img-floatRight {
+    float: none;
+    width: 100% !important;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .dk-rich .dk-table-wrap td:first-child,
+  .dk-rich .dk-table-wrap th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--dp-page, #ffffff);
+  }
+}
+@container dkdoc (max-width: 640px) {
+  .dk-rich .dk-columns {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  .dk-rich .dk-columns > .dk-column + .dk-column {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px dashed var(--dp-rule, #c7d2cb);
+    padding-top: 14px;
+  }
+}
+.dk-rich .dk-img-floatLeft,
+.dk-rich .dk-img-floatRight {
+  max-width: 40%;
+}
+.dk-rich .dk-img-floatLeft {
+  margin-right: 18px;
+}
+.dk-rich .dk-img-floatRight {
+  margin-left: 18px;
+}
+
+/* ---------- overlays: drawers and bottom sheets ---------- */
+.dk-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+}
+.dk-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.42);
+  animation: dk-fade 0.15s ease-out;
+}
+/* the reading view's sheets and drawers dim less (Reader boards: .3 under a sheet, .2 under a drawer) */
+.dk-overlay-read > .dk-scrim {
+  background: rgba(30, 42, 34, 0.3);
+}
+.dk-overlay-read > .dk-scrim:has(+ .dk-drawer) {
+  background: rgba(30, 42, 34, 0.2);
+}
+/* on a tablet or a phone a drawer and a sheet cover the whole screen, the app bar too (Shell C 10, D 13; Tree1 A 2-3),
+   not only the Docs area inside the app's margins */
+.dk-touch .dk-overlay {
+  position: fixed;
+}
+@keyframes dk-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes dk-slide-left {
+  from {
+    transform: translateX(-24px);
+    opacity: 0.6;
+  }
+}
+@keyframes dk-slide-right {
+  from {
+    transform: translateX(24px);
+    opacity: 0.6;
+  }
+}
+@keyframes dk-slide-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0.6;
+  }
+}
+.dk-drawer-left {
+  animation: dk-slide-left 0.18s ease-out;
+}
+.dk-drawer-right {
+  animation: dk-slide-right 0.18s ease-out;
+}
+.dk-drawer > aside {
+  width: 100% !important;
+  flex: 1;
+  min-height: 0;
+  border-right: none !important;
+}
+.dk-drawer-right > aside {
+  border-left: none !important;
+}
+/* a sheet: 20 px corners and a soft shadow on the Tree, Shell and States boards; 18 px and a deeper shadow on the
+   Reader boards */
+.dk-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(30, 42, 34, 0.22);
+  outline: none;
+  animation: dk-slide-up 0.18s ease-out;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.dk-overlay .dk-sheet {
+  z-index: 1;
+}
+.dk-sheet-read {
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -10px 30px rgba(30, 42, 34, 0.3);
+}
+.dk-sheet-grab {
+  display: flex;
+  justify-content: center;
+  padding: 9px 0 8px;
+  touch-action: none;
+}
+.dk-sheet-grab > span {
+  width: 40px;
+  height: 4.5px;
+  border-radius: 3px;
+  background: #cbd5ce;
+}
+.dk-sheet-read .dk-sheet-grab {
+  padding: 8px 0 6px;
+}
+.dk-sheet-read .dk-sheet-grab > span {
+  height: 4px;
+  border-radius: 2px;
+  background: #c7d2cb;
+}
+/* Reader 28: the page title as a small uppercase line over the More sheet's rows */
+.dk-sheet-eyebrow {
+  padding: 4px 16px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5b6b60;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dk-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px 6px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-sheet-head > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-sheet-head .dk-icobtn {
+  width: 44px;
+  height: 44px;
+}
+.dk-sheet-body {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0 8px 12px;
+}
+.dk-menu-sheet {
+  display: flex;
+  flex-direction: column;
+}
+.dk-menu-sheet .dk-mi {
+  min-height: 44px;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: 14px;
+}
+.dk-menu-sheet > div + div {
+  border-top: 1px solid #eef3ef;
+}
+
+/* the floating Edit button of a phone, in thumb reach */
+.dk-fab {
+  position: absolute;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 20px;
+  border-radius: 26px;
+  border: none;
+  background: #2e6f40;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 22px rgba(30, 42, 34, 0.28);
+  cursor: pointer;
+}
+.dk-fab:disabled {
+  background: #9aa8a0;
+  box-shadow: none;
+  cursor: default;
+}
+
+/* ---------- touch layouts (tablet, phone): 44 px targets, nothing hover-only ---------- */
+.dk-touch .st-btn {
+  min-height: 44px;
+}
+.dk-touch .st-btn-sm {
+  min-height: 40px;
+}
+.dk-touch .dk-icobtn,
+.dk-touch .dk-bar-more,
+.dk-touch .dk-bar-ico {
+  min-width: 44px;
+  min-height: 44px;
+}
+.dk-touch .dk-mi {
+  min-height: 44px;
+}
+.dk-touch .dk-rail-btn {
+  width: 44px;
+  height: 44px;
+}
+/* touch rows (organising pages, A 2-3): 44 px, 15 px titles, the ⋯ always there as a 44 px target */
+.dk-touch .dk-tree-row {
+  min-height: 44px;
+  font-size: 15px;
+}
+.dk-touch .dk-tree-actions {
+  display: inline-flex;
+  margin-right: -8px;
+}
+.dk-touch .dk-tree-actions .dk-icobtn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  color: #5b6b60;
+}
+/* touch rows have no grip (a long-press lifts the row, Tree2 19-20); the handles show in the reorder mode (23) */
+.dk-touch .dk-hov:not(.tr-handle-on) {
+  opacity: 0;
+}
+.dk-touch .dk-toc-link {
+  padding-top: 11px !important;
+  padding-bottom: 11px !important;
+}
+.dk-touch .dk-pagebar {
+  padding: 0 10px 0 6px;
+  gap: 6px;
+  min-height: 56px;
+  border-bottom: 1px solid var(--dp-rule, #e3e8e5);
+}
+.dk-touch .dk-doc-col {
+  width: min(var(--dp-col, 680px), calc(100% - 120px));
+}
+.dk-layout-phone .dk-pagebar {
+  padding: 0 4px 0 2px;
+  gap: 0;
+  min-height: 52px;
+}
+.dk-layout-phone .dk-doc-col {
+  width: calc(100% - 36px);
+  padding-top: 18px;
+  padding-bottom: 32px;
+}
+.dk-layout-phone .dk-ph-title {
+  font-size: calc(var(--dp-size, 14.5px) * 1.9);
+}
+.dk-layout-phone .dk-ph-title-serif {
+  font-size: calc(var(--dp-size, 14.5px) * 1.95);
+}
+.dk-layout-phone .dk-ph-title-display {
+  font-size: calc(var(--dp-size, 14.5px) * 2.1);
+}
+.dk-layout-phone .dk-crumb {
+  max-width: 96px;
+}
+
+/* the editor on touch screens: a header that wraps, the formatting bar as a strip or above the keyboard */
+.dk-edit-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dk-edit-head[data-layout='tablet'] {
+  height: auto !important;
+  min-height: 56px;
+  flex-wrap: wrap;
+  padding: 6px 16px !important;
+  row-gap: 6px;
+}
+.dk-edit-head-phone {
+  min-height: 56px;
+  padding: 0 6px 0 16px;
+  gap: 2px;
+  border-bottom: 1px solid #e3e8e5;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+.dk-edit-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* the line under the title on a phone (Editor board, frame 8): a dot, Draft, and the save state */
+.dk-edit-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #5b6b60;
+  white-space: nowrap;
+  min-width: 0;
+}
+.dk-edit-sub-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e8a33a;
+  flex: none;
+}
+.dk-edit-sub [data-testid='save-state'] {
+  font-size: 11.5px !important;
+}
+.dk-edit-phone .st-btn,
+.dk-edit-tablet .st-btn {
+  min-height: 44px;
+}
+.dk-toolbar-touch {
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.dk-toolbar-touch .dk-tb {
+  min-width: 44px;
+  height: 44px;
+}
+.dk-toolbar-touch .dk-sep {
+  flex-shrink: 0;
+}
+.dk-toolbar-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--dk-kb, 0px);
+  z-index: 60;
+  border-top: 1px solid #e3e8e5;
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+.dk-edit-phone .dk-ph-title {
+  font-size: 26px;
+}
+.dk-preview-note {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 24px;
+  background: #e8f1fb;
+  border-bottom: 1px solid #b9d3ee;
+  color: #1f4f80;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.dk-preview-note .st-btn {
+  margin-left: auto;
+}
+
+/* ---------- Page settings (beside the page, a drawer, or a sheet) ---------- */
+.dk-ps-aside {
+  width: 340px;
+  flex-shrink: 0;
+  border-left: 1px solid #e3e8e5;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.dk-ps {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  color: #1e2a22;
+}
+.dk-ps-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 16px 10px;
+}
+.dk-ps-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-ps-head .st-hint {
+  font-size: 12px;
+}
+.dk-ps-readonly {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f1f3f1;
+  font-size: 12.5px;
+  color: #3a4a3e;
+}
+.dk-ps-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 14px;
+  border-bottom: 1px solid #e3e8e5;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.dk-ps-tab {
+  border: none;
+  background: none;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dk-ps-tab-on {
+  color: #1f5a31;
+  font-weight: 700;
+  border-bottom-color: #2e6f40;
+}
+.dk-ps-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.dk-ps-fields {
+  border: none;
+  margin: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.dk-ps-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.dk-ps-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+}
+/* the four page widths (app frame, B 5) */
+.dk-ps-widths {
+  display: flex;
+  gap: 8px;
+}
+.dk-ps-width {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0 7px;
+  border-radius: 9px;
+  border: 1.5px solid #e3e8e5;
+  background: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+.dk-ps-width-on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.dk-ps-width-page {
+  width: 46px;
+  height: 30px;
+  border: 1.5px solid #9aa8a0;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+.dk-ps-width-page > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dk-ps-width-page > span > span {
+  height: 2px;
+  background: #9aa8a0;
+  border-radius: 1px;
+}
+.dk-ps-width-on .dk-ps-width-page {
+  border-color: #2e6f40;
+}
+.dk-ps-width-on .dk-ps-width-page > span > span {
+  background: #2e6f40;
+}
+.dk-ps-width-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1e2a22;
+}
+.dk-ps-width-on .dk-ps-width-name {
+  font-weight: 700;
+}
+.dk-ps-width-px {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: #5b6b60;
+}
+.dk-seg {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #f1f5f2;
+}
+.dk-seg-btn {
+  flex: 1;
+  min-height: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3a4a3e;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.dk-seg-on {
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.15);
+}
+.dk-seg-sub {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #6b7a70;
+  font-family: 'JetBrains Mono', monospace;
+}
+.dk-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+  min-height: 36px;
+}
+.dk-switch-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dk-switch-text .st-hint {
+  font-weight: 400;
+}
+.dk-ps-select {
+  min-height: 36px;
+  font-size: 13px;
+}
+.dk-ps-more {
+  align-self: flex-start;
+}
+.dk-ps-pairs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.dk-ps-card,
+.dk-ps-theme {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 9px 11px;
+  border: 1px solid #dce3de;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+.dk-ps-card-on {
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 1px #2e6f40 inset;
+  background: #f6faf7;
+}
+.dk-ps-aa {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+.dk-ps-aa > span {
+  font-size: 11px;
+  font-weight: 400;
+  color: #5b6b60;
+}
+.dk-ps-themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+.dk-ps-swatch {
+  width: 100%;
+  height: 40px;
+  border-radius: 7px;
+  border: 1px solid rgba(30, 42, 34, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+.dk-ps-inuse {
+  margin-left: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #2e6f40;
+}
+.dk-ps-hex {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: #6b7a70;
+}
+.dk-ps-colours {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dk-ps-colour {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.dk-ps-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(30, 42, 34, 0.15);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.dk-ps-palette {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px 8px;
+}
+.dk-ps-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #3a4a3e;
+}
+.dk-ps-cover {
+  height: 120px;
+  border-radius: 10px;
+  background-size: cover;
+  background-color: #f6faf7;
+}
+.dk-ps-range {
+  width: 100%;
+  accent-color: #2e6f40;
+}
+.dk-ps-thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.dk-ps-thumb {
+  padding: 0;
+  border: 1px solid #dce3de;
+  border-radius: 6px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  background: #f6faf7;
+  cursor: pointer;
+}
+.dk-ps-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dk-ps-link {
+  display: flex;
+  gap: 6px;
+}
+.dk-ps fieldset:disabled .dk-seg-btn,
+.dk-ps fieldset:disabled .dk-switch-row,
+.dk-ps fieldset:disabled .dk-ps-card,
+.dk-ps fieldset:disabled .dk-ps-theme {
+  cursor: default;
+  opacity: 0.6;
+}
+.dk-sheet .dk-ps-head {
+  padding-top: 0;
+}
+.dk-sheet .dk-seg-btn,
+.dk-sheet .dk-switch-row,
+.dk-sheet .dk-ps-select,
+.dk-sheet .dk-ps-tab,
+.dk-sheet .st-btn,
+.dk-drawer .dk-seg-btn,
+.dk-drawer .dk-switch-row,
+.dk-drawer .dk-ps-select,
+.dk-drawer .dk-ps-tab {
+  min-height: 44px;
+}
+
+/* Recycle Bin rows on touch (Tree3 41-42): 44 px buttons; on a phone the two sit side by side, each half the card */
+.bin-row-tablet .bin-actions .st-btn,
+.bin-row-phone .bin-actions .st-btn {
+  min-height: 44px !important;
+  justify-content: center;
+}
+.bin-row-phone .bin-actions .st-btn {
+  flex: 1;
+}
+
+/* Page settings as a phone sheet (Shell 17): the title row keeps Reset as a word and a 44 px close; the tabs are
+   52 px high, a 15 px icon over an 11.5 px name, and share the width */
+.dk-sheet .dk-ps-head {
+  align-items: flex-start;
+  padding: 6px 12px 8px 20px;
+}
+.dk-sheet .dk-ps-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.dk-ps-reset-link {
+  border: none;
+  background: none;
+  padding: 0 4px;
+  min-height: 44px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-ps-reset-link:disabled {
+  color: #9aa8a0;
+  cursor: default;
+}
+.dk-sheet .dk-ps-head .dk-icobtn {
+  width: 44px;
+  height: 44px;
+  color: #5b6b60;
+}
+.dk-sheet .dk-ps-tabs {
+  padding: 0 18px;
+}
+.dk-sheet .dk-ps-tab {
+  flex: 1;
+  height: 52px;
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.dk-sheet .dk-ps-tab-on {
+  color: #1e2a22;
+  font-weight: 700;
+}
+
+/* find in a page while reading on a phone (Reader 51): a 52 px bar over the top of the screen with a 44 px field, and
+   a 52 px bar with the count and next / previous over the keyboard */
+.fx-find-phone-top,
+.fx-find-phone-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.fx-find-phone-top {
+  top: 0;
+  gap: 6px;
+  padding: 0 8px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.fx-find-phone-bottom {
+  padding: 0 8px 0 16px;
+  border-top: 1px solid #e3e8e5;
+}
+.fx-find-phone-bottom > span {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.fx-find-phone-btn {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.fx-find-phone-field {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  box-sizing: border-box;
+  border: 1px solid #2e6f40;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+}
+.fx-find-phone-none {
+  border-color: #c4432a;
+}
+.fx-find-phone-field input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  color: #1e2a22;
+}
+.fx-find-phone-field button {
+  border: none;
+  background: none;
+  padding: 0;
+  display: inline-flex;
+  color: #5b6b60;
+  cursor: pointer;
+}
+/* a sheet whose close is a word (the phone comments sheet) */
+.dk-sheet-closetext {
+  min-height: 44px;
+  padding: 0 8px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2e6f40;
+  cursor: pointer;
 }

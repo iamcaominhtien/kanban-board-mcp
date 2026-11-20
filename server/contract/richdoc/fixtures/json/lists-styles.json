@@ -1,0 +1,211 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000008",
+        "listStyle": "dash"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000002"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000001"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "dash one"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000007"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000003"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "dash two"
+                }
+              ]
+            },
+            {
+              "type": "bulletList",
+              "attrs": {
+                "blockId": "b-000006",
+                "listStyle": "circle"
+              },
+              "content": [
+                {
+                  "type": "listItem",
+                  "attrs": {
+                    "blockId": "b-000005"
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "blockId": "b-000004"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "circle child"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "orderedList",
+      "attrs": {
+        "blockId": "b-00000d",
+        "listStyle": "lower-roman",
+        "start": 3
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00000a"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000009"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "three"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00000c"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00000b"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "four"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "orderedList",
+      "attrs": {
+        "blockId": "b-000010",
+        "listStyle": "decimal-paren"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00000f"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00000e"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "one)"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "taskList",
+      "attrs": {
+        "blockId": "b-000015"
+      },
+      "content": [
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-000012",
+            "checked": true
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000011"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "done"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-000014"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000013"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "open"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -151,15 +151,17 @@ pub async fn list_tree(session: &Session, project_id: &str) -> Result<Vec<Value>
         if pages.is_empty() { vec![String::new()] } else { pages.iter().map(|p| p.id.clone()).collect() };
     let drafted: HashSet<String> = docs_draft::Entity::find()
         .filter(docs_draft::Column::Author.eq(author))
-        .filter(docs_draft::Column::PageId.is_in(ids))
+        .filter(docs_draft::Column::PageId.is_in(ids.clone()))
         .all(session)
         .await?
         .into_iter()
         .map(|d| d.page_id)
         .collect();
+    let waiting = crate::docs_suggestions::counts(session, &ids).await?;
     Ok(pages
         .iter()
         .map(|p| {
+            let settings = super::settings::read_settings(p.settings.as_deref());
             json!({
                 "id": p.id,
                 "parent_id": p.parent_id,
@@ -171,6 +173,16 @@ pub async fn list_tree(session: &Session, project_id: &str) -> Result<Vec<Value>
                 "has_draft": drafted.contains(&p.id),
                 "updated_at": p.updated_at,
                 "kind": p.kind,
+                "convert_state": p.convert_state,
+                "suggestions": waiting.get(&p.id).cloned().unwrap_or(json!(0)),
+                "icon": settings.get("icon"),
+                "cover": settings.get("cover").and_then(|c| c.get("src")),
+                "page_status": settings.get("status"),
+                "book": settings.get("book"),
+                "not_for_ai": settings.get("notForAi").and_then(Value::as_bool).unwrap_or(false),
+                "created_by": p.created_by,
+                "updated_by": p.updated_by,
+                "created_at": p.created_at,
             })
         })
         .collect())
@@ -188,14 +200,17 @@ pub async fn create_page(
     template: &str,
     markdown: Option<&str>,
 ) -> Result<Map<String, Value>> {
-    project(session, project_id, true).await?;
+    let space_project = project(session, project_id, true).await?;
     let title = clean_title(Some(title))?;
+    let mut parent_page = None;
     if let Some(parent_id) = parent_id {
         let parent = get_page(session, parent_id, false, false).await?;
         if parent.project_id != project_id {
             return docs_err(422, "bad_parent", "Parent belongs to another project");
         }
+        parent_page = Some(parent);
     }
+    let start_settings = new_page_settings(&space_project, parent_page.as_ref());
     let markdown = match markdown {
         Some(m) => m.to_string(),
         None => match templates().into_iter().find(|(k, _)| k == template) {
@@ -213,17 +228,51 @@ pub async fn create_page(
     page.slug = Set(unique_slug(session, project_id, &title).await?);
     page.created_by = Set(actor.clone());
     page.updated_by = Set(actor.clone());
+    if !start_settings.is_empty() {
+        page.settings = Set(Some(Value::Object(start_settings).to_string()));
+    }
     let page = page.insert(session).await?;
     let mut draft = docs_draft::new();
     draft.page_id = Set(page.id.clone());
     draft.author = Set(actor);
     draft.title = Set(title);
-    draft.markdown = Set(markdown);
+    super::versions::set_draft_body(
+        &mut draft,
+        &super::body::PageBody::from_input(super::body::BodyInput::Markdown(&markdown))?,
+    );
     draft.base_version = Set(0);
     draft.insert(session).await?;
     docs_search::reindex(session, std::slice::from_ref(&page.id)).await?;
     session.commit().await?;
     page_detail(session, &page.id).await
+}
+
+/// The page settings a new page starts with: its parent's style when the project says child pages copy it (and the
+/// parent has one), else the project's "new pages" style; only values that differ from the defaults are kept.
+fn new_page_settings(project: &project_table::Model, parent: Option<&docs_page::Model>) -> Map<String, Value> {
+    const STYLE: [&str; 8] =
+        ["width", "background", "bodyFont", "headingFont", "textSize", "lineHeight", "titleStyle", "titleAlign"];
+    let space = super::space::read(project);
+    let new_page = space.get("newPage").and_then(Value::as_object).cloned().unwrap_or_default();
+    let copies = new_page.get("childCopiesParent").and_then(Value::as_bool).unwrap_or(true);
+    if let (true, Some(parent)) = (copies, parent) {
+        let theirs = super::settings::read_settings(parent.settings.as_deref());
+        let style: Map<String, Value> = theirs.into_iter().filter(|(k, _)| STYLE.contains(&k.as_str())).collect();
+        if !style.is_empty() {
+            return style;
+        }
+    }
+    let defaults = [
+        ("width", "normal"),
+        ("bodyFont", "jakarta"),
+        ("textSize", "m"),
+        ("background", "white"),
+        ("titleAlign", "left"),
+    ];
+    defaults
+        .iter()
+        .filter_map(|(k, d)| new_page.get(*k).filter(|v| v.as_str() != Some(d)).map(|v| ((*k).to_string(), v.clone())))
+        .collect()
 }
 
 /// `_path`: a page's ancestors as `[{id, title, slug}]`, root first.
@@ -420,8 +469,16 @@ pub async fn page_detail(session: &Session, page_id: &str) -> Result<Map<String,
     let latest = latest_version(session, &page).await?;
     let draft = draft_for(session, &page.id, &actor).await?;
     let markdown = latest.as_ref().map(|l| l.markdown.clone()).unwrap_or_default();
-    let unpublished =
-        draft.as_ref().is_some_and(|d| page.version > 0 && (d.markdown != markdown || d.title != page.title));
+    let body = latest.as_ref().map(super::body::PageBody::of_version);
+    let draft_body = draft.as_ref().map(super::body::PageBody::of_draft);
+    let unpublished = draft.as_ref().is_some_and(|d| {
+        page.version > 0
+            && (d.title != page.title
+                || match (&draft_body, &body) {
+                    (Some(a), Some(b)) => !a.same_page(b),
+                    _ => d.markdown != markdown,
+                })
+    });
     let mut out = Map::new();
     out.insert("id".into(), json!(page.id));
     out.insert("project_id".into(), json!(page.project_id));
@@ -433,6 +490,18 @@ pub async fn page_detail(session: &Session, page_id: &str) -> Result<Map<String,
     out.insert("status".into(), json!(page.status));
     out.insert("version".into(), json!(page.version));
     out.insert("markdown".into(), json!(markdown));
+    // format 1: the page as rich JSON (null for a page still in Markdown), its settings and conversion state
+    out.insert("format".into(), json!(body.as_ref().map_or(super::body::Format::Rich, |b| b.format).as_str()));
+    out.insert("content".into(), body.as_ref().and_then(|b| b.content.clone()).unwrap_or(Value::Null));
+    out.insert(
+        "settings".into(),
+        match json_or_none(page.settings.as_deref()) {
+            Value::Object(m) => Value::Object(m),
+            _ => json!({}),
+        },
+    );
+    out.insert("convert_state".into(), json!(page.convert_state));
+    out.insert("convert_error".into(), json!(page.convert_error));
     out.insert("headings".into(), Value::Array(headings_json(&markdown)));
     out.insert("path".into(), Value::Array(path(session, &page).await?));
     out.insert("created_by".into(), json!(page.created_by));
@@ -454,6 +523,8 @@ pub async fn page_detail(session: &Session, page_id: &str) -> Result<Map<String,
             Some(d) => json!({
                 "title": d.title,
                 "markdown": d.markdown,
+                "format": d.format,
+                "content": draft_body.as_ref().and_then(|b| b.content.clone()).unwrap_or(Value::Null),
                 "base_version": d.base_version,
                 "saves": d.saves,
                 "updated_at": d.updated_at,

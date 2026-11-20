@@ -3,7 +3,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Notes\",\n  \"prefix\": \"NOT\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Notes\",\"prefix\":\"NOT\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -12,7 +12,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Bao\",\n  \"color\": \"#10B981\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+        "text": "{\"id\":\"<uuid:2>\",\"project_id\":\"<uuid:1>\",\"name\":\"Bao\",\"color\":\"#10B981\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -21,7 +21,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -30,7 +30,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Other\",\n  \"slug\": \"other\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Other\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -102,7 +102,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:5>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:6>\",\n      \"author\": \"agent\",\n      \"body\": \"x\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"before deploying. Check the queue\",\n  \"anchor_state\": \"attached\"\n}"
+        "text": "{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"before deploying. Check the queue\",\"anchor_state\":\"attached\"}"
       }
     ],
     "isError": false
@@ -111,7 +111,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+        "text": "{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"}"
       }
     ],
     "isError": false
@@ -120,7 +120,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:10>\",\n      \"author\": \"agent\",\n      \"body\": \"How long?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 3,\n  \"quote\": \"Drain it\",\n  \"anchor_state\": \"attached\"\n}"
+        "text": "{\"id\":\"<uuid:9>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:10>\",\"author\":\"agent\",\"body\":\"How long?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":3,\"quote\":\"Drain it\",\"anchor_state\":\"attached\"}"
       }
     ],
     "isError": false
@@ -129,7 +129,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:11>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:12>\",\n      \"author\": \"agent\",\n      \"body\": \"Who is Ana?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 4,\n  \"quote\": \"Owner\",\n  \"anchor_state\": \"attached\"\n}"
+        "text": "{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":4,\"quote\":\"Owner\",\"anchor_state\":\"attached\"}"
       }
     ],
     "isError": false
@@ -138,7 +138,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:13>\",\n  \"kind\": \"page\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:14>\",\n      \"author\": \"agent\",\n      \"body\": \"Needs an owner, @Bao please look\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ]\n}"
+        "text": "{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]}"
       }
     ],
     "isError": false
@@ -147,7 +147,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:15>\",\n  \"kind\": \"page\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:16>\",\n      \"author\": \"agent\",\n      \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ]\n}"
+        "text": "{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null}]}"
       }
     ],
     "isError": false
@@ -156,286 +156,27 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:9>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:10>\",\n          \"author\": \"agent\",\n          \"body\": \"How long?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Drain it\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 4,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 4,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":2,\"quote\":\"before deploying. Check the queue\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:9>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:10>\",\"author\":\"agent\",\"body\":\"How long?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":3,\"quote\":\"Drain it\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":4,\"quote\":\"Owner\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":4,\"resolved\":0,\"orphaned\":0,\"page\":2}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [
-          {
-            "id": "<uuid:7>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:8>",
-                "author": "agent",
-                "body": "Which worker?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 1,
-            "quote": "Restart the worker",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:5>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:6>",
-                "author": "agent",
-                "body": "x",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 2,
-            "quote": "before deploying. Check the queue",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:9>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:10>",
-                "author": "agent",
-                "body": "How long?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 3,
-            "quote": "Drain it",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:11>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:12>",
-                "author": "agent",
-                "body": "Who is Ana?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 4,
-            "quote": "Owner",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:13>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:14>",
-                "author": "agent",
-                "body": "Needs an owner, @Bao please look",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:15>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:16>",
-                "author": "agent",
-                "body": "Ask @Nobody and [[Other]] and NOT-1",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          }
-        ],
-        "counts": {
-          "all": 4,
-          "open": 4,
-          "resolved": 0,
-          "orphaned": 0,
-          "page": 2
-        }
-      }
-    },
     "isError": false
   },
   "comments: open": {
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:9>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:10>\",\n          \"author\": \"agent\",\n          \"body\": \"How long?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Drain it\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 4,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 4,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":2,\"quote\":\"before deploying. Check the queue\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:9>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:10>\",\"author\":\"agent\",\"body\":\"How long?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":3,\"quote\":\"Drain it\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":4,\"quote\":\"Owner\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":4,\"resolved\":0,\"orphaned\":0,\"page\":2}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [
-          {
-            "id": "<uuid:7>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:8>",
-                "author": "agent",
-                "body": "Which worker?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 1,
-            "quote": "Restart the worker",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:5>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:6>",
-                "author": "agent",
-                "body": "x",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 2,
-            "quote": "before deploying. Check the queue",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:9>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:10>",
-                "author": "agent",
-                "body": "How long?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 3,
-            "quote": "Drain it",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:11>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:12>",
-                "author": "agent",
-                "body": "Who is Ana?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 4,
-            "quote": "Owner",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:13>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:14>",
-                "author": "agent",
-                "body": "Needs an owner, @Bao please look",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:15>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:16>",
-                "author": "agent",
-                "body": "Ask @Nobody and [[Other]] and NOT-1",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          }
-        ],
-        "counts": {
-          "all": 4,
-          "open": 4,
-          "resolved": 0,
-          "orphaned": 0,
-          "page": 2
-        }
-      }
-    },
     "isError": false
   },
   "comments: resolved": {
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 4,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":4,\"resolved\":0,\"orphaned\":0,\"page\":2}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [
-          {
-            "id": "<uuid:13>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:14>",
-                "author": "agent",
-                "body": "Needs an owner, @Bao please look",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:15>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:16>",
-                "author": "agent",
-                "body": "Ask @Nobody and [[Other]] and NOT-1",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          }
-        ],
-        "counts": {
-          "all": 4,
-          "open": 4,
-          "resolved": 0,
-          "orphaned": 0,
-          "page": 2
-        }
-      }
-    },
     "isError": false
   },
   "comments: a page that does not exist": {
@@ -460,21 +201,9 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [],\n  \"counts\": {\n    \"all\": 0,\n    \"open\": 0,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 0\n  }\n}"
+        "text": "{\"threads\":[],\"counts\":{\"all\":0,\"open\":0,\"resolved\":0,\"orphaned\":0,\"page\":0}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [],
-        "counts": {
-          "all": 0,
-          "open": 0,
-          "resolved": 0,
-          "orphaned": 0,
-          "page": 0
-        }
-      }
-    },
     "isError": false
   },
   "reply: nothing else": {
@@ -526,132 +255,16 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:9>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:10>\",\n          \"author\": \"agent\",\n          \"body\": \"How long?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Drain it\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 4,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 4,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":2,\"quote\":\"before deploying. Check the queue\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:9>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:10>\",\"author\":\"agent\",\"body\":\"How long?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":3,\"quote\":\"Drain it\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":4,\"quote\":\"Owner\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":4,\"resolved\":0,\"orphaned\":0,\"page\":2}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [
-          {
-            "id": "<uuid:7>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:8>",
-                "author": "agent",
-                "body": "Which worker?",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:17>",
-                "author": "user",
-                "body": "The queue worker.",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 1,
-            "quote": "Restart the worker",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:5>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:6>",
-                "author": "agent",
-                "body": "x",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 2,
-            "quote": "before deploying. Check the queue",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:9>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:10>",
-                "author": "agent",
-                "body": "How long?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 3,
-            "quote": "Drain it",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:11>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:12>",
-                "author": "agent",
-                "body": "Who is Ana?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 4,
-            "quote": "Owner",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:13>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:14>",
-                "author": "agent",
-                "body": "Needs an owner, @Bao please look",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:15>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:16>",
-                "author": "agent",
-                "body": "Ask @Nobody and [[Other]] and NOT-1",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          }
-        ],
-        "counts": {
-          "all": 4,
-          "open": 4,
-          "resolved": 0,
-          "orphaned": 0,
-          "page": 2
-        }
-      }
-    },
     "isError": false
   },
   "reply: the agent answers": {
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+        "text": "{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:18>\",\"author\":\"agent\",\"body\":\"Thanks\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"}"
       }
     ],
     "isError": false
@@ -687,7 +300,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+        "text": "{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:18>\",\"author\":\"agent\",\"body\":\"Thanks!\",\"created_at\":\"<time>\",\"edited_at\":\"<time>\"}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"}"
       }
     ],
     "isError": false
@@ -768,7 +381,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"resolved\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    }\n  ],\n  \"number\": null,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\",\n  \"resolved_by\": \"agent\"\n}"
+        "text": "{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"resolved\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:18>\",\"author\":\"agent\",\"body\":\"Thanks!\",\"created_at\":\"<time>\",\"edited_at\":\"<time>\"}],\"number\":null,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\",\"resolved_by\":\"agent\"}"
       }
     ],
     "isError": false
@@ -777,7 +390,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"resolved\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    }\n  ],\n  \"number\": null,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\",\n  \"resolved_by\": \"agent\"\n}"
+        "text": "{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"resolved\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:18>\",\"author\":\"agent\",\"body\":\"Thanks!\",\"created_at\":\"<time>\",\"edited_at\":\"<time>\"}],\"number\":null,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\",\"resolved_by\":\"agent\"}"
       }
     ],
     "isError": false
@@ -786,190 +399,25 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:9>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:10>\",\n          \"author\": \"agent\",\n          \"body\": \"How long?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"Drain it\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 3,\n    \"resolved\": 1,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"before deploying. Check the queue\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:9>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:10>\",\"author\":\"agent\",\"body\":\"How long?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":2,\"quote\":\"Drain it\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":3,\"quote\":\"Owner\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":3,\"resolved\":1,\"orphaned\":0,\"page\":2}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [
-          {
-            "id": "<uuid:5>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:6>",
-                "author": "agent",
-                "body": "x",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 1,
-            "quote": "before deploying. Check the queue",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:9>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:10>",
-                "author": "agent",
-                "body": "How long?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 2,
-            "quote": "Drain it",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:11>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:12>",
-                "author": "agent",
-                "body": "Who is Ana?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 3,
-            "quote": "Owner",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:13>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:14>",
-                "author": "agent",
-                "body": "Needs an owner, @Bao please look",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:15>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:16>",
-                "author": "agent",
-                "body": "Ask @Nobody and [[Other]] and NOT-1",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          }
-        ],
-        "counts": {
-          "all": 4,
-          "open": 3,
-          "resolved": 1,
-          "orphaned": 0,
-          "page": 2
-        }
-      }
-    },
     "isError": false
   },
   "comments: resolved after resolving": {
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"resolved\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:18>\",\n          \"author\": \"agent\",\n          \"body\": \"Thanks!\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": \"<time>\"\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\",\n      \"resolved_by\": \"agent\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 3,\n    \"resolved\": 1,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"resolved\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:18>\",\"author\":\"agent\",\"body\":\"Thanks!\",\"created_at\":\"<time>\",\"edited_at\":\"<time>\"}],\"number\":null,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\",\"resolved_by\":\"agent\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":3,\"resolved\":1,\"orphaned\":0,\"page\":2}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [
-          {
-            "id": "<uuid:7>",
-            "kind": "inline",
-            "status": "resolved",
-            "comments": [
-              {
-                "id": "<uuid:8>",
-                "author": "agent",
-                "body": "Which worker?",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:17>",
-                "author": "user",
-                "body": "The queue worker.",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:18>",
-                "author": "agent",
-                "body": "Thanks!",
-                "created_at": "<time>",
-                "edited_at": "<time>"
-              }
-            ],
-            "number": null,
-            "quote": "Restart the worker",
-            "anchor_state": "attached",
-            "resolved_by": "agent"
-          },
-          {
-            "id": "<uuid:13>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:14>",
-                "author": "agent",
-                "body": "Needs an owner, @Bao please look",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:15>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:16>",
-                "author": "agent",
-                "body": "Ask @Nobody and [[Other]] and NOT-1",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          }
-        ],
-        "counts": {
-          "all": 4,
-          "open": 3,
-          "resolved": 1,
-          "orphaned": 0,
-          "page": 2
-        }
-      }
-    },
     "isError": false
   },
   "reply: to a resolved thread": {
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"resolved\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:19>\",\n      \"author\": \"agent\",\n      \"body\": \"Late reply\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": null,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\",\n  \"resolved_by\": \"agent\"\n}"
+        "text": "{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"resolved\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:18>\",\"author\":\"agent\",\"body\":\"Thanks!\",\"created_at\":\"<time>\",\"edited_at\":\"<time>\"},{\"id\":\"<uuid:19>\",\"author\":\"agent\",\"body\":\"Late reply\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\",\"resolved_by\":\"agent\"}"
       }
     ],
     "isError": false
@@ -978,7 +426,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:19>\",\n      \"author\": \"agent\",\n      \"body\": \"Late reply\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+        "text": "{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:18>\",\"author\":\"agent\",\"body\":\"Thanks!\",\"created_at\":\"<time>\",\"edited_at\":\"<time>\"},{\"id\":\"<uuid:19>\",\"author\":\"agent\",\"body\":\"Late reply\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"}"
       }
     ],
     "isError": false
@@ -987,7 +435,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:19>\",\n      \"author\": \"agent\",\n      \"body\": \"Late reply\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+        "text": "{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:18>\",\"author\":\"agent\",\"body\":\"Thanks!\",\"created_at\":\"<time>\",\"edited_at\":\"<time>\"},{\"id\":\"<uuid:19>\",\"author\":\"agent\",\"body\":\"Late reply\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"}"
       }
     ],
     "isError": false
@@ -1005,7 +453,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"deleted\": \"comment\",\n  \"thread_id\": \"<uuid:7>\"\n}"
+        "text": "{\"deleted\":\"comment\",\"thread_id\":\"<uuid:7>\"}"
       }
     ],
     "isError": false
@@ -1014,7 +462,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"deleted\": \"thread\",\n  \"thread_id\": \"<uuid:9>\"\n}"
+        "text": "{\"deleted\":\"thread\",\"thread_id\":\"<uuid:9>\"}"
       }
     ],
     "isError": false
@@ -1023,122 +471,16 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:19>\",\n          \"author\": \"agent\",\n          \"body\": \"Late reply\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 3,\n    \"open\": 3,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:19>\",\"author\":\"agent\",\"body\":\"Late reply\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":2,\"quote\":\"before deploying. Check the queue\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":3,\"quote\":\"Owner\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":3,\"open\":3,\"resolved\":0,\"orphaned\":0,\"page\":2}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [
-          {
-            "id": "<uuid:7>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:8>",
-                "author": "agent",
-                "body": "Which worker?",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:17>",
-                "author": "user",
-                "body": "The queue worker.",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:19>",
-                "author": "agent",
-                "body": "Late reply",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 1,
-            "quote": "Restart the worker",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:5>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:6>",
-                "author": "agent",
-                "body": "x",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 2,
-            "quote": "before deploying. Check the queue",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:11>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:12>",
-                "author": "agent",
-                "body": "Who is Ana?",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 3,
-            "quote": "Owner",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:13>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:14>",
-                "author": "agent",
-                "body": "Needs an owner, @Bao please look",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:15>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:16>",
-                "author": "agent",
-                "body": "Ask @Nobody and [[Other]] and NOT-1",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          }
-        ],
-        "counts": {
-          "all": 3,
-          "open": 3,
-          "resolved": 0,
-          "orphaned": 0,
-          "page": 2
-        }
-      }
-    },
     "isError": false
   },
   "items: comments on several quotes": {
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"done\": 2,\n  \"failed\": 2,\n  \"results\": [\n    {\n      \"index\": 0,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:20>\",\n        \"kind\": \"inline\",\n        \"status\": \"open\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:21>\",\n            \"author\": \"agent\",\n            \"body\": \"a\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ],\n        \"number\": 4,\n        \"quote\": \"Rollback\",\n        \"anchor_state\": \"attached\"\n      }\n    },\n    {\n      \"index\": 1,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:22>\",\n        \"kind\": \"page\",\n        \"status\": \"open\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:23>\",\n            \"author\": \"agent\",\n            \"body\": \"b\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ]\n      }\n    },\n    {\n      \"index\": 2,\n      \"ok\": false,\n      \"error\": \"That text is not in the published page. Copy it exactly from docs_read(action='get') (plain text, within one paragraph, list item or table cell), or omit quote to comment on the page.\"\n    },\n    {\n      \"index\": 3,\n      \"ok\": false,\n      \"error\": \"docs_write(action='comment') requires page_id, body; optional: quote. Missing: body.\"\n    }\n  ]\n}"
+        "text": "{\"done\":2,\"failed\":2,\"results\":[{\"index\":0,\"ok\":true,\"result\":{\"id\":\"<uuid:20>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:21>\",\"author\":\"agent\",\"body\":\"a\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":4,\"quote\":\"Rollback\",\"anchor_state\":\"attached\"}},{\"index\":1,\"ok\":true,\"result\":{\"id\":\"<uuid:22>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:23>\",\"author\":\"agent\",\"body\":\"b\",\"created_at\":\"<time>\",\"edited_at\":null}]}},{\"index\":2,\"ok\":false,\"error\":\"That text is not in the published page. Copy it exactly from docs_read(action='get') (plain text, within one paragraph, list item or table cell), or omit quote to comment on the page.\"},{\"index\":3,\"ok\":false,\"error\":\"docs_write(action='comment') requires page_id, body; optional: quote. Missing: body.\"}]}"
       }
     ],
     "isError": false
@@ -1147,7 +489,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"done\": 2,\n  \"failed\": 1,\n  \"results\": [\n    {\n      \"index\": 0,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:11>\",\n        \"kind\": \"inline\",\n        \"status\": \"open\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:12>\",\n            \"author\": \"agent\",\n            \"body\": \"Who is Ana?\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          },\n          {\n            \"id\": \"<uuid:24>\",\n            \"author\": \"agent\",\n            \"body\": \"ok\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ],\n        \"number\": 3,\n        \"quote\": \"Owner\",\n        \"anchor_state\": \"attached\"\n      }\n    },\n    {\n      \"index\": 1,\n      \"ok\": false,\n      \"error\": \"Comment thread not found.\"\n    },\n    {\n      \"index\": 2,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:15>\",\n        \"kind\": \"page\",\n        \"status\": \"open\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:16>\",\n            \"author\": \"agent\",\n            \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          },\n          {\n            \"id\": \"<uuid:25>\",\n            \"author\": \"agent\",\n            \"body\": \"own text\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ]\n      }\n    }\n  ]\n}"
+        "text": "{\"done\":2,\"failed\":1,\"results\":[{\"index\":0,\"ok\":true,\"result\":{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:24>\",\"author\":\"agent\",\"body\":\"ok\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":3,\"quote\":\"Owner\",\"anchor_state\":\"attached\"}},{\"index\":1,\"ok\":false,\"error\":\"Comment thread not found.\"},{\"index\":2,\"ok\":true,\"result\":{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:25>\",\"author\":\"agent\",\"body\":\"own text\",\"created_at\":\"<time>\",\"edited_at\":null}]}}]}"
       }
     ],
     "isError": false
@@ -1156,7 +498,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"done\": 1,\n  \"failed\": 2,\n  \"results\": [\n    {\n      \"index\": 0,\n      \"ok\": false,\n      \"error\": \"Comment thread not found.\"\n    },\n    {\n      \"index\": 1,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:11>\",\n        \"kind\": \"inline\",\n        \"status\": \"resolved\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:12>\",\n            \"author\": \"agent\",\n            \"body\": \"Who is Ana?\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          },\n          {\n            \"id\": \"<uuid:24>\",\n            \"author\": \"agent\",\n            \"body\": \"ok\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ],\n        \"number\": null,\n        \"quote\": \"Owner\",\n        \"anchor_state\": \"attached\",\n        \"resolved_by\": \"agent\"\n      }\n    },\n    {\n      \"index\": 2,\n      \"ok\": false,\n      \"error\": \"Only inline threads can be resolved.\"\n    }\n  ]\n}"
+        "text": "{\"done\":1,\"failed\":2,\"results\":[{\"index\":0,\"ok\":false,\"error\":\"Comment thread not found.\"},{\"index\":1,\"ok\":true,\"result\":{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"resolved\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:24>\",\"author\":\"agent\",\"body\":\"ok\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"Owner\",\"anchor_state\":\"attached\",\"resolved_by\":\"agent\"}},{\"index\":2,\"ok\":false,\"error\":\"Only inline threads can be resolved.\"}]}"
       }
     ],
     "isError": false
@@ -1165,7 +507,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"done\": 0,\n  \"failed\": 2,\n  \"results\": [\n    {\n      \"index\": 0,\n      \"ok\": false,\n      \"error\": \"Comment thread not found.\"\n    },\n    {\n      \"index\": 1,\n      \"ok\": false,\n      \"error\": \"Comment thread not found.\"\n    }\n  ]\n}"
+        "text": "{\"done\":0,\"failed\":2,\"results\":[{\"index\":0,\"ok\":false,\"error\":\"Comment thread not found.\"},{\"index\":1,\"ok\":false,\"error\":\"Comment thread not found.\"}]}"
       }
     ],
     "isError": false
@@ -1192,168 +534,16 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:19>\",\n          \"author\": \"agent\",\n          \"body\": \"Late reply\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"resolved\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:24>\",\n          \"author\": \"agent\",\n          \"body\": \"ok\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\",\n      \"resolved_by\": \"agent\"\n    },\n    {\n      \"id\": \"<uuid:20>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:21>\",\n          \"author\": \"agent\",\n          \"body\": \"a\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Rollback\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:25>\",\n          \"author\": \"agent\",\n          \"body\": \"own text\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:22>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:23>\",\n          \"author\": \"agent\",\n          \"body\": \"b\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 3,\n    \"resolved\": 1,\n    \"orphaned\": 0,\n    \"page\": 3\n  }\n}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:19>\",\"author\":\"agent\",\"body\":\"Late reply\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart the worker\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":2,\"quote\":\"before deploying. Check the queue\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"resolved\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:24>\",\"author\":\"agent\",\"body\":\"ok\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"Owner\",\"anchor_state\":\"attached\",\"resolved_by\":\"agent\"},{\"id\":\"<uuid:20>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:21>\",\"author\":\"agent\",\"body\":\"a\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":3,\"quote\":\"Rollback\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:25>\",\"author\":\"agent\",\"body\":\"own text\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:22>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:23>\",\"author\":\"agent\",\"body\":\"b\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":3,\"resolved\":1,\"orphaned\":0,\"page\":3}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [
-          {
-            "id": "<uuid:7>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:8>",
-                "author": "agent",
-                "body": "Which worker?",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:17>",
-                "author": "user",
-                "body": "The queue worker.",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:19>",
-                "author": "agent",
-                "body": "Late reply",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 1,
-            "quote": "Restart the worker",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:5>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:6>",
-                "author": "agent",
-                "body": "x",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 2,
-            "quote": "before deploying. Check the queue",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:11>",
-            "kind": "inline",
-            "status": "resolved",
-            "comments": [
-              {
-                "id": "<uuid:12>",
-                "author": "agent",
-                "body": "Who is Ana?",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:24>",
-                "author": "agent",
-                "body": "ok",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": null,
-            "quote": "Owner",
-            "anchor_state": "attached",
-            "resolved_by": "agent"
-          },
-          {
-            "id": "<uuid:20>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:21>",
-                "author": "agent",
-                "body": "a",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 3,
-            "quote": "Rollback",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:13>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:14>",
-                "author": "agent",
-                "body": "Needs an owner, @Bao please look",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:15>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:16>",
-                "author": "agent",
-                "body": "Ask @Nobody and [[Other]] and NOT-1",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:25>",
-                "author": "agent",
-                "body": "own text",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:22>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:23>",
-                "author": "agent",
-                "body": "b",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          }
-        ],
-        "counts": {
-          "all": 4,
-          "open": 3,
-          "resolved": 1,
-          "orphaned": 0,
-          "page": 3
-        }
-      }
-    },
     "isError": false
   },
   "edit: a comment is on the published text": {
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"title\": \"Runbook\",\n  \"version\": 2,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Steps'\"\n  ],\n  \"now\": \"## Steps\\n\\nRestart nothing.\"\n}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":2,\"published\":true,\"changed\":[\"section 'Steps'\"],\"now\":\"<!-- #<bid:1> -->\\n## Steps\\n\\n<!-- #<bid:2> -->\\nRestart nothing.\"}"
       }
     ],
     "isError": false
@@ -1362,168 +552,16 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:20>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:21>\",\n          \"author\": \"agent\",\n          \"body\": \"a\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Rollback\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"orphaned\"\n    },\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:19>\",\n          \"author\": \"agent\",\n          \"body\": \"Late reply\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"orphaned\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"resolved\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:24>\",\n          \"author\": \"agent\",\n          \"body\": \"ok\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"orphaned\",\n      \"resolved_by\": \"agent\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:25>\",\n          \"author\": \"agent\",\n          \"body\": \"own text\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:22>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:23>\",\n          \"author\": \"agent\",\n          \"body\": \"b\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 3,\n    \"resolved\": 1,\n    \"orphaned\": 2,\n    \"page\": 3\n  }\n}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:20>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:21>\",\"author\":\"agent\",\"body\":\"a\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Rollback\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"before deploying. Check the queue\",\"anchor_state\":\"orphaned\"},{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:19>\",\"author\":\"agent\",\"body\":\"Late reply\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"Restart the worker\",\"anchor_state\":\"orphaned\"},{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"resolved\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:24>\",\"author\":\"agent\",\"body\":\"ok\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"Owner\",\"anchor_state\":\"orphaned\",\"resolved_by\":\"agent\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:25>\",\"author\":\"agent\",\"body\":\"own text\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:22>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:23>\",\"author\":\"agent\",\"body\":\"b\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":3,\"resolved\":1,\"orphaned\":2,\"page\":3}}"
       }
     ],
-    "structuredContent": {
-      "result": {
-        "threads": [
-          {
-            "id": "<uuid:20>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:21>",
-                "author": "agent",
-                "body": "a",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": 1,
-            "quote": "Rollback",
-            "anchor_state": "attached"
-          },
-          {
-            "id": "<uuid:5>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:6>",
-                "author": "agent",
-                "body": "x",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": null,
-            "quote": "before deploying. Check the queue",
-            "anchor_state": "orphaned"
-          },
-          {
-            "id": "<uuid:7>",
-            "kind": "inline",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:8>",
-                "author": "agent",
-                "body": "Which worker?",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:17>",
-                "author": "user",
-                "body": "The queue worker.",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:19>",
-                "author": "agent",
-                "body": "Late reply",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": null,
-            "quote": "Restart the worker",
-            "anchor_state": "orphaned"
-          },
-          {
-            "id": "<uuid:11>",
-            "kind": "inline",
-            "status": "resolved",
-            "comments": [
-              {
-                "id": "<uuid:12>",
-                "author": "agent",
-                "body": "Who is Ana?",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:24>",
-                "author": "agent",
-                "body": "ok",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ],
-            "number": null,
-            "quote": "Owner",
-            "anchor_state": "orphaned",
-            "resolved_by": "agent"
-          },
-          {
-            "id": "<uuid:13>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:14>",
-                "author": "agent",
-                "body": "Needs an owner, @Bao please look",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:15>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:16>",
-                "author": "agent",
-                "body": "Ask @Nobody and [[Other]] and NOT-1",
-                "created_at": "<time>",
-                "edited_at": null
-              },
-              {
-                "id": "<uuid:25>",
-                "author": "agent",
-                "body": "own text",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          },
-          {
-            "id": "<uuid:22>",
-            "kind": "page",
-            "status": "open",
-            "comments": [
-              {
-                "id": "<uuid:23>",
-                "author": "agent",
-                "body": "b",
-                "created_at": "<time>",
-                "edited_at": null
-              }
-            ]
-          }
-        ],
-        "counts": {
-          "all": 4,
-          "open": 3,
-          "resolved": 1,
-          "orphaned": 2,
-          "page": 3
-        }
-      }
-    },
     "isError": false
   },
   "comment: on a page in the bin": {
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:26>\",\n  \"kind\": \"page\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:27>\",\n      \"author\": \"agent\",\n      \"body\": \"before\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ]\n}"
+        "text": "{\"id\":\"<uuid:26>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:27>\",\"author\":\"agent\",\"body\":\"before\",\"created_at\":\"<time>\",\"edited_at\":null}]}"
       }
     ],
     "isError": false
@@ -1532,7 +570,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"deleted_pages\": 1\n}"
+        "text": "{\"id\":\"<uuid:4>\",\"deleted_pages\":1}"
       }
     ],
     "isError": false
@@ -1658,7 +696,8 @@
             "suffix": "",
             "section": "rollback",
             "state": "attached",
-            "pos": 23
+            "pos": 23,
+            "block_id": null
           },
           "created_by": "agent",
           "created_at": "<time>",
@@ -1696,7 +735,8 @@
             "suffix": " Drain it Name Role Ana Owner Ro",
             "section": "steps",
             "state": "orphaned",
-            "pos": null
+            "pos": null,
+            "block_id": null
           },
           "created_by": "agent",
           "created_at": "<time>",
@@ -1734,7 +774,8 @@
             "suffix": " before deploying.",
             "section": "steps",
             "state": "orphaned",
-            "pos": null
+            "pos": null,
+            "block_id": null
           },
           "created_by": "agent",
           "created_at": "<time>",
@@ -1796,7 +837,8 @@
             "suffix": "",
             "section": "steps",
             "state": "orphaned",
-            "pos": null
+            "pos": null,
+            "block_id": null
           },
           "created_by": "agent",
           "created_at": "<time>",

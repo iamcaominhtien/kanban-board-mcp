@@ -1,0 +1,604 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Section"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000002",
+        "level": 3
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Sub-section"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000003"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
+          "text": "bold"
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "italic"
+            }
+          ],
+          "text": "italic"
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "strike"
+            }
+          ],
+          "text": "gone"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000004"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight"
+            }
+          ],
+          "text": "the key sentence"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000005"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "GET /tickets"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000006"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "https://example.com"
+              }
+            }
+          ],
+          "text": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000007"
+      },
+      "content": [
+        {
+          "type": "docRef",
+          "attrs": {
+            "page": "Page"
+          }
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "page": "Page",
+            "section": "Section"
+          }
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "label": "shown text",
+            "page": "Page"
+          }
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000008"
+      },
+      "content": [
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "KAN-12"
+          }
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000009"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00000a"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00000b"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "item"
+                }
+              ]
+            },
+            {
+              "type": "bulletList",
+              "attrs": {
+                "blockId": "b-00000c"
+              },
+              "content": [
+                {
+                  "type": "listItem",
+                  "attrs": {
+                    "blockId": "b-00000d"
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "blockId": "b-00000e"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "nested item"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "orderedList",
+      "attrs": {
+        "blockId": "b-00000f"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000010"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000011"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "item"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "taskList",
+      "attrs": {
+        "blockId": "b-000012"
+      },
+      "content": [
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-000013"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000014"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "open"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-000015",
+            "checked": true
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000016"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "done"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "attrs": {
+        "blockId": "b-000017"
+      },
+      "content": [
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000018"
+          },
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-000019"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00001a"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Method"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-00001b"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00001c"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Path"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-00001d"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00001e"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00001f"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "GET"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000020"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000021"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "/tickets"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "blockId": "b-000022",
+        "language": "python"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "print(\"hi\")"
+        }
+      ]
+    },
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000023"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000024"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "A note."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000025",
+        "kind": "warning"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000026"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "A risk."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000027",
+        "kind": "success"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000028"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "A confirmation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "blockquote",
+      "attrs": {
+        "blockId": "b-000029"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-00002a"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "quoted text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "what it shows",
+        "blockId": "b-00002b",
+        "src": "/uploads/shot.png"
+      }
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "what it shows",
+        "blockId": "b-00002c",
+        "src": "/uploads/shot.png",
+        "width": 640
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00002d"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "/uploads/report.pdf"
+              }
+            }
+          ],
+          "text": "report.pdf"
+        }
+      ]
+    },
+    {
+      "type": "diagram",
+      "attrs": {
+        "blockId": "b-00002e",
+        "id": "dg_0123abcd",
+        "label": "Name"
+      }
+    },
+    {
+      "type": "sketch",
+      "attrs": {
+        "blockId": "b-00002f",
+        "id": "sk_0123abcd",
+        "label": "Name"
+      }
+    },
+    {
+      "type": "canvas",
+      "attrs": {
+        "blockId": "b-000030",
+        "id": "cv_0123abcd",
+        "label": "Name"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000031"
+      },
+      "content": [
+        {
+          "type": "mathInline",
+          "attrs": {
+            "latex": "x^2"
+          }
+        }
+      ]
+    },
+    {
+      "type": "mathBlock",
+      "attrs": {
+        "blockId": "b-000032",
+        "latex": "x^2 + y^2"
+      }
+    },
+    {
+      "type": "horizontalRule",
+      "attrs": {
+        "blockId": "b-000033"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000034"
+      }
+    }
+  ]
+}

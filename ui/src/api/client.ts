@@ -8,6 +8,11 @@ declare module 'axios' {
   interface AxiosRequestConfig {
     /** Leave the keys of the response as the server sent them (a dict keyed by ids such as "IAM-12"). */
     keepKeys?: boolean;
+    /**
+     * Keys of the request body whose values are sent as they are, not snake_cased: JSON that has its own key names
+     * (a rich page's `content`, whose attributes are `blockId`, `textAlign`…).
+     */
+    rawKeys?: readonly string[];
   }
 }
 
@@ -60,7 +65,11 @@ client.interceptors.request.use((config) => {
     /* storage unavailable */
   }
   if (config.data && typeof config.data === 'object' && !isFormDataPayload(config.data)) {
-    config.data = snakecaseKeys(config.data as Record<string, unknown>, { deep: true });
+    const raw = config.rawKeys;
+    config.data = snakecaseKeys(config.data as Record<string, unknown>, {
+      deep: true,
+      ...(raw?.length ? { shouldRecurse: (key: unknown) => !raw.includes(String(key)) } : {}),
+    });
   }
   return config;
 });

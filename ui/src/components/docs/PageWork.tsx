@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { usePageSettled } from './pageSettled';
 import { LIVE_STATES, usePageWork, type PageWorkTicket } from '../../api/docsWork';
+import { DOCS_PHONE_BELOW } from '../../hooks/useDocsLayout';
+import { SgIcon } from './suggestions/sgIcons';
+import './suggestions/suggestions.css';
 
 const STATE_WORD: Record<string, string> = {
   queued: 'Queued',
@@ -18,14 +21,35 @@ function elapsed(from: string | null, now: number): string {
   return `${Math.floor(m / 60)}h ${m % 60}m`;
 }
 
+/** The words after the team's name, by the run's state. */
+function stateWords(state: string): string {
+  if (state === 'running' || state === 'starting') return 'is working on this page';
+  if (state === 'queued') return 'is queued for this page';
+  return STATE_WORD[state] ?? state;
+}
+
+/** The width of the window, for the phone line (below 600 px). */
+function usePhone(): boolean {
+  const [phone, setPhone] = useState(() => typeof window !== 'undefined' && window.innerWidth < DOCS_PHONE_BELOW);
+  useEffect(() => {
+    const on = () => setPhone(window.innerWidth < DOCS_PHONE_BELOW);
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  return phone;
+}
+
 /**
- * "AI at work on this page" (#268): one line per AI run that is working now on a ticket tied to the page (a review the
- * page was given for, a spec a BA is writing), with what it is doing, so a reader sees it without opening the ticket.
- * Renders nothing when no AI is working.
+ * "A team is working on this page" (#268, design "AI teams on rich pages" G 38–41): one banner per AI run working now
+ * on a ticket tied to the page, with how long and what it is doing, the ticket and Open run, and under it the line that
+ * says the page stays editable. On a phone each run is one tappable line. Renders nothing when no AI is working.
+ * @param props.pageId - The page.
+ * @param props.onOpenTicket - Opens the run's ticket.
  */
 export function PageWork({ pageId, onOpenTicket }: { pageId: string; onOpenTicket: (ticketId: string) => void }) {
   const settled = usePageSettled();
   const work = usePageWork(settled ? pageId : null).data;
+  const phone = usePhone();
   const live = (work?.tickets ?? []).filter((t): t is PageWorkTicket & { run: NonNullable<PageWorkTicket['run']> } =>
     Boolean(t.run && LIVE_STATES.includes(t.run.state)),
   );
@@ -35,81 +59,87 @@ export function PageWork({ pageId, onOpenTicket }: { pageId: string; onOpenTicke
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, [live.length]);
+  // the blocks a team is changing now are marked in the page (States H 59–61): "Docs team is changing this block"
+  const changing = live.flatMap((t) => (t.run.blocks ?? []).map((id) => [id, t.run.member] as const));
+  const changingKey = changing.map(([id, who]) => `${id}:${who}`).join(',');
+  useEffect(() => {
+    if (!changingKey) return undefined;
+    const marked: HTMLElement[] = [];
+    for (const pair of changingKey.split(',')) {
+      const at = pair.indexOf(':');
+      const id = pair.slice(0, at);
+      const who = pair.slice(at + 1);
+      document.querySelectorAll<HTMLElement>(`[data-block-id="${CSS.escape(id)}"]`).forEach((el) => {
+        el.setAttribute('data-ai-changing', `${who} is changing this block`);
+        marked.push(el);
+      });
+    }
+    return () => marked.forEach((el) => el.removeAttribute('data-ai-changing'));
+    // `now` ticks every second while a run is live: blocks drawn after the banner are marked too
+  }, [changingKey, now]);
   if (!live.length) return null;
+  const working = live.some((t) => t.run.state !== 'needs_input');
+  const paused = new Set(changing.map(([id]) => id)).size;
   return (
-    <section
-      aria-label="AI at work on this page"
-      data-testid="docs-page-work"
-      style={{
-        margin: '0 0 20px',
-        border: '1px solid #E2DAF6',
-        background: '#F7F4FE',
-        borderRadius: 10,
-        padding: '10px 12px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-      }}
-    >
+    <section aria-label="AI at work on this page" data-testid="docs-page-work" className="pw-wrap">
       {live.map((t) => {
         const needs = t.run.state === 'needs_input';
-        return (
-          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <span
-              aria-hidden="true"
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                flexShrink: 0,
-                background: needs ? '#C2410C' : '#7C5CD6',
-                boxShadow: needs ? 'none' : '0 0 0 3px rgba(124,92,214,0.18)',
-              }}
-            />
-            <span
-              style={{
-                fontSize: 13,
-                color: '#1E2A22',
-                minWidth: 0,
-                flex: 1,
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-              }}
+        const time = t.run.state === 'running' && t.run.startedAt ? elapsed(t.run.startedAt, now) : '';
+        const dot = <span aria-hidden="true" className={`pw-dot${needs ? ' pw-dot-needs' : ' ai-pulse'}`} />;
+        if (phone) {
+          return (
+            <button
+              key={t.id}
+              type="button"
+              className="pw-banner pw-phone"
+              onClick={() => onOpenTicket(t.id)}
+              title={t.title}
             >
-              <strong style={{ fontWeight: 700 }}>{t.run.member}</strong>{' '}
-              <span style={{ color: needs ? '#9A3412' : '#5B4A9E', fontWeight: 600 }}>
-                {STATE_WORD[t.run.state] ?? t.run.state}
-                {t.run.state === 'running' && t.run.startedAt ? ` · ${elapsed(t.run.startedAt, now)}` : ''}
+              {dot}
+              <span className="pw-phone-text">
+                <b>{t.run.member}</b> <span className={needs ? 'pw-needs' : undefined}>{stateWords(t.run.state)}</span>
+                <span className="pw-phone-sub">{[time, t.id].filter(Boolean).join(' · ')}</span>
+              </span>
+              <span className="pw-phone-go" aria-hidden="true">
+                <SgIcon name="chevRight" size={16} />
+              </span>
+            </button>
+          );
+        }
+        return (
+          <div key={t.id} className="pw-banner">
+            {dot}
+            <span className="pw-text">
+              <b>{t.run.member}</b>{' '}
+              <span className={needs ? 'pw-needs' : 'pw-state'}>
+                {stateWords(t.run.state)}
+                {time ? ` · ${time}` : ''}
               </span>
               {t.run.doing && (
-                <span style={{ color: '#5B6B60', marginLeft: 8 }} title={t.run.doing}>
+                <span className="pw-doing" title={t.run.doing}>
                   {t.run.doing}
                 </span>
               )}
             </span>
-            <button
-              type="button"
-              onClick={() => onOpenTicket(t.id)}
-              title={t.title}
-              style={{
-                flexShrink: 0,
-                border: '1px solid #DDD3F5',
-                background: '#FFFFFF',
-                borderRadius: 6,
-                padding: '2px 8px',
-                fontSize: 12,
-                fontWeight: 700,
-                fontFamily: "'JetBrains Mono', monospace",
-                color: '#1E2A22',
-                cursor: 'pointer',
-              }}
-            >
+            <span className="pw-ticket" title={t.title}>
               {t.id}
+            </span>
+            <button type="button" className="sg-btn pw-open" onClick={() => onOpenTicket(t.id)}>
+              {needs ? 'Answer' : 'Open run'}
             </button>
           </div>
         );
       })}
+      {working && !phone && (
+        <div className="pw-note">
+          <SgIcon name="info" size={14} color="#5B6B60" />
+          <span data-testid="pw-note">
+            {paused > 0
+              ? `You can keep editing; the ${paused === 1 ? 'block' : `${paused} blocks`} it is changing ${paused === 1 ? 'is' : 'are'} marked on the page, and its changes arrive as suggestions.`
+              : 'You can keep editing. If you change a block the team is working on, its version arrives as a suggestion.'}
+          </span>
+        </div>
+      )}
     </section>
   );
 }

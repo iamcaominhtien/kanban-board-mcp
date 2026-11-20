@@ -255,3 +255,43 @@
   line-height: 1.5;
   color: #3a4a3e;
 }
+
+/* Export2 frame 29: on a phone the panel is a full white screen: a 16 px inset, the heading 17/700 with 30 px
+   Mark all read and close, the tabs in a 3 px r10 track (13/600, r8), the cards 10 px apart */
+@media (max-width: 599px) {
+  .panel {
+    width: 100%;
+    border-left: none;
+    box-shadow: none;
+    background: #fff;
+  }
+  .header {
+    padding: 18px 18px 12px;
+  }
+  .heading {
+    font-size: 17px;
+  }
+  .btn {
+    min-height: 30px;
+  }
+  .icoBtn {
+    width: 30px;
+    height: 30px;
+  }
+  .tabs {
+    gap: 3px;
+    border-radius: 10px;
+    background: #eef3ef;
+    margin: 0 16px 12px;
+  }
+  .tab {
+    height: 33px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .list {
+    padding: 0 16px 16px;
+    gap: 10px;
+  }
+}

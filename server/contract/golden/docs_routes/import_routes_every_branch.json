@@ -775,7 +775,17 @@
         "version": 1,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:2>",
@@ -787,7 +797,17 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:3>",
@@ -799,7 +819,17 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:4>",
@@ -811,7 +841,17 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       }
     ]
   }

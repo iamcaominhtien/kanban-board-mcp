@@ -100,9 +100,9 @@
      "bytes": 289
     },
     "body": {
-     "sha256": "097bacc06d0c8aa7275bdd50898b4ecc3c8e87a6d082728c9360af91a9e57eae",
-     "chars": 3834,
-     "bytes": 3838
+     "sha256": "ef9be196e4ea5bf2118dc16ee1b7297dc3a32c7be979123bdf6464a10f92555a",
+     "chars": 4143,
+     "bytes": 4147
     }
    },
    {
@@ -208,9 +208,9 @@
     "bytes": 3443
    },
    "docs-comment-threads": {
-    "sha256": "ac8b467747b66fb4e6d185d3efe83efce5376d60322df716dc172bba7be122da",
-    "chars": 4173,
-    "bytes": 4177
+    "sha256": "5ea4c6823dea5bb5f8e7719bcd984a5c65ed399b13db6bea999bc184a0db680f",
+    "chars": 4482,
+    "bytes": 4486
    },
    "brainstorming": {
     "sha256": "75c4dea2a9768024631509881469facf3c1d41649a422f9eb28c984bf762bc02",
@@ -275,9 +275,9 @@
     "bytes": 2985
    },
    "docs-comment-threads": {
-    "sha256": "097bacc06d0c8aa7275bdd50898b4ecc3c8e87a6d082728c9360af91a9e57eae",
-    "chars": 3834,
-    "bytes": 3838
+    "sha256": "ef9be196e4ea5bf2118dc16ee1b7297dc3a32c7be979123bdf6464a10f92555a",
+    "chars": 4143,
+    "bytes": 4147
    },
    "brainstorming": {
     "sha256": "dcde5a9b9b6764b687006d2aec52951f0302706f9969770947a2a72119da0995",

@@ -1,0 +1,80 @@
+{
+ "name": "ai-team-resources-before",
+ "voice": "vi-VN-HoaiMyNeural",
+ "tempo": 1.08,
+ "bpm": 76,
+ "ready": "text:Fix add() in calc.py",
+ "intro": {
+  "title": "Trước",
+  "subtitle": "AI Team v2: bốn tab, chưa có chỗ nào cho RAM",
+  "chips": [
+   "Now",
+   "Timeline",
+   "Run history",
+   "Memory"
+  ],
+  "say": "Trước đây."
+ },
+ "scenes": [
+  {
+   "kind": "app",
+   "cap": "Bốn tab: Now, Timeline, Run history, Memory",
+   "say": "AI Team chỉ có bốn tab. Không có tab nào cho biết máy có ổn không.",
+   "steps": [
+    {
+     "do": "click",
+     "target": "testid:view-ai-team",
+     "settle": 1.5
+    },
+    {
+     "do": "spot",
+     "target": "css:.at-seg",
+     "grow": {
+      "left": 6,
+      "right": 6,
+      "top": 6,
+      "bottom": 6
+     }
+    }
+   ]
+  },
+  {
+   "kind": "app",
+   "cap": "Ba run đang chạy, nhưng không có số RAM nào",
+   "say": "Ba run đang chạy, nhưng thẻ đội không có số RAM, và không có cách dừng hay khởi động lại ở đây.",
+   "steps": [
+    {
+     "do": "spot"
+    },
+    {
+     "do": "cam",
+     "target": "testid:team-card-Core team",
+     "scale": 1.5,
+     "ms": 900
+    },
+    {
+     "do": "spot",
+     "target": "testid:team-card-Core team",
+     "grow": {
+      "left": 8,
+      "right": 8,
+      "top": 8,
+      "bottom": 8
+     }
+    }
+   ]
+  }
+ ],
+ "outro": {
+  "title": "Trước",
+  "tagline": "Muốn biết RAM phải mở máy ra xem.",
+  "say": "Muốn biết RAM, phải mở máy ra xem.",
+  "caption": "Muốn biết RAM, phải mở máy ra xem",
+  "steps": [
+   {
+    "do": "key",
+    "key": "Escape"
+   }
+  ]
+ }
+}

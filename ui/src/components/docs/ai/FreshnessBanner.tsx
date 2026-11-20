@@ -10,24 +10,55 @@ import {
   type CareReason,
 } from '../../../utils/careRules';
 import { useDocsRefs } from '../DocsRefsContext';
-import { Icon } from '../Icon';
 import '../docs.css';
-import { LineIcon } from '../../ui/LineIcon';
+import { typeName } from '../suggestions/describe';
+import { SgIcon, Spark } from '../suggestions/sgIcons';
+import '../suggestions/suggestions.css';
 
-const btn: CSSProperties = {
-  font: 'inherit',
-  fontSize: 12,
-  fontWeight: 600,
-  padding: '5px 10px',
-  borderRadius: 8,
-  border: '1px solid #E3E8E5',
-  background: '#fff',
-  color: '#1E2A22',
-  cursor: 'pointer',
+// a ticket named in a reason: the board's mono chip with a green dot (RichDocsAi2 frame 46)
+const TICKET_CHIP: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 6,
+  gap: 5,
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: 11.5,
+  fontWeight: 700,
+  background: '#F6FAF7',
+  border: '1px solid #E3E8E5',
+  borderRadius: 5,
+  padding: '0 6px',
+  height: 20,
+  boxSizing: 'border-box',
+  verticalAlign: 1,
+  color: '#2B3A2F',
+  marginRight: 4,
 };
+
+// the block a reason read: a small amber chip that scrolls the page to it (RichDocsAi2 frame 46)
+const BLOCK_CHIP: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  height: 20,
+  padding: '0 7px',
+  borderRadius: 5,
+  background: '#fff',
+  border: '1px solid #EBD3A4',
+  fontFamily: 'inherit',
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#8A5A00',
+  verticalAlign: 1,
+  marginLeft: 6,
+  cursor: 'pointer',
+  boxSizing: 'border-box',
+};
+
+/** Scrolls the page to a block. */
+function showBlock(id: string) {
+  const el = document.querySelector<HTMLElement>(`[data-block-id="${CSS.escape(id)}"]`);
+  el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+}
 
 function Reason({
   r,
@@ -40,25 +71,29 @@ function Reason({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <li style={{ margin: '2px 0', fontSize: 12.5, lineHeight: 1.55, color: '#1E2A22' }} data-testid="freshness-reason">
+    <li style={{ listStyle: 'none', color: '#1E2A22' }} data-testid="freshness-reason">
+      •{' '}
       {r.kind === 'ticket' && (
-        <code
-          style={{
-            fontFamily: 'ui-monospace, monospace',
-            fontSize: 12,
-            background: '#fff',
-            border: '1px solid #E3E8E5',
-            borderRadius: 5,
-            padding: '0 5px',
-            marginRight: 6,
-          }}
-        >
+        <code style={TICKET_CHIP}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2E6F40' }} />
           {r.ref}
         </code>
       )}
       {r.text}
-      <span style={{ color: '#9AA8A0', fontSize: 11.5, marginLeft: 8 }} title="What was compared">
-        Compared: {r.compared}
+      {r.blockId && (
+        <button
+          type="button"
+          data-testid="freshness-block"
+          onClick={() => showBlock(r.blockId!)}
+          style={BLOCK_CHIP}
+          title="Show the block on the page"
+        >
+          <SgIcon name="eye" size={11} sw={2.2} />
+          {r.blockType ? typeName({ type: r.blockType }) : 'Block'} · Show
+        </button>
+      )}
+      <span style={{ color: '#5B6B60', marginLeft: 8 }} title="What was compared">
+        Compared: {r.compared ?? r.source ?? 'text in the page'}
       </span>
       <span style={{ position: 'relative', marginLeft: 8 }}>
         <button
@@ -161,36 +196,48 @@ export function FreshnessBanner({
         margin: '0 0 16px',
         padding: '12px 14px',
         borderRadius: 10,
-        border: '1px solid #F0DBA8',
-        background: '#FFFBEF',
+        border: '1px solid #EBD3A4',
+        background: '#FEF6E3',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        gap: 7,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Icon name="i14" size={16} strokeWidth={2} style={{ color: '#B8860B' }} />
-        <b style={{ fontSize: 13.5, color: '#1E2A22' }}>This page may be out of date</b>
+        <SgIcon name="warning" size={15} sw={2.2} color="#8A5A00" />
+        <b style={{ fontSize: 13.5, color: '#1E2A22', flex: 1 }}>This page may be out of date</b>
         <span
           style={{
-            marginLeft: 'auto',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 5,
-            height: 21,
+            gap: 4,
+            height: 20,
             boxSizing: 'border-box',
             fontSize: 11,
             fontWeight: 700,
-            color: '#5b3aa6',
-            background: '#efe8fb',
+            color: '#5B3AA6',
+            background: '#EFE8FB',
+            border: '1px solid #D9CCF7',
             borderRadius: 999,
             padding: '0 8px',
+            whiteSpace: 'nowrap',
+            flex: 'none',
           }}
         >
-          <LineIcon name="sparkle" size={12} /> {checkedLabel(check.checkedAt)}
+          <Spark size={11} color="#5B3AA6" /> {checkedLabel(check.checkedAt)}
         </span>
       </div>
-      <ul style={{ margin: '0 0 0 4px', paddingLeft: 16 }}>
+      <ul
+        style={{
+          margin: 0,
+          padding: 0,
+          fontSize: 12.5,
+          lineHeight: 1.6,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+        }}
+      >
         {check.reasons.map((r) => (
           <Reason
             key={r.key}
@@ -205,17 +252,17 @@ export function FreshnessBanner({
           type="button"
           disabled={still.isPending}
           onClick={() => still.mutate()}
-          style={btn}
+          className="sg-btn"
           data-testid="freshness-still-correct"
         >
           Still correct
         </button>
         {ticket && open && (
-          <button type="button" onClick={() => open(ticket)} style={btn}>
-            <Icon name="i38" size={13} /> Open {ticket}
+          <button type="button" onClick={() => open(ticket)} className="sg-btn">
+            <SgIcon name="external" size={13} sw={2.4} /> Open {ticket}
           </button>
         )}
-        <span style={{ fontSize: 11.5, color: '#5B6B60' }}>“Still correct” hides this for 30 days</span>
+        <span style={{ fontSize: 12, color: '#5B6B60' }}>“Still correct” hides this for 30 days</span>
       </div>
       {err && (
         <div role="alert" style={{ fontSize: 12.5, color: '#C4432A', marginTop: 8 }}>

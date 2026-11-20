@@ -51,7 +51,7 @@ async fn test_the_export_is_a_sqlite_copy_and_an_import_replaces_the_tables() {
     // a second export into a file that is there is refused, as the copy code refuses any target that holds something
     assert_eq!(
         data::copy_current_to_sqlite(&export).await.expect_err("not empty"),
-        "The target already has 95 tables."
+        "The target already has 100 tables."
     );
 
     // import: the file's tables replace the server's

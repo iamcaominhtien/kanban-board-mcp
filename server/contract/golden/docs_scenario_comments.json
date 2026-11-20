@@ -203,7 +203,8 @@
       "created_by": "user",
       "created_at": "<time>",
       "resolved_by": null,
-      "resolved_at": null
+      "resolved_at": null,
+      "anchor_block_id": null
     },
     {
       "id": "<id>",
@@ -219,7 +220,8 @@
       "created_by": "Mia",
       "created_at": "<time>",
       "resolved_by": null,
-      "resolved_at": null
+      "resolved_at": null,
+      "anchor_block_id": null
     },
     {
       "id": "<id>",
@@ -235,7 +237,8 @@
       "created_by": "user",
       "created_at": "<time>",
       "resolved_by": null,
-      "resolved_at": null
+      "resolved_at": null,
+      "anchor_block_id": null
     }
   ],
   "docs_draft": [
@@ -248,9 +251,13 @@
       "base_version": 0,
       "updated_at": "<time>",
       "saves": 1,
-      "ai_source": null
+      "ai_source": null,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"welcome \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"API\",\"section\":\"Limits\"}}]}]}",
+      "text": "welcome API › Limits"
     }
   ],
+  "docs_export": [],
   "docs_fts": [
     {
       "page_id": "<page:api-copy>",
@@ -264,7 +271,7 @@
       "project_id": "<project>",
       "title": "API",
       "headings": "API\nLimits",
-      "body": "# API\n\nIntro paragraph added above.\n\nEvery route requires a bearer token; rotation rules live in [[Auth]].\n\n## Limits\n\nRate limits are not yet enforced. Nothing else.\n"
+      "body": "# API\n\nIntro paragraph added above.\n\nEvery route requires a bearer token; rotation rules live in [[Auth]].\n\n## Limits\n\nRate limits are not yet enforced. Nothing else."
     },
     {
       "page_id": "<page:deep>",
@@ -306,7 +313,7 @@
       "project_id": "<project>",
       "title": "Other",
       "headings": "Side",
-      "body": "## Side\ntext about something\n"
+      "body": "## Side\n\ntext about something"
     },
     {
       "page_id": "<page:setup>",
@@ -316,6 +323,7 @@
       "body": "See [[Other]] and [[Nowhere]]."
     }
   ],
+  "docs_highlight": [],
   "docs_link": [
     {
       "id": "<id>",
@@ -327,7 +335,9 @@
       "target_ticket_id": null,
       "display_text": null,
       "snippet": "Every route requires a bearer token; rotation rules live in Auth.",
-      "origin": "page"
+      "origin": "page",
+      "source_block_id": "<bid>",
+      "target_block_id": null
     },
     {
       "id": "<id>",
@@ -339,7 +349,9 @@
       "target_ticket_id": null,
       "display_text": null,
       "snippet": "welcome API",
-      "origin": "page"
+      "origin": "page",
+      "source_block_id": null,
+      "target_block_id": null
     },
     {
       "id": "<id>",
@@ -351,7 +363,9 @@
       "target_ticket_id": null,
       "display_text": null,
       "snippet": "more Setup",
-      "origin": "page"
+      "origin": "page",
+      "source_block_id": null,
+      "target_block_id": null
     },
     {
       "id": "<id>",
@@ -363,7 +377,9 @@
       "target_ticket_id": null,
       "display_text": null,
       "snippet": "See Other and Nowhere.",
-      "origin": "page"
+      "origin": "page",
+      "source_block_id": null,
+      "target_block_id": null
     },
     {
       "id": "<id>",
@@ -375,7 +391,9 @@
       "target_ticket_id": null,
       "display_text": null,
       "snippet": "See Other and Nowhere.",
-      "origin": "page"
+      "origin": "page",
+      "source_block_id": null,
+      "target_block_id": null
     }
   ],
   "docs_page": [
@@ -395,7 +413,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:api>",
@@ -413,7 +434,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:deep>",
@@ -431,7 +455,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:guide-home-2>",
@@ -449,7 +476,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:guide-home>",
@@ -467,7 +497,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:more>",
@@ -485,7 +518,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:other-copy>",
@@ -503,7 +539,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:other>",
@@ -521,7 +560,10 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     },
     {
       "id": "<page:setup>",
@@ -539,10 +581,16 @@
       "deleted_at": null,
       "deleted_by": null,
       "deleted_root_id": null,
-      "kind": "page"
+      "kind": "page",
+      "settings": null,
+      "convert_state": null,
+      "convert_error": null
     }
   ],
   "docs_page_seen": [],
+  "docs_public_link": [],
+  "docs_suggestion": [],
+  "docs_template": [],
   "docs_title_aliases": [],
   "docs_version": [
     {
@@ -555,31 +603,40 @@
       "note": "Imported",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"duplicate of an existing page\"}]}]}",
+      "text": "duplicate of an existing page"
     },
     {
       "id": "<id>",
       "page_id": "<page:api>",
       "version": 1,
       "title": "API",
-      "markdown": "# API\n\nEvery route requires a bearer token; rotation rules live in [[Auth]].\n\n## Limits\n\nRate limits are not enforced yet. Tracked in KAN-12.\n\n## Notes\n\nA closing paragraph.\n",
+      "markdown": "# API\n\nEvery route requires a bearer token; rotation rules live in [[Auth]].\n\n## Limits\n\nRate limits are not enforced yet. Tracked in KAN-12.\n\n## Notes\n\nA closing paragraph.",
       "author": "user",
       "note": "first",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"API\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"Every route requires a bearer token; rotation rules live in \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Auth\"}},{\"type\":\"text\",\"text\":\".\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Limits\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"Rate limits are not enforced yet. Tracked in \"},{\"type\":\"ticketRef\",\"attrs\":{\"key\":\"KAN-12\"}},{\"type\":\"text\",\"text\":\".\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Notes\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"A closing paragraph.\"}]}]}",
+      "text": "API\nEvery route requires a bearer token; rotation rules live in Auth.\nLimits\nRate limits are not enforced yet. Tracked in KAN-12.\nNotes\nA closing paragraph."
     },
     {
       "id": "<id>",
       "page_id": "<page:api>",
       "version": 2,
       "title": "API",
-      "markdown": "# API\n\nIntro paragraph added above.\n\nEvery route requires a bearer token; rotation rules live in [[Auth]].\n\n## Limits\n\nRate limits are not yet enforced. Nothing else.\n",
+      "markdown": "# API\n\nIntro paragraph added above.\n\nEvery route requires a bearer token; rotation rules live in [[Auth]].\n\n## Limits\n\nRate limits are not yet enforced. Nothing else.",
       "author": "user",
       "note": "edit",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"API\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"Intro paragraph added above.\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"Every route requires a bearer token; rotation rules live in \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Auth\"}},{\"type\":\"text\",\"text\":\".\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Limits\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"Rate limits are not yet enforced. Nothing else.\"}]}]}",
+      "text": "API\nIntro paragraph added above.\nEvery route requires a bearer token; rotation rules live in Auth.\nLimits\nRate limits are not yet enforced. Nothing else."
     },
     {
       "id": "<id>",
@@ -591,7 +648,10 @@
       "note": "Imported",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"}}]}",
+      "text": ""
     },
     {
       "id": "<id>",
@@ -603,7 +663,10 @@
       "note": "Imported",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"welcome \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"API\",\"section\":\"Limits\"}}]}]}",
+      "text": "welcome API › Limits"
     },
     {
       "id": "<id>",
@@ -615,7 +678,10 @@
       "note": "Imported",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"more \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Setup\"}}]}]}",
+      "text": "more Setup"
     },
     {
       "id": "<id>",
@@ -627,19 +693,25 @@
       "note": "Imported",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"clash\"}]}]}",
+      "text": "clash"
     },
     {
       "id": "<id>",
       "page_id": "<page:other>",
       "version": 1,
       "title": "Other",
-      "markdown": "## Side\ntext about something\n",
+      "markdown": "## Side\n\ntext about something",
       "author": "user",
       "note": null,
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Side\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"text about something\"}]}]}",
+      "text": "Side\ntext about something"
     },
     {
       "id": "<id>",
@@ -651,7 +723,10 @@
       "note": "Imported",
       "created_at": "<time>",
       "diagram_versions": "{}",
-      "with_ai": 0
+      "with_ai": 0,
+      "format": "rich",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid>\"},\"content\":[{\"type\":\"text\",\"text\":\"See \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Other\"}},{\"type\":\"text\",\"text\":\" and \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Nowhere\"}},{\"type\":\"text\",\"text\":\".\"}]}]}",
+      "text": "See Other and Nowhere."
     }
   ],
   "notification": [

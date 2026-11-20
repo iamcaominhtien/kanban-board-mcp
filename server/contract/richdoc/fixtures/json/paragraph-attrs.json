@@ -1,0 +1,90 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001",
+        "spaceAfter": 24,
+        "textAlign": "center"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Centred title"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002",
+        "lineHeight": 1.5,
+        "textAlign": "justify",
+        "variant": "lead"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "A lead paragraph, justified."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000003",
+        "dropCap": 3
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Once upon a time, a drop cap of three lines."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000004",
+        "indent": 2,
+        "spaceBefore": 12,
+        "textAlign": "right",
+        "variant": "small"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Indented twice, small, right."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000005",
+        "indent": 1,
+        "level": 2,
+        "lineHeight": 1.15
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Indented heading"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000006"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Back to normal."
+        }
+      ]
+    }
+  ]
+}

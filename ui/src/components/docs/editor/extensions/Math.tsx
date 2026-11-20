@@ -3,6 +3,7 @@ import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tip
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { dataOnly } from '../../../../richdoc/extensions/attr';
 
 function MathView({ node, selected, updateAttributes }: NodeViewProps) {
   const block = node.type.name === 'mathBlock';
@@ -20,46 +21,89 @@ function MathView({ node, selected, updateAttributes }: NodeViewProps) {
     [latex, block],
   );
 
+  // the editing panel (design "Embeds", frames 68-69): the result under the LaTeX as it is typed, or why it cannot be read
+  const live = useMemo(() => {
+    if (!editing) return null;
+    try {
+      return {
+        html: katex.renderToString(draft || '\\square', { displayMode: block, throwOnError: true, strict: 'ignore' }),
+        error: null,
+      };
+    } catch (e) {
+      return { html: null, error: e instanceof Error ? e.message.replace(/^KaTeX parse error:\s*/, '') : 'unknown' };
+    }
+  }, [editing, draft, block]);
+
   function commit() {
     setEditing(false);
     if (draft !== latex) updateAttributes({ latex: draft.trim() });
   }
 
+  const shown = (
+    <span
+      role="button"
+      tabIndex={0}
+      title="Click to edit formula"
+      onClick={() => {
+        if (editing) return;
+        setDraft(latex);
+        setEditing(true);
+      }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+
+  // the formula stays in the page; editing opens a 420 px card under it (design "Embeds", frames 67-69)
   return (
     <NodeViewWrapper
       as={block ? 'div' : 'span'}
       className={block ? 'dk-math dk-math-block' : 'dk-math dk-math-inline'}
       data-selected={selected || editing ? 'true' : undefined}
+      data-editing={editing ? 'true' : undefined}
       contentEditable={false}
     >
-      {editing ? (
-        <textarea
-          ref={input}
-          className="dk-math-input"
-          value={draft}
-          rows={block ? 3 : 1}
-          spellCheck={false}
-          aria-label="LaTeX formula"
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || (e.key === 'Enter' && (!block || e.metaKey || e.ctrlKey))) {
-              e.preventDefault();
-              commit();
-            }
-          }}
-        />
-      ) : (
-        <span
-          role="button"
-          tabIndex={0}
-          title="Click to edit formula"
-          onClick={() => {
-            setDraft(latex);
-            setEditing(true);
-          }}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+      {shown}
+      {block && !editing && (
+        <span className="dk-math-tip" aria-hidden="true">
+          Click to edit formula
+        </span>
+      )}
+      {editing && (
+        <span className="dk-math-edit" role="dialog" aria-label="Formula">
+          <span className="dk-math-title">Formula</span>
+          <textarea
+            ref={input}
+            className="dk-math-input"
+            value={draft}
+            rows={block ? 3 : 2}
+            spellCheck={false}
+            aria-label="LaTeX formula"
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' || (e.key === 'Enter' && (!block || e.metaKey || e.ctrlKey))) {
+                e.preventDefault();
+                commit();
+              }
+            }}
+          />
+          {live?.html && (
+            <span
+              className="dk-math-live"
+              aria-label="Result"
+              contentEditable={false}
+              dangerouslySetInnerHTML={{ __html: live.html }}
+            />
+          )}
+          {live?.error && (
+            <span className="dk-math-err" role="alert">
+              The formula cannot be read: {live.error}
+            </span>
+          )}
+          <span className="dk-math-hint">
+            {block && <kbd>Ctrl</kbd>} <kbd>Enter</kbd> to apply, <kbd>Esc</kbd> to close
+          </span>
+        </span>
       )}
     </NodeViewWrapper>
   );
@@ -130,9 +174,13 @@ export const MathBlock = Node.create({
     return [{ tag: 'div[data-math-block]', getAttrs: (el) => ({ latex: (el as HTMLElement).dataset.latex ?? '' }) }];
   },
 
-  renderHTML({ node }) {
+  renderHTML({ node, HTMLAttributes }) {
     const latex = (node.attrs as { latex: string }).latex;
-    return ['div', mergeAttributes({ 'data-math-block': '', 'data-latex': latex }), `$$${latex}$$`];
+    return [
+      'div',
+      mergeAttributes(dataOnly(HTMLAttributes), { 'data-math-block': '', 'data-latex': latex }),
+      `$$${latex}$$`,
+    ];
   },
 
   renderText({ node }) {

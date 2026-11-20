@@ -78,7 +78,8 @@ async fn test_versions_diff_restore_and_stale_base() {
     let versions = read(&mcp, "versions", json!({"page_id": page["id"]})).await;
     let numbers: Vec<&Value> = versions.as_array().expect("a list").iter().map(|v| &v["version"]).collect();
     assert_eq!(numbers, [&json!(2), &json!(1)]);
-    assert_eq!(read(&mcp, "version", json!({"page_id": page["id"], "version": 1})).await["markdown"], "## A\nold");
+    // an old version reads as Markdown: the editor's projection of the rich page (a blank line after a heading)
+    assert_eq!(read(&mcp, "version", json!({"page_id": page["id"], "version": 1})).await["markdown"], "## A\n\nold");
     let diff = read(&mcp, "version", json!({"page_id": page["id"], "version": 1, "compare_to": 2})).await;
     assert_eq!((&diff["added"], &diff["removed"]), (&json!(1), &json!(1)));
     let refused = call_err(

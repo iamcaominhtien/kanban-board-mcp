@@ -35,6 +35,10 @@ describe('invalidation topics', () => {
     expect(topicsOf('{"type": "comment_added", "ticket_id": "KAN-1", "comment_id": "c1"}')).toEqual(['comments']);
   });
 
+  it('refetches the Docs queries, suggestions among them, when an AI team changes suggestions', () => {
+    expect(topicsOf('{"type": "docs_suggestions", "page_id": "p1"}')).toEqual(['docs']);
+  });
+
   it('maps the tickets and docs topics to their queries only', () => {
     const keys = keysFor(new Set(['tickets', 'docs']))!;
     expect(keys).toContainEqual(['ticket']);

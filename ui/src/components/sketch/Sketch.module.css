@@ -875,15 +875,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 12px;
+  padding: 8px;
   background: #fff;
   min-height: 80px;
 }
+/* the drawing fills the card's width (Embeds 49), up to 520 px high */
 .embedStage img {
   display: block;
-  max-width: 100%;
+  width: 100%;
   max-height: 520px;
-  width: auto;
+  object-fit: contain;
   height: auto;
   border-radius: 0;
   cursor: zoom-in;
@@ -893,16 +894,16 @@
 }
 .toolbar {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 12px;
+  right: 12px;
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 3px;
+  gap: 1px;
+  padding: 3px 4px;
   background: #fff;
   border: 1px solid #e3e8e5;
   border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(37, 61, 44, 0.12);
+  box-shadow: 0 8px 24px rgba(30, 42, 34, 0.13);
   opacity: 0;
   pointer-events: none;
   z-index: 2;
@@ -921,14 +922,16 @@
 .tbBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 30px;
+  justify-content: center;
+  gap: 5px;
+  min-width: 26px;
+  min-height: 28px;
   padding: 0 9px;
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #3f4b45;
-  font: 500 13px var(--font-body);
+  color: #3a4a3e;
+  font: 600 12px var(--font-body);
   cursor: pointer;
   text-decoration: none;
 }
@@ -946,26 +949,27 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  border-top: 1px solid #eef2ef;
-  background: #fafcfa;
-  font: 400 13px var(--font-body);
+  padding: 8px 14px;
+  border-top: 1px solid #eef3ef;
+  background: #fbfcfb;
+  font: 400 12px var(--font-body);
   color: #5b6b60;
 }
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 6px;
-  background: #ece8fb;
-  color: #5a49c2;
-  font: 600 12px var(--font-body);
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: #efeafb;
+  color: #5b4bb5;
+  font: 700 11.5px var(--font-body);
   white-space: nowrap;
 }
 .embedName {
   color: #1e2a22;
+  font-size: 12.5px;
   font-weight: 600;
   min-width: 0;
   overflow: hidden;
@@ -976,19 +980,26 @@
   margin-left: auto;
   white-space: nowrap;
 }
+/* not found (Embeds 52): a 130 px panel, its icon, the title and the alt text, centred */
 .embedState {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 16px 18px;
+  min-height: 130px;
+  box-sizing: border-box;
+  padding: 12px 20px;
+  background: #f6faf7;
+  text-align: center;
+  color: #3a4a3e;
 }
 .embedStateTitle {
-  font: 700 14px var(--font-body);
+  font: 700 13px var(--font-body);
   color: #1e2a22;
 }
 .embedStateText {
-  font: 400 13px/1.5 var(--font-body);
+  font: 400 12px/1.45 var(--font-body);
   color: #5b6b60;
 }
 .skeleton {

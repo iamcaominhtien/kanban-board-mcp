@@ -13,16 +13,25 @@ interface DeleteDialogProps {
   onDeleted: (count: number) => void;
 }
 
+// the rows of the Tree board's lists (frame 37): 34 high, 2 8 2 6, 6 px gaps, the tag 11.5 #5B6B60
 const rowBase: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 9,
-  padding: '8px 12px',
-  borderBottom: '1px solid #EEF3EF',
+  gap: 6,
+  minHeight: 34,
+  boxSizing: 'border-box',
+  padding: '2px 8px 2px 6px',
   fontSize: 13,
-  color: '#1E2A22',
+  fontWeight: 500,
+  color: '#3A4A3E',
 };
-const roleTag: React.CSSProperties = { marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' };
+const roleTag: React.CSSProperties = { marginLeft: 'auto', fontSize: 11.5, fontWeight: 400, color: '#5B6B60' };
+const listBox: React.CSSProperties = {
+  border: '1px solid #E3EAE5',
+  borderRadius: 9,
+  background: '#FFFFFF',
+  overflow: 'hidden',
+};
 
 /**
  * Confirm moving a page and its sub-pages to the Recycle Bin.
@@ -57,10 +66,10 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
 
   return (
     <ModalShell
+      boardFrame
       width={540}
       ariaLabel="Delete page"
       icon="i12"
-      iconTone="red"
       title={<>Delete “{page.title}”?</>}
       subtitle={
         children > 0
@@ -68,7 +77,7 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
           : 'Moves the page to the Recycle Bin'
       }
       onClose={onClose}
-      bodyStyle={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}
+      bodyStyle={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}
       footer={
         <>
           <Spacer />
@@ -77,18 +86,17 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
           </button>
           <button
             type="button"
-            className="st-btn st-btn-danger"
+            className="st-btn st-btn-danger-outline"
             data-testid="confirm-delete"
             disabled={del.isPending || preview.isLoading}
             onClick={() => void confirm()}
           >
-            <Icon name="i12" size={14} />
             {del.isPending ? 'Deleting…' : count > 1 ? `Delete ${count} pages` : 'Delete page'}
           </button>
         </>
       }
     >
-      <div style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}>
+      <div style={listBox}>
         {pages.map((p) => {
           const isThis = p.role === 'this';
           return (
@@ -96,11 +104,12 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
               key={p.id}
               style={{
                 ...rowBase,
-                fontWeight: isThis ? 700 : 600,
-                paddingLeft: isThis ? 12 : 30,
+                fontWeight: isThis ? 700 : 500,
+                color: isThis ? '#1E2A22' : '#3A4A3E',
+                paddingLeft: isThis ? 6 : 24,
               }}
             >
-              <span style={{ display: 'flex', color: isThis ? '#C4432A' : '#9AA8A0' }}>
+              <span style={{ display: 'flex', width: 20, justifyContent: 'center', color: '#5B6B60' }}>
                 <Icon name="i00" size={15} strokeWidth={1.8} />
               </span>
               {p.title}
@@ -108,29 +117,25 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
             </div>
           );
         })}
-        {count > 1 && (
-          <div style={{ padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#5B6B60', background: '#F6FAF7' }}>
-            {count} pages in total
-          </div>
-        )}
       </div>
+      {count > 1 && <div style={{ fontSize: 12.5, fontWeight: 700, color: '#5B6B60' }}>{count} pages in total</div>}
       {linking > 0 && (
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '10px 12px',
+            alignItems: 'flex-start',
+            gap: 8,
+            padding: '8px 11px',
             borderRadius: 8,
-            background: '#FBE7E4',
-            border: '1px solid #F0C4B8',
-            fontSize: 13,
-            color: '#1E2A22',
-            lineHeight: 1.45,
+            background: '#FDF3E3',
+            border: '1px solid #EBD3A4',
+            fontSize: 12.5,
+            color: '#8A5A00',
+            lineHeight: 1.5,
           }}
         >
-          <span style={{ color: '#C4432A', display: 'flex' }}>
-            <Icon name="i14" size={16} strokeWidth={2} />
+          <span style={{ display: 'flex', marginTop: 2 }}>
+            <Icon name="i14" size={14} strokeWidth={2} />
           </span>
           <span>
             <b style={{ fontWeight: 700 }}>
@@ -141,14 +146,14 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
         </div>
       )}
       {(linkingRows.length > 0 || linkingTickets > 0) && (
-        <div style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }} data-testid="delete-linking">
+        <div style={listBox} data-testid="delete-linking">
           {linkingRows.map((r) => (
             <div key={r.pageId} style={rowBase}>
-              <span style={{ display: 'flex', color: '#9AA8A0' }}>
+              <span style={{ display: 'flex', width: 20, justifyContent: 'center', color: '#5B6B60' }}>
                 <Icon name="i00" size={15} strokeWidth={1.8} />
               </span>
-              <b style={{ fontWeight: 600 }}>{r.title}</b>
-              <span style={{ fontSize: 12, color: '#9AA8A0' }}>{r.parent ?? projectName}</span>
+              <b style={{ fontWeight: 600, color: '#1E2A22' }}>{r.title}</b>
+              <span style={{ fontSize: 12, color: '#5B6B60' }}>{r.parent ?? projectName}</span>
               <span style={roleTag}>{plural(r.count, 'link')}</span>
             </div>
           ))}
@@ -169,7 +174,7 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
           Nothing is rewritten. Restoring the page from the Recycle Bin makes every link work again.
         </div>
       )}
-      <div style={{ fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
+      <div style={{ fontSize: 12.5, lineHeight: 1.55, color: '#3A4A3E' }}>
         Kept in the Recycle Bin for 30 days, then deleted forever; restoring brings back the whole tree.
       </div>
       {error && (

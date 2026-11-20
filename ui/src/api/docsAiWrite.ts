@@ -112,6 +112,26 @@ export interface SinceViewedPage {
   fromVersion: number;
   toVersion: number;
   line: string | null;
+  /** Who published the page last, and when. */
+  by?: string;
+  at?: string;
+  /** What changed block by block (a rich page); null for a Markdown page. */
+  blocks?: SinceViewedBlocks | null;
+}
+
+/** The blocks of a page that changed since the person saw it (`blocks` of a digest row). */
+export interface SinceViewedBlocks {
+  edited: number;
+  added: number;
+  removed: number;
+  /** The edited and added blocks in page order (at most 12); empty for a new page. */
+  blocks: {
+    blockId: string | null;
+    type: string;
+    level: number | null;
+    n: number | null;
+    change: 'edited' | 'added';
+  }[];
 }
 
 export interface TidyOptionsBody {

@@ -1,0 +1,3 @@
+***bold italic*** and **bold with *italic* inside** and *italic with **bold** inside*.
+
+**bold with `code` inside** and ~~strike with **bold**~~ and [**bold link**](https://example.com).

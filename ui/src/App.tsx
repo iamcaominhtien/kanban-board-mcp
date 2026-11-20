@@ -35,6 +35,7 @@ import { pendingTarget, STATUS_NAMES, useMarkerActions } from './hooks/useMarker
 import { useSSEInvalidation } from './hooks/useSSEInvalidation';
 import { useBackendStatus } from './hooks/useBackendStatus';
 import { useTheme } from './hooks/useTheme';
+import { DOCS_SIDEBAR_DRAWER_BELOW, useNarrowWindow } from './hooks/useDocsLayout';
 import { extractError } from './api/extractError';
 import { useToast } from './components/Toast';
 import { LoadingPill } from './components/LoadingPill';
@@ -177,6 +178,12 @@ export default function App() {
   );
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
+  // the Recycle Bin row under the Docs page tree (DocsView's OPEN_RECYCLE_BIN_EVENT)
+  useEffect(() => {
+    const open = () => setRecycleBinOpen(true);
+    window.addEventListener('kb:open-recycle-bin', open);
+    return () => window.removeEventListener('kb:open-recycle-bin', open);
+  }, []);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
   // Settings page (null = closed); `?settings=<page>` opens it on that page
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(() => {
@@ -891,6 +898,47 @@ export default function App() {
     !(aiPage && currentProjectId && !noProjects) &&
     !noProjects &&
     !(activeBoard === 'idea' && !boardLoadState);
+  // Docs on a narrow window (tablet, phone): the project sidebar hides behind a menu button and opens as a drawer
+  const narrowWindow = useNarrowWindow(DOCS_SIDEBAR_DRAWER_BELOW);
+  const sidebarAsDrawer = narrowWindow && boardShown && viewMode === 'docs';
+  const [sidebarDrawer, setSidebarDrawer] = useState(false);
+  // a Docs page reading in focus has no app chrome: the sidebar steps aside too (Reader 1, 4)
+  const [docsFocus, setDocsFocus] = useState(false);
+  useEffect(() => {
+    if (!sidebarAsDrawer) setSidebarDrawer(false);
+  }, [sidebarAsDrawer]);
+  useEffect(() => {
+    if (!sidebarDrawer) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarDrawer(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sidebarDrawer]);
+
+  const closeSidebarThen = (then: () => void) => {
+    setSidebarDrawer(false);
+    then();
+  };
+  const sidebarProps: Parameters<typeof SidebarWithAssist>[0] = {
+    projectId: currentProjectId,
+    projects: apiProjects,
+    currentProjectId,
+    onSelectProject: handleSelectProject,
+    onCreateProject: handleCreateProject,
+    onDeleteProject: handleDeleteProject,
+    onUpdateProject: handleUpdateProject,
+    onOpenRecycleBin: () => setRecycleBinOpen(true),
+    onOpenMembers: () => setMembersPanelOpen(true),
+    memberCounts: { humans: humanMembers.length, ai: aiMemberCount },
+    ideaInbox,
+    onOpenSettings: () => openSettings(),
+    wontDoCount: wontDoTickets.length,
+    activeBoard,
+    onBoardChange: setActiveBoard,
+    loadState: projectsPhase ? 'loading' : projectsError ? 'error' : noProjects ? 'empty' : undefined,
+    onRetryProjects: () => void projectsQuery.refetch(),
+  };
 
   return (
     <BoardProviders
@@ -961,25 +1009,25 @@ export default function App() {
                 onView={showMenuView}
               />
               <AssistOverlays />
-              <SidebarWithAssist
-                projectId={currentProjectId}
-                projects={apiProjects}
-                currentProjectId={currentProjectId}
-                onSelectProject={handleSelectProject}
-                onCreateProject={handleCreateProject}
-                onDeleteProject={handleDeleteProject}
-                onUpdateProject={handleUpdateProject}
-                onOpenRecycleBin={() => setRecycleBinOpen(true)}
-                onOpenMembers={() => setMembersPanelOpen(true)}
-                memberCounts={{ humans: humanMembers.length, ai: aiMemberCount }}
-                ideaInbox={ideaInbox}
-                onOpenSettings={() => openSettings()}
-                wontDoCount={wontDoTickets.length}
-                activeBoard={activeBoard}
-                onBoardChange={setActiveBoard}
-                loadState={projectsPhase ? 'loading' : projectsError ? 'error' : noProjects ? 'empty' : undefined}
-                onRetryProjects={() => void projectsQuery.refetch()}
-              />
+              {!sidebarAsDrawer && !(docsFocus && boardShown && viewMode === 'docs') && (
+                <SidebarWithAssist {...sidebarProps} />
+              )}
+              {sidebarAsDrawer && sidebarDrawer && (
+                <div className="kb-sidebar-drawer" data-testid="sidebar-drawer">
+                  <div className="kb-sidebar-scrim" aria-hidden="true" onClick={() => setSidebarDrawer(false)} />
+                  <div role="dialog" aria-modal="true" aria-label="Projects" className="kb-sidebar-panel">
+                    <SidebarWithAssist
+                      {...sidebarProps}
+                      // whatever the sidebar opens, the drawer closes over it
+                      onSelectProject={(id) => closeSidebarThen(() => handleSelectProject(id))}
+                      onOpenRecycleBin={() => closeSidebarThen(() => setRecycleBinOpen(true))}
+                      onOpenMembers={() => closeSidebarThen(() => setMembersPanelOpen(true))}
+                      onOpenSettings={() => closeSidebarThen(() => openSettings())}
+                      onBoardChange={(b) => closeSidebarThen(() => setActiveBoard(b))}
+                    />
+                  </div>
+                </div>
+              )}
               {/* The Board AI dock sits on the right edge; the page leaves its width free so nothing hides under it */}
               <div
                 role="main"
@@ -1096,9 +1144,11 @@ export default function App() {
                           onViewModeChange={setViewMode}
                           docsRequestedPageId={docsRequest}
                           onDocsRequestHandled={() => setDocsRequest(null)}
+                          onOpenSidebar={sidebarAsDrawer ? () => setSidebarDrawer(true) : undefined}
                           onOpenSettings={() => setSettingsTarget({ page: 'docs' })}
                           onOpenAiMember={(id) => setAiPage({ memberId: id, key: Date.now() })}
                           onOpenDocsPage={openDocsPage}
+                          onDocsFocusChange={setDocsFocus}
                           members={members}
                           activeAssignee={activeAssignee}
                           onAssigneeChange={setActiveAssignee}
@@ -1127,7 +1177,9 @@ export default function App() {
                           }
                           headerExtra={
                             <>
-                              <BoardHealthChip />
+                              {/* the Docs header is the design's: the title, the views and New Ticket, with Ask AI and
+                                  the bell carried over; Board health belongs to the board */}
+                              {viewMode !== 'docs' && <BoardHealthChip />}
                               <KeepAwakeChip />
                               <AskAiButton />
                               <NotificationBellButton />

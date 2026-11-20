@@ -22,15 +22,16 @@ export function pageStats(page: DocsPage): DocsPageStats | null {
  * @param pageId - Page being renamed.
  * @param title - Proposed new title (trimmed; blank disables the query).
  * @param enabled - Set false to skip fetching.
+ * @param withMentions - Also list the plain-text mentions of the current title in other pages.
  */
-export function useRenamePreview(pageId: string, title: string, enabled = true) {
+export function useRenamePreview(pageId: string, title: string, enabled = true, withMentions = false) {
   const t = title.trim();
   return useQuery({
-    queryKey: ['docs', 'rename-preview', pageId, t] as const,
+    queryKey: ['docs', 'rename-preview', pageId, t, withMentions] as const,
     queryFn: async () =>
       (
         await client.get<RenamePreview>(`/docs/pages/${pageId}/rename-preview`, {
-          params: { title: t },
+          params: withMentions ? { title: t, mentions: true } : { title: t },
         })
       ).data,
     enabled: enabled && !!pageId && !!t,
@@ -42,11 +43,18 @@ export function useRenamePreview(pageId: string, title: string, enabled = true) 
 export function useRenameWithLinks(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { pageId: string; title: string; rewriteLinks: boolean }) =>
+    mutationFn: async (v: {
+      pageId: string;
+      title: string;
+      rewriteLinks: boolean;
+      /** The plain-text mentions to change with the rename (blocks of other pages). */
+      rewriteMentions?: { pageId: string; blockId: string }[];
+    }) =>
       (
         await client.patch<RenamedPage>(`/docs/pages/${v.pageId}`, {
           title: v.title,
           rewriteLinks: v.rewriteLinks,
+          ...(v.rewriteMentions?.length ? { rewriteMentions: v.rewriteMentions } : {}),
         })
       ).data,
     onSuccess: () => {
@@ -98,13 +106,51 @@ export function useBacklinksEx(pageId: string | null) {
   });
 }
 
+/** Where Docs health's Relink points a group of broken links. */
+export interface LinkFixTo {
+  pageId: string;
+  /** A heading of that page, by its text. */
+  section?: string | null;
+  /** A heading or block of that page, by its id. */
+  blockId?: string | null;
+  blockLabel?: string | null;
+}
+
+/** `POST /projects/{id}/docs/links/fix`: what changed. */
+export interface LinkFixResult {
+  links: number;
+  pages: number;
+  changed: { pageId: string; title: string; links: number; version: number }[];
+  skipped: { pageId: string; title: string; reason: string }[];
+}
+
+/**
+ * Mutation: fix a group of broken links in the pages that hold them (RichDocsLinks G 40): relink them, or remove them
+ * and keep their words. Each changed page gets a new version.
+ */
+export function useFixLinks(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      page: string;
+      anchor: string | null;
+      pages: string[];
+      action: 'relink' | 'remove';
+      to?: LinkFixTo;
+    }) => (await client.post<LinkFixResult>(`/projects/${projectId}/docs/links/fix`, v)).data,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['docs'] }),
+  });
+}
+
 /** Mutations to link and unlink a ticket and a page. */
 export function useLinkTicketDoc(ticketId: string) {
   const qc = useQueryClient();
   const done = () => void qc.invalidateQueries({ queryKey: ['docs'] });
   const link = useMutation({
-    mutationFn: async (pageId: string) => {
-      await client.post(`/tickets/${ticketId}/docs`, { pageId });
+    /** A page, or a heading or block of it (`blockId`, Link a doc H 48). */
+    mutationFn: async (target: string | { pageId: string; blockId?: string | null }) => {
+      const body = typeof target === 'string' ? { pageId: target } : target;
+      await client.post(`/tickets/${ticketId}/docs`, body.blockId ? body : { pageId: body.pageId });
     },
     onSuccess: done,
   });

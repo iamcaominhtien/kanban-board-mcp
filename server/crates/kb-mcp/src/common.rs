@@ -251,6 +251,11 @@ pub fn arg_list(args: &Map<String, Value>, name: &str) -> Option<Vec<Value>> {
     args.get(name).and_then(Value::as_array).cloned()
 }
 
+/// An object argument (`None` when left out, null or not an object).
+pub fn arg_object(args: &Map<String, Value>, name: &str) -> Option<Map<String, Value>> {
+    args.get(name).and_then(Value::as_object).cloned()
+}
+
 /// A list of texts argument (`None` when left out or null).
 pub fn arg_strings(args: &Map<String, Value>, name: &str) -> Option<Vec<String>> {
     args.get(name)
@@ -334,8 +339,28 @@ pub fn loads(value: &str) -> Vec<Value> {
     }
 }
 
-/// The few fields needed to triage a list of tickets.
+/// The few fields needed to triage a list of tickets; those that say nothing (null, empty, false, a count of 0) are
+/// left out, so a long list costs the agent only what it can use.
 pub fn ticket_summary(ticket: &ticket::Model) -> Value {
+    let says_something = |value: &Value| match value {
+        Value::Null => false,
+        Value::Bool(flag) => *flag,
+        Value::Number(n) => n.as_f64() != Some(0.0),
+        Value::String(text) => !text.is_empty(),
+        Value::Array(items) => !items.is_empty(),
+        // a tally {done, total}: shown when there is something to count
+        Value::Object(tally) => tally.get("total").is_some_and(|t| t.as_u64() != Some(0)),
+    };
+    match full_summary(ticket) {
+        Value::Object(fields) => {
+            Value::Object(fields.into_iter().filter(|(name, value)| name == "id" || says_something(value)).collect())
+        }
+        other => other,
+    }
+}
+
+/// Every field of the summary, empty or not.
+fn full_summary(ticket: &ticket::Model) -> Value {
     let acs = loads(&ticket.acceptance_criteria);
     let tcs = loads(&ticket.test_cases);
     json!({
@@ -428,8 +453,23 @@ pub async fn resolve_item(
         }
     }
     let shown_key = if matches!(kind, "test_case" | "branch") { keys[keys.len() - 1] } else { "id" };
-    let existing: Vec<String> =
-        items.iter().take(20).map(|item| pyjson::py_str(item.get(shown_key).unwrap_or(&Value::Null))).collect();
+    // a criterion or sub-task by its id and the start of its text, so the agent can tick the right one
+    let existing: Vec<String> = items
+        .iter()
+        .take(20)
+        .map(|item| {
+            let key = pyjson::py_str(item.get(shown_key).unwrap_or(&Value::Null));
+            match item.get("text").and_then(Value::as_str).filter(|_| matches!(kind, "criterion" | "sub_task")) {
+                Some(text) => {
+                    let line = text.lines().next().unwrap_or_default();
+                    let start: String = line.chars().take(40).collect();
+                    let more = if line.chars().count() > 40 || line.len() < text.len() { "…" } else { "" };
+                    format!("{key} (\"{start}{more}\")")
+                }
+                None => key,
+            }
+        })
+        .collect();
     let shown = if existing.is_empty() { "none".to_string() } else { existing.join(", ") };
     Err(ToolError::Value(format!(
         "{label} '{reference}' not found on {ticket_id}. Existing: {shown}. Call get_ticket('{ticket_id}') to see the \

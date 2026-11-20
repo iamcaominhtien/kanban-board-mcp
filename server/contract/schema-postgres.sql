@@ -1050,6 +1050,7 @@ CREATE TABLE docs_comment_thread (
 	created_at VARCHAR NOT NULL, 
 	resolved_by VARCHAR, 
 	resolved_at VARCHAR, 
+	anchor_block_id VARCHAR, 
 	PRIMARY KEY (id)
 );
 
@@ -1065,10 +1066,61 @@ CREATE TABLE docs_draft (
 	saves INTEGER NOT NULL, 
 	updated_at VARCHAR NOT NULL, 
 	ai_source VARCHAR, 
+	format VARCHAR DEFAULT 'md' NOT NULL, 
+	content VARCHAR, 
+	text VARCHAR, 
 	PRIMARY KEY (id)
 );
 
 CREATE INDEX ix_docs_draft_page_id ON docs_draft (page_id);
+
+CREATE TABLE docs_export (
+	id VARCHAR NOT NULL, 
+	project_id VARCHAR NOT NULL, 
+	page_id VARCHAR, 
+	scope VARCHAR NOT NULL, 
+	format VARCHAR NOT NULL, 
+	options VARCHAR, 
+	state VARCHAR DEFAULT 'running' NOT NULL, 
+	step VARCHAR, 
+	file_path VARCHAR, 
+	file_name VARCHAR, 
+	size INTEGER, 
+	error VARCHAR, 
+	created_by VARCHAR NOT NULL, 
+	created_at VARCHAR NOT NULL, 
+	finished_at VARCHAR, 
+	expires_at VARCHAR, 
+	PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_docs_export_project_id ON docs_export (project_id);
+
+CREATE INDEX ix_docs_export_page_id ON docs_export (page_id);
+
+CREATE TABLE docs_highlight (
+	id VARCHAR NOT NULL, 
+	page_id VARCHAR NOT NULL, 
+	block_id VARCHAR NOT NULL, 
+	start_offset INTEGER NOT NULL, 
+	end_offset INTEGER NOT NULL, 
+	end_block_id VARCHAR, 
+	quote VARCHAR NOT NULL, 
+	prefix VARCHAR, 
+	suffix VARCHAR, 
+	color VARCHAR NOT NULL, 
+	author VARCHAR NOT NULL, 
+	created_at VARCHAR NOT NULL, 
+	thread_id VARCHAR, 
+	state VARCHAR DEFAULT 'ok' NOT NULL, 
+	deleted_at VARCHAR, 
+	deleted_by VARCHAR, 
+	PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_docs_highlight_page_id ON docs_highlight (page_id);
+
+CREATE INDEX ix_docs_highlight_thread_id ON docs_highlight (thread_id);
 
 CREATE TABLE docs_link (
 	id VARCHAR NOT NULL, 
@@ -1081,6 +1133,8 @@ CREATE TABLE docs_link (
 	display_text VARCHAR, 
 	snippet VARCHAR NOT NULL, 
 	origin VARCHAR NOT NULL, 
+	source_block_id VARCHAR, 
+	target_block_id VARCHAR, 
 	PRIMARY KEY (id)
 );
 
@@ -1107,6 +1161,9 @@ CREATE TABLE docs_page (
 	deleted_by VARCHAR, 
 	deleted_root_id VARCHAR, 
 	kind VARCHAR NOT NULL, 
+	settings VARCHAR, 
+	convert_state VARCHAR, 
+	convert_error VARCHAR, 
 	PRIMARY KEY (id)
 );
 
@@ -1124,6 +1181,70 @@ CREATE TABLE docs_page_seen (
 );
 
 CREATE INDEX ix_docs_page_seen_page_id ON docs_page_seen (page_id);
+
+CREATE TABLE docs_public_link (
+	id VARCHAR NOT NULL, 
+	page_id VARCHAR NOT NULL, 
+	token VARCHAR NOT NULL, 
+	created_by VARCHAR NOT NULL, 
+	created_at VARCHAR NOT NULL, 
+	expires_at VARCHAR, 
+	show_names BOOLEAN DEFAULT false NOT NULL, 
+	allow_index BOOLEAN DEFAULT false NOT NULL, 
+	revoked_at VARCHAR, 
+	PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX ix_docs_public_link_token ON docs_public_link (token);
+
+CREATE INDEX ix_docs_public_link_page_id ON docs_public_link (page_id);
+
+CREATE TABLE docs_suggestion (
+	id VARCHAR NOT NULL, 
+	page_id VARCHAR NOT NULL, 
+	block_id VARCHAR, 
+	after_block_id VARCHAR, 
+	kind VARCHAR NOT NULL, 
+	content VARCHAR, 
+	"before" VARCHAR, 
+	base_version INTEGER NOT NULL, 
+	author VARCHAR NOT NULL, 
+	member_id VARCHAR, 
+	run_id VARCHAR, 
+	note VARCHAR, 
+	state VARCHAR DEFAULT 'pending' NOT NULL, 
+	decided_by VARCHAR, 
+	decided_at VARCHAR, 
+	created_at VARCHAR NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_docs_suggestion_page_id ON docs_suggestion (page_id);
+
+CREATE INDEX ix_docs_suggestion_member_id ON docs_suggestion (member_id);
+
+CREATE INDEX ix_docs_suggestion_run_id ON docs_suggestion (run_id);
+
+CREATE TABLE docs_template (
+	id VARCHAR NOT NULL, 
+	project_id VARCHAR, 
+	owner VARCHAR NOT NULL, 
+	name VARCHAR NOT NULL, 
+	description VARCHAR, 
+	category VARCHAR, 
+	keeps VARCHAR DEFAULT 'content' NOT NULL, 
+	scope VARCHAR DEFAULT 'me' NOT NULL, 
+	content VARCHAR NOT NULL, 
+	settings VARCHAR, 
+	used_count INTEGER DEFAULT 0 NOT NULL, 
+	created_at VARCHAR NOT NULL, 
+	updated_at VARCHAR NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_docs_template_project_id ON docs_template (project_id);
+
+CREATE INDEX ix_docs_template_owner ON docs_template (owner);
 
 CREATE TABLE docs_title_aliases (
 	id VARCHAR NOT NULL, 
@@ -1145,6 +1266,9 @@ CREATE TABLE docs_version (
 	created_at VARCHAR NOT NULL, 
 	diagram_versions VARCHAR NOT NULL, 
 	with_ai BOOLEAN NOT NULL, 
+	format VARCHAR DEFAULT 'md' NOT NULL, 
+	content VARCHAR, 
+	text VARCHAR, 
 	PRIMARY KEY (id)
 );
 
@@ -1460,6 +1584,7 @@ CREATE TABLE project (
 	worktree_by_default BOOLEAN NOT NULL, 
 	docs_enabled BOOLEAN NOT NULL, 
 	docs_edit_policy VARCHAR NOT NULL, 
+	docs_settings VARCHAR, 
 	PRIMARY KEY (id), 
 	UNIQUE (prefix)
 );

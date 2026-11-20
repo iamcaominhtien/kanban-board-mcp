@@ -37,18 +37,6 @@
           ]
         },
         {
-          "type": "del",
-          "text": "first!",
-          "old_no": 2,
-          "new_no": null,
-          "words": [
-            {
-              "text": "first!",
-              "changed": true
-            }
-          ]
-        },
-        {
           "type": "add",
           "text": "## B",
           "old_no": null,
@@ -69,13 +57,31 @@
           ]
         },
         {
-          "type": "add",
-          "text": "[Needs input: who?] and [Needs input]",
-          "old_no": null,
-          "new_no": 2,
+          "type": "same",
+          "text": "",
+          "old_no": 2,
+          "new_no": 2
+        },
+        {
+          "type": "del",
+          "text": "first!",
+          "old_no": 3,
+          "new_no": null,
           "words": [
             {
-              "text": "[Needs",
+              "text": "first!",
+              "changed": true
+            }
+          ]
+        },
+        {
+          "type": "add",
+          "text": "\\[Needs input: who?\\] and \\[Needs input\\]",
+          "old_no": null,
+          "new_no": 3,
+          "words": [
+            {
+              "text": "\\[Needs",
               "changed": true
             },
             {
@@ -91,7 +97,7 @@
               "changed": true
             },
             {
-              "text": "who?]",
+              "text": "who?\\]",
               "changed": true
             },
             {
@@ -107,7 +113,7 @@
               "changed": true
             },
             {
-              "text": "[Needs",
+              "text": "\\[Needs",
               "changed": true
             },
             {
@@ -115,7 +121,7 @@
               "changed": true
             },
             {
-              "text": "input]",
+              "text": "input\\]",
               "changed": true
             }
           ]
@@ -127,12 +133,12 @@
         {
           "heading": "A",
           "added": 0,
-          "removed": 2
+          "removed": 1
         },
         {
           "heading": "B",
           "added": 2,
-          "removed": 0
+          "removed": 1
         }
       ]
     }
@@ -164,58 +170,6 @@
           ]
         },
         {
-          "type": "del",
-          "text": "[Needs input: who?] and [Needs input]",
-          "old_no": 2,
-          "new_no": null,
-          "words": [
-            {
-              "text": "[Needs",
-              "changed": true
-            },
-            {
-              "text": " ",
-              "changed": true
-            },
-            {
-              "text": "input:",
-              "changed": true
-            },
-            {
-              "text": " ",
-              "changed": true
-            },
-            {
-              "text": "who?]",
-              "changed": true
-            },
-            {
-              "text": " ",
-              "changed": true
-            },
-            {
-              "text": "and",
-              "changed": true
-            },
-            {
-              "text": " ",
-              "changed": true
-            },
-            {
-              "text": "[Needs",
-              "changed": true
-            },
-            {
-              "text": " ",
-              "changed": true
-            },
-            {
-              "text": "input]",
-              "changed": true
-            }
-          ]
-        },
-        {
           "type": "add",
           "text": "## A",
           "old_no": null,
@@ -236,10 +190,68 @@
           ]
         },
         {
+          "type": "same",
+          "text": "",
+          "old_no": 2,
+          "new_no": 2
+        },
+        {
+          "type": "del",
+          "text": "\\[Needs input: who?\\] and \\[Needs input\\]",
+          "old_no": 3,
+          "new_no": null,
+          "words": [
+            {
+              "text": "\\[Needs",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "input:",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "who?\\]",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "and",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "\\[Needs",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "input\\]",
+              "changed": true
+            }
+          ]
+        },
+        {
           "type": "add",
           "text": "first!",
           "old_no": null,
-          "new_no": 2,
+          "new_no": 3,
           "words": [
             {
               "text": "first!",
@@ -254,12 +266,12 @@
         {
           "heading": "B",
           "added": 0,
-          "removed": 2
+          "removed": 1
         },
         {
           "heading": "A",
           "added": 2,
-          "removed": 0
+          "removed": 1
         }
       ]
     }
@@ -276,6 +288,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -292,6 +309,24 @@
       "draft": {
         "title": "Doc",
         "markdown": "mine",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "mine"
+                }
+              ]
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -322,7 +357,41 @@
       "slug_path": "doc-3",
       "status": "published",
       "version": 2,
-      "markdown": "## B\n[Needs input: who?] and [Needs input]",
+      "markdown": "## B\n\n\\[Needs input: who?\\] and \\[Needs input\\]",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "B"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "[Needs input: who?] and [Needs input]"
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -356,7 +425,41 @@
       "slug_path": "doc-3",
       "status": "published",
       "version": 2,
-      "markdown": "## B\n[Needs input: who?] and [Needs input]",
+      "markdown": "## B\n\n\\[Needs input: who?\\] and \\[Needs input\\]",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "B"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "[Needs input: who?] and [Needs input]"
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -424,6 +527,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -439,7 +547,38 @@
       "kind": "page",
       "draft": {
         "title": "Doc",
-        "markdown": "## A\nfirst",
+        "markdown": "## A\n\nfirst",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:1>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:2>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "first"
+                }
+              ]
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 2,
         "updated_at": "<time>",
@@ -460,6 +599,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -475,7 +619,38 @@
       "kind": "page",
       "draft": {
         "title": "Doc 2",
-        "markdown": "## A\nfirst!",
+        "markdown": "## A\n\nfirst!",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:1>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:2>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "first!"
+                }
+              ]
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 3,
         "updated_at": "<time>",
@@ -618,7 +793,41 @@
       "slug_path": "doc-3",
       "status": "published",
       "version": 2,
-      "markdown": "## B\n[Needs input: who?] and [Needs input]",
+      "markdown": "## B\n\n\\[Needs input: who?\\] and \\[Needs input\\]",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "B"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "[Needs input: who?] and [Needs input]"
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -675,7 +884,41 @@
       "slug_path": "doc-2",
       "status": "published",
       "version": 1,
-      "markdown": "## A\nfirst!",
+      "markdown": "## A\n\nfirst!",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "A"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "first!"
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -768,7 +1011,41 @@
       "slug_path": "doc-2",
       "status": "published",
       "version": 3,
-      "markdown": "## A\nfirst!",
+      "markdown": "## A\n\nfirst!",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "A"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "first!"
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -824,7 +1101,41 @@
       "slug_path": "doc-3",
       "status": "published",
       "version": 4,
-      "markdown": "## B\n[Needs input: who?] and [Needs input]",
+      "markdown": "## B\n\n\\[Needs input: who?\\] and \\[Needs input\\]",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "B"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "[Needs input: who?] and [Needs input]"
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -937,7 +1248,38 @@
     "json": {
       "version": 1,
       "title": "Doc 2",
-      "markdown": "## A\nfirst!",
+      "markdown": "## A\n\nfirst!",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "A"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "first!"
+              }
+            ]
+          }
+        ]
+      },
       "author": "user",
       "note": "first cut",
       "created_at": "<time>",

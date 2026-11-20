@@ -10,10 +10,14 @@ import App from './App.tsx';
 import { DocsWindowApp } from './components/docs/DocsWindowApp';
 import { DatabaseDown } from './components/settings/database/DatabaseDown';
 import { isDocsWindow } from './components/docs/docsWindow';
+import { PublicPageApp } from './components/docs/PublicPageApp';
+import { publicTokenOf } from './components/docs/publicView';
 import './index.css';
 import { installClientLogging } from './utils/clientLog';
 
-installClientLogging();
+// `?public=<token>`: a public page, read without signing in; it asks the server for that page and nothing else
+const publicToken = publicTokenOf();
+if (!publicToken) installClientLogging();
 
 const queryClient = new QueryClient();
 
@@ -25,8 +29,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <SketchProvider>
             <CanvasProvider>
               <PreviewProvider>
-                {isDocsWindow() ? <DocsWindowApp /> : <App />}
-                <DatabaseDown />
+                {publicToken ? (
+                  <PublicPageApp token={publicToken} />
+                ) : (
+                  <>
+                    {isDocsWindow() ? <DocsWindowApp /> : <App />}
+                    <DatabaseDown />
+                  </>
+                )}
               </PreviewProvider>
             </CanvasProvider>
           </SketchProvider>

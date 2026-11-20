@@ -1,0 +1,54 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "A diagram of the flow",
+        "blockId": "b-000001",
+        "src": "/uploads/flow.png"
+      }
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "",
+        "blockId": "b-000002",
+        "src": "/uploads/no-alt.png"
+      }
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "Titled",
+        "blockId": "b-000003",
+        "src": "/uploads/t.png",
+        "title": "The title"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000004"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Inline "
+        },
+        {
+          "type": "image",
+          "attrs": {
+            "alt": "icon",
+            "blockId": "b-000005",
+            "src": "/uploads/icon.png"
+          }
+        },
+        {
+          "type": "text",
+          "text": " in text."
+        }
+      ]
+    }
+  ]
+}

@@ -39,6 +39,51 @@ pub struct PageRename {
     pub title: String,
     #[serde(default)]
     pub rewrite_links: bool,
+    /// The plain-text mentions of the old title to change with the rename (from the rename preview's `mentions`).
+    #[serde(default)]
+    pub rewrite_mentions: Option<Vec<MentionRef>>,
+}
+
+/// A block of a page whose plain-text mentions of a title change.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MentionRef {
+    /// The page.
+    pub page_id: String,
+    /// The block that holds the mention.
+    pub block_id: String,
+}
+
+/// Request body of `POST /projects/{project_id}/docs/links/fix`: one group of broken links and the fix for them.
+#[derive(Debug, Deserialize)]
+pub struct LinkFixBody {
+    /// The page title the links name.
+    pub page: String,
+    /// The heading or block text they name (`None`: the page itself).
+    #[serde(default)]
+    pub anchor: Option<String>,
+    /// The pages whose links change.
+    pub pages: Vec<String>,
+    /// `relink` or `remove`.
+    pub action: String,
+    /// Where `relink` points the links.
+    #[serde(default)]
+    pub to: Option<LinkFixTo>,
+}
+
+/// Where relinked links point.
+#[derive(Debug, Deserialize)]
+pub struct LinkFixTo {
+    /// The page.
+    pub page_id: String,
+    /// A heading of it, by its text.
+    #[serde(default)]
+    pub section: Option<String>,
+    /// A heading or block of it, by its id.
+    #[serde(default)]
+    pub block_id: Option<String>,
+    /// The heading or block's name.
+    #[serde(default)]
+    pub block_label: Option<String>,
 }
 
 /// Request body to move a page.
@@ -64,10 +109,14 @@ pub struct PageDuplicate {
     pub include_children: bool,
 }
 
-/// Request body to save a draft.
+/// Request body to save a draft: the page as rich JSON (`content`, the editor) or as Markdown (`markdown`, older
+/// clients); one of the two is required.
 #[derive(Debug, Deserialize)]
 pub struct DraftSave {
-    pub markdown: String,
+    #[serde(default)]
+    pub markdown: Option<String>,
+    #[serde(default)]
+    pub content: Option<Value>,
     #[serde(default)]
     pub title: Option<String>,
     #[serde(default)]
@@ -94,6 +143,9 @@ pub struct PublishBody {
     pub note: Option<String>,
     #[serde(default)]
     pub markdown: Option<String>,
+    /// The page as rich JSON (wins over `markdown`).
+    #[serde(default)]
+    pub content: Option<Value>,
     #[serde(default)]
     pub title: Option<String>,
     #[serde(default)]
@@ -109,6 +161,14 @@ pub struct RestoreBody {
     pub notify: bool,
 }
 
+/// Request body to change a version's note (`PATCH /docs/pages/{page_id}/versions/{version}`).
+#[derive(Debug, Default, Deserialize)]
+pub struct VersionNoteBody {
+    /// The new note; empty or `null` removes it.
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
 /// Request body listing references to resolve.
 #[derive(Debug, Deserialize)]
 pub struct ResolveBody {
@@ -122,6 +182,9 @@ pub struct ResolveBody {
 #[derive(Debug, Deserialize)]
 pub struct TicketDocBody {
     pub page_id: String,
+    /// A heading or block of the page the link points at (Link a doc, RichDocsLinks H 48).
+    #[serde(default)]
+    pub block_id: Option<String>,
 }
 
 /// Who gets the page, to write it or review it, and what is asked.
@@ -203,4 +266,10 @@ pub struct SendCommentsBody {
 #[derive(Debug, Deserialize)]
 pub struct AnchorPreviewBody {
     pub markdown: String,
+}
+
+/// Request body to change a page's settings.
+#[derive(Debug, Deserialize)]
+pub struct SettingsBody {
+    pub settings: Map<String, Value>,
 }

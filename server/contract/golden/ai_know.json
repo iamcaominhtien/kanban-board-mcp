@@ -1736,9 +1736,9 @@
    [
     "docs-pages",
     {
-     "sha256": "b5be6e5cf6003cc4b423f90548deedb34974055d22170083568e0012c0648895",
-     "chars": 12324,
-     "bytes": 12354
+     "sha256": "8cddd64268c243afe0a238dc112959bd9cfd8b80cbec33ea188b563aab346564",
+     "chars": 23863,
+     "bytes": 23896
     }
    ],
    [
@@ -1800,9 +1800,9 @@
    [
     "docs-comment-threads",
     {
-     "sha256": "ac8b467747b66fb4e6d185d3efe83efce5376d60322df716dc172bba7be122da",
-     "chars": 4173,
-     "bytes": 4177
+     "sha256": "5ea4c6823dea5bb5f8e7719bcd984a5c65ed399b13db6bea999bc184a0db680f",
+     "chars": 4482,
+     "bytes": 4486
     }
    ],
    [
@@ -1975,7 +1975,7 @@
    },
    {
     "name": "docs-pages",
-    "description": "Work in the board's Docs like a person does - write and edit pages (a spec, a decision, a how-to), link them with tickets both ways, format text the editor keeps (headings, tables, highlights, callouts, task lists, code, pictures and files), edit one part of a page safely without rewriting it, comment on a passage and answer a thread, turn a checklist into tickets, give a page to an AI member. Use before you create or change a Docs page, comment on one, or decide whether something belongs on a page, in a ticket comment or in a file of the repository.",
+    "description": "Work in the board's Docs like a person does - write and edit pages (a spec, a decision, a how-to), link them with tickets both ways, read and write pages as Markdown with block ids (headings, tables, highlights, callouts, task lists, code, pictures and files, colours, alignment and placement), edit one block or part of a page safely without rewriting it, know when a change becomes suggestions, comment on a passage and answer a thread, turn a checklist into tickets, give a page to an AI member. Use before you create or change a Docs page, comment on one, or decide whether something belongs on a page, in a ticket comment or in a file of the repository.",
     "role": null,
     "craft_roles": null,
     "always_on": false
@@ -2304,13 +2304,13 @@
     ],
     [
      "skills/docs-comment-threads/SKILL.md",
-     "ac8b467747b66fb4e6d185d3efe83efce5376d60322df716dc172bba7be122da",
-     4177
+     "5ea4c6823dea5bb5f8e7719bcd984a5c65ed399b13db6bea999bc184a0db680f",
+     4486
     ],
     [
      "skills/docs-pages/SKILL.md",
-     "b5be6e5cf6003cc4b423f90548deedb34974055d22170083568e0012c0648895",
-     12354
+     "8cddd64268c243afe0a238dc112959bd9cfd8b80cbec33ea188b563aab346564",
+     23896
     ],
     [
      "skills/drawio-diagrams/SKILL.md",
@@ -3297,8 +3297,8 @@
      ],
      [
       "skills/docs-pages/SKILL.md",
-      "b5be6e5cf6003cc4b423f90548deedb34974055d22170083568e0012c0648895",
-      12354
+      "8cddd64268c243afe0a238dc112959bd9cfd8b80cbec33ea188b563aab346564",
+      23896
      ],
      [
       "skills/role-ba/SKILL.md",

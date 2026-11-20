@@ -231,3 +231,29 @@ select:disabled {
   font-size: 13px;
   color: #1e2a22;
 }
+
+/* Docs on a narrow window: the project sidebar opens as a drawer over the page (App.tsx) */
+.kb-sidebar-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+}
+.kb-sidebar-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.32);
+}
+.kb-sidebar-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(300px, calc(100% - 40px));
+  display: flex;
+  background: #ffffff;
+  box-shadow: 8px 0 24px rgba(30, 42, 34, 0.18);
+}
+.kb-sidebar-panel > * {
+  flex: 1;
+  min-width: 0;
+}

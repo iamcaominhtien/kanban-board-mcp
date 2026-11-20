@@ -1,0 +1,24 @@
+[package]
+name = "kb-docexport"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Rich Docs export: renders TipTap pages to HTML, Markdown, Word and PDF."
+
+[lints]
+workspace = true
+
+[dependencies]
+base64 = { workspace = true }
+docx-rs = { workspace = true }
+image = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+pulldown-latex = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+zip = { workspace = true }

@@ -1,0 +1,2148 @@
+/* ---------- Rich Docs: reading, sharing and print (design board "Rich Docs — reading") ---------- */
+
+/* the reader's settings ("Aa"): a popover on a desktop or a tablet, a sheet on a phone */
+.dk-aa {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+}
+.dk-aa small {
+  font-size: 12px;
+}
+.dk-rs-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 320px;
+  max-height: min(80vh, 640px);
+  overflow-y: auto;
+  z-index: 60;
+  padding: 16px;
+}
+.dk-rs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #1e2a22;
+}
+.dk-rs-head {
+  display: flex;
+  align-items: center;
+}
+.dk-rs-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+}
+.dk-rs-reset {
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.dk-rs-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.dk-rs-label {
+  display: flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5b6b60;
+}
+.dk-rs-value {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #1e2a22;
+}
+.dk-rs-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dk-rs-step {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-rs-step:hover {
+  background: #eaf0ec;
+}
+.dk-rs-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* the slider: a 4 px track filled in green, a 16 px white thumb ringed in green */
+.dk-rs-slider {
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  margin: 0 4px;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.dk-rs-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(to right, #2e6f40 var(--fill, 50%), #dce6df var(--fill, 50%));
+}
+.dk-rs-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 3px;
+  background: #dce6df;
+}
+.dk-rs-slider::-moz-range-progress {
+  height: 4px;
+  border-radius: 3px;
+  background: #2e6f40;
+}
+.dk-rs-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.25);
+  box-sizing: border-box;
+}
+.dk-rs-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.25);
+  box-sizing: border-box;
+}
+.dk-rseg {
+  display: flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 8px;
+  background: #eef3ef;
+}
+.dk-rseg button {
+  flex: 1;
+  min-height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.dk-rseg button[aria-pressed='true'] {
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.14);
+}
+.dk-rs-themes {
+  display: flex;
+  gap: 8px;
+}
+.dk-rs-theme {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-rs-theme[aria-pressed='true'] {
+  font-weight: 700;
+}
+.dk-rs-swatch {
+  width: 100%;
+  height: 46px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Source Serif 4', 'Lora', Georgia, serif;
+  font-size: 18px;
+  font-weight: 600;
+  border: 1px solid #dce3de;
+  box-sizing: border-box;
+}
+.dk-rs-theme[aria-pressed='true'] .dk-rs-swatch {
+  border: 2px solid #2e6f40;
+}
+.dk-rs-theme-white .dk-rs-swatch {
+  background: #ffffff;
+  color: #27322b;
+}
+.dk-rs-theme-sepia .dk-rs-swatch {
+  background: #f4ecd8;
+  color: #3b3024;
+}
+.dk-rs-theme-night .dk-rs-swatch {
+  background: #171d19;
+  color: #d9e2db;
+}
+.dk-rs-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+}
+.dk-rs-switch > span:first-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 11.5px;
+  color: #5b6b60;
+  line-height: 1.4;
+}
+.dk-rs-switch b {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.dk-rs-note {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid #e3e8e5;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #5b6b60;
+}
+/* Reader 15, the phone sheet: padding 8 16 28 (the grab adds 10 below itself), 44 px − and +, 42 px segments, 54 px
+   theme tiles, 44 px switch rows */
+.dk-menu-sheet .dk-rs,
+.dk-overlay .dk-rs {
+  padding: 0 0 28px;
+}
+.dk-sheet-read .dk-sheet-body:has(> [data-popover] > .dk-rs) {
+  padding: 0 16px;
+}
+.dk-sheet-read .dk-sheet-grab:has(+ .dk-sheet-body > [data-popover] > .dk-rs) {
+  padding-bottom: 10px;
+}
+.dk-overlay .dk-rseg button {
+  min-height: 42px;
+}
+.dk-overlay .dk-rs-step {
+  width: 44px;
+  height: 44px;
+}
+.dk-overlay .dk-rs-swatch {
+  height: 54px;
+}
+.dk-overlay .dk-rs-switch {
+  min-height: 44px;
+}
+
+/* justified text, and the reading themes' surfaces (their colours come from readerThemeCss(), screen only) */
+.dk-justify .dk-md p,
+.dk-justify .dk-md li {
+  text-align: justify;
+  hyphens: auto;
+}
+@media screen {
+  .dk-rt-sepia,
+  .dk-rt-night {
+    background: var(--dp-page);
+  }
+  .dk-rt-night .dk-md code:not(pre code) {
+    background: var(--dp-surface);
+    color: var(--rd-c-green);
+  }
+  .dk-rt-night .dk-md table.dk-table th,
+  .dk-rt-night .dk-rich .dk-table-striped tbody tr:nth-child(even) td,
+  .dk-rt-night .dk-rich blockquote.dk-quote-card,
+  .dk-rt-night .dk-rich .dk-embed-card,
+  .dk-rt-sepia .dk-rich .dk-embed-card {
+    background: var(--dp-surface);
+    color: var(--dp-text);
+    border-color: var(--dp-rule);
+  }
+  .dk-rt-night .dk-ph-title,
+  .dk-rt-night .dk-ph-name,
+  .dk-rt-sepia .dk-ph-title {
+    color: var(--dp-ink);
+  }
+  .dk-rt-night .dk-statusrow,
+  .dk-rt-night .dk-ph-byline,
+  .dk-rt-night .dk-ph-eyebrow {
+    color: var(--dp-muted);
+  }
+}
+
+/* menus: a heading line, and two-line entries (Export) */
+.dk-menu-head {
+  padding: 6px 10px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9aa8a0;
+}
+.dk-mi-2line {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  align-items: flex-start;
+}
+.dk-mi-2line b {
+  font-size: 13px;
+  color: #1e2a22;
+}
+.dk-mi-2line span span {
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+
+/* status: the version badge and its popover, the notes under the status row */
+.dk-status-badge {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dk-version-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 340px;
+  z-index: 60;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dk-ai-avatar {
+  background: #efe8fb !important;
+  color: #5b3aa6 !important;
+}
+.dk-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.dk-note-icon {
+  display: flex;
+  flex-shrink: 0;
+}
+.dk-note-text {
+  flex: 1;
+  min-width: 200px;
+}
+.dk-note-amber {
+  background: #fdf3e3;
+  border: 1px solid #ebd3a4;
+  color: #8a5a00;
+}
+.dk-note-blue {
+  background: #e8f1fa;
+  border: 1px solid #c9ddf0;
+  color: #244e78;
+}
+[data-layout='phone'] .dk-note-text {
+  flex-basis: 100%;
+}
+
+/* public link in the Share popover */
+.dk-pl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dk-pl-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #dce3de;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.dk-pl-option b {
+  font-size: 13px;
+  color: #1e2a22;
+}
+.dk-pl-option:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+.dk-pl-option[aria-pressed='true'] {
+  padding: 9px 11px;
+  border: 2px solid #2e6f40;
+  background: #f1f8f3;
+}
+.dk-pl-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #5b6b60;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dk-pl-option[aria-pressed='true'] .dk-pl-radio {
+  border-color: #2e6f40;
+}
+.dk-pl-option[aria-pressed='true'] .dk-pl-radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2e6f40;
+}
+.dk-pl-why {
+  color: #8a5a00;
+  font-weight: 600;
+}
+.dk-pl-on {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dk-pl-url {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #3a4a3e;
+  background: #f6faf7;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.dk-pl-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #5b6b60;
+}
+.dk-pl-select {
+  width: auto;
+  flex-shrink: 0;
+}
+.dk-pl-stop {
+  align-self: flex-start;
+  color: #c4432a;
+}
+.dk-pl-error {
+  margin: 0;
+  font-size: 12.5px;
+  color: #a5321e;
+}
+.dk-pl-confirm {
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(30, 42, 34, 0.22);
+  overflow: hidden;
+}
+.dk-pl-title {
+  display: block;
+  font-size: 16px;
+  color: #1e2a22;
+}
+.dk-pl-points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1e2a22;
+}
+.dk-pl-points li {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+.dk-pl-points li svg {
+  color: #2e6f40;
+  margin-top: 2px;
+}
+
+/* a reference drawn as plain text (the public view) */
+.dk-ref-plain {
+  font-weight: 600;
+  color: var(--dp-ink, #1e2a22);
+}
+
+/* the public view */
+.dk-public {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #1e2a22;
+}
+.dk-public-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 28px;
+  border-bottom: 1px solid #e3e8e5;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+[data-layout='phone'] .dk-public-bar {
+  padding: 0 16px;
+}
+/* the public page's text column: 18 px gutters on a phone, 60 on a tablet (Reader 42-43), as in the app */
+[data-layout='phone'] .dk-public-row .dk-doc-col {
+  width: calc(100% - 36px);
+  padding-top: 18px;
+}
+[data-layout='tablet'] .dk-public-row .dk-doc-col {
+  width: min(var(--dp-col, 680px), calc(100% - 120px));
+}
+.dk-public-brand {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dk-public-brand span {
+  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #66756b;
+}
+.dk-public-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid #c9ddf0;
+  background: #e8f1fa;
+  color: #244e78;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.dk-public-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: #27322b;
+}
+.dk-progress.dk-public-progress {
+  position: relative;
+  top: auto;
+  flex: none;
+}
+.dk-public-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #2e6f40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.dk-public-mark > span {
+  width: 10px;
+  height: 7px;
+  border-radius: 1.5px;
+  background: #f3f8f4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 1.2px;
+  box-sizing: border-box;
+}
+.dk-public-mark i {
+  height: 1px;
+  background: #b7d9c0;
+}
+.dk-public-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.dk-public-from b {
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-public-date {
+  font-size: 12.5px;
+  color: #66756b;
+}
+.dk-public-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.dk-public-row > .dk-page-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+.dk-toc.dk-public-toc {
+  width: 226px;
+  flex-shrink: 0;
+  padding: 60px 36px 24px 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+.dk-public-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  margin-top: 48px;
+  padding: 20px 0 40px;
+  border-top: 1px solid var(--dp-rule, #e3e8e5);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12.5px;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-public-foot > span {
+  flex: 1 1 220px;
+}
+[data-layout='phone'] .dk-public-foot {
+  flex-direction: column;
+  align-items: flex-start;
+}
+[data-layout='phone'] .dk-public-foot > span {
+  flex: none;
+}
+.dk-public-link {
+  border: none;
+  background: none;
+  padding: 6px 0;
+  min-height: 32px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.dk-public-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--dp-text, #3a4a3e);
+}
+.dk-public-empty {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 64px 18px;
+}
+.dk-public-skel {
+  width: min(680px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* a link that is not public (Reader 44-45): a lock in a 56 px circle, a 20 px title, a line and Sign in */
+.dk-public-empty-mid {
+  align-items: center;
+  padding: 24px;
+}
+.dk-public-gone {
+  max-width: 460px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.dk-public-gone-ico {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #eef3ef;
+  color: #5b6b60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dk-public-gone h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+.dk-public-gone p {
+  margin: 0;
+  max-width: 380px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #5b6b60;
+}
+.dk-public-gone .st-btn {
+  margin-top: 6px;
+  text-decoration: none;
+}
+.dk-public-signin {
+  margin-left: auto;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+@media (max-width: 599px) {
+  .dk-public-gone .st-btn {
+    min-height: 44px;
+  }
+}
+
+/* books: the chapter list beside the page, and the footer to the previous and the next page (Reader boards, A) */
+.dk-chapters-side {
+  width: 270px;
+  flex-shrink: 0;
+  padding: 18px 10px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  border-right: 1px solid #e3e8e5;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.dk-chapters {
+  display: flex;
+  flex-direction: column;
+}
+.dk-chapters-book {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 12px 14px;
+}
+.dk-chapters-book .dk-toc-head {
+  margin-bottom: 0;
+}
+.dk-chapters-title {
+  margin-top: 3px;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  font-family: 'Source Serif 4', 'Lora', Georgia, serif;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-chapters-count {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.dk-chapters-at {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.dk-chapters-at > span {
+  display: block;
+  margin-top: 5px;
+}
+.dk-progress.dk-chapters-prog {
+  position: relative;
+  top: auto;
+  height: 4px;
+}
+.dk-chapters-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dk-chapters-list a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #5b6b60;
+  text-decoration: none;
+}
+.dk-overlay .dk-chapters-list a {
+  min-height: 52px;
+  box-sizing: border-box;
+}
+.dk-chapters-list a:hover {
+  background: #f6faf7;
+}
+.dk-chapters-list a[aria-current='page'] {
+  background: #f6faf7;
+  color: #1e2a22;
+  font-weight: 700;
+}
+.dk-chapters-n {
+  width: 18px;
+  flex: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: #5b6b60;
+}
+.dk-chapters-mark {
+  width: 14px;
+  flex: none;
+  display: inline-flex;
+  justify-content: center;
+}
+.dk-chapters-mark i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2e6f40;
+}
+.dk-chapter-line {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--dp-muted, #5b6b60);
+}
+/* the cover pulls itself up 12 px: under the chapter line it would cover it */
+.dk-chapter-line + .dk-cover {
+  margin-top: 4px;
+}
+.dk-readfoot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 32px;
+}
+.dk-readnext {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  background: var(--dp-page, #ffffff);
+  text-decoration: none;
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-readnext:hover {
+  background: var(--dp-surface, #f6faf7);
+}
+.dk-readnext-next {
+  text-align: right;
+  grid-column: 2;
+}
+.dk-readnext-dir {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-readnext-next .dk-readnext-dir {
+  justify-content: flex-end;
+}
+.dk-readnext-title {
+  font-family: var(--dp-heading-font, inherit);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.dk-readnext-meta {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--dp-muted, #5b6b60);
+}
+[data-layout='phone'] .dk-readfoot {
+  grid-template-columns: 1fr;
+}
+[data-layout='phone'] .dk-readnext-next {
+  grid-column: 1;
+}
+
+/* pictures while they arrive, and when they fail */
+.dk-md img[data-state='loading'] {
+  color: transparent;
+}
+.dk-img-failed {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 100%;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px dashed var(--dp-rule, #c7d2cb);
+  background: var(--dp-surface, #f6faf7);
+  box-sizing: border-box;
+}
+.dk-img-failed-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-img-failed-alt {
+  font-size: 12.5px;
+  color: var(--dp-muted, #5b6b60);
+}
+
+/* wide content: a table wider than the column scrolls in its own box, fades at the right edge and says so; long
+   code scrolls; on a tablet a wide table may use the pane's width past the text column */
+.dk-table-wrap[data-more-right] {
+  -webkit-mask-image: linear-gradient(to left, transparent 0, #000 30px);
+  mask-image: linear-gradient(to left, transparent 0, #000 30px);
+}
+/* a dark pill under the table, centred in the box (Reader boards, I: frame 61) */
+.dk-table-wrap[data-wide]::after {
+  content: 'Scroll sideways for more  →';
+  display: block;
+  width: max-content;
+  margin: 8px auto 0;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: #1e2a22;
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: pre;
+  transform: translateX(var(--dk-sx, 0px));
+}
+.dk-md .dk-code,
+.dk-md pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+[data-layout='tablet'] .dk-doc-col .dk-table-wrap[data-wide] {
+  width: var(--dp-pane-w, 100%);
+  max-width: none;
+  margin-left: calc((100% - var(--dp-pane-w, 100%)) / 2);
+}
+
+/* keyboard focus: a 2 px green ring with a 2 px gap on every control, menus and selects included */
+.docs-root [role='menuitem']:focus-visible,
+.docs-root [role='switch']:focus-visible,
+.docs-root select:focus-visible,
+.docs-root [tabindex]:focus-visible,
+.dk-page-scroll [tabindex]:focus-visible,
+.dk-public [tabindex]:focus-visible,
+.dk-public select:focus-visible {
+  outline: 2px solid #2e6f40;
+  outline-offset: 2px;
+}
+.dk-rt-night button:focus-visible,
+.dk-rt-night a:focus-visible {
+  outline-color: #7fcb95;
+}
+
+/* the page skeleton's cover band */
+.dk-skel-cover {
+  height: 140px;
+  border-radius: 10px;
+}
+
+/* ---------- print: only the page (printPage.ts puts the sheet beside the app) ---------- */
+.dk-print-sheet {
+  display: none;
+}
+@media print {
+  body.dk-printing > *:not(.dk-print-sheet) {
+    display: none !important;
+  }
+  body.dk-printing {
+    background: #ffffff !important;
+  }
+  body.dk-printing .dk-print-sheet {
+    display: block;
+    background: var(--dp-page, #ffffff);
+    color: var(--dp-text, #3a4a3e);
+    font-family: var(--dp-body-font, 'Plus Jakarta Sans', sans-serif);
+  }
+  .dk-print-sheet[data-colours='off'] {
+    --dp-page: #ffffff;
+    background: #ffffff !important;
+  }
+  .dk-print-sheet[data-colours='off'] .dk-md,
+  .dk-print-sheet[data-colours='off'] .dk-md * {
+    color: #1e2a22 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .dk-print-sheet[data-colours='off'] .dk-callout,
+  .dk-print-sheet[data-colours='off'] .dk-code,
+  .dk-print-sheet[data-colours='off'] pre {
+    border: 1px solid #c7d2cb !important;
+  }
+  .dk-print-sheet[data-colours='on'] * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .dk-print-sheet[data-urls='on'] a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    color: #5b6b60;
+    word-break: break-all;
+  }
+  .dk-print-sheet[data-highlights='off'] .dk-cmt-badge,
+  .dk-print-sheet .dk-cmt-badge {
+    display: none !important;
+  }
+  .dk-print-sheet[data-chapter='break'] .dk-print-head {
+    break-before: page;
+  }
+  .dk-print-cover {
+    height: 180px;
+    margin-bottom: 18px;
+    background-size: cover;
+    background-position: center;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .dk-print-eyebrow {
+    font-size: 10pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5b6b60;
+  }
+  .dk-print-title {
+    margin: 4px 0 6px;
+    font-family: var(--dp-heading-font, inherit);
+    font-size: 24pt;
+    line-height: 1.15;
+    color: #1e2a22;
+  }
+  .dk-print-meta {
+    margin: 0 0 18px;
+    font-size: 10pt;
+    color: #5b6b60;
+  }
+  .dk-print-foot {
+    margin-top: 28px;
+    padding-top: 8px;
+    border-top: 1px solid #e3e8e5;
+    font-size: 9pt;
+    color: #5b6b60;
+  }
+  .dk-print-sheet button.dk-code-copy,
+  .dk-print-sheet .dk-anchor,
+  .dk-print-sheet .dk-changed::before,
+  .dk-print-sheet [data-print='hide'] {
+    display: none !important;
+  }
+  .dk-print-sheet .dk-table-wrap,
+  .dk-print-sheet .dk-code,
+  .dk-print-sheet pre {
+    overflow: visible !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    white-space: pre-wrap;
+  }
+  .dk-print-sheet .dk-table-wrap::after {
+    display: none !important;
+  }
+  .dk-print-sheet h1,
+  .dk-print-sheet h2,
+  .dk-print-sheet h3 {
+    break-after: avoid;
+  }
+  .dk-print-sheet img,
+  .dk-print-sheet figure,
+  .dk-print-sheet pre,
+  .dk-print-sheet tr {
+    break-inside: avoid;
+  }
+}
+
+/* ---------- the read page's chrome (Reader boards 1-4: header and its actions, status, outline, phone bar) ---------- */
+/* the page bar's buttons: 32 px, a 1 px rule, 8 px corners; Edit is the filled one */
+.dk-pagebar .dk-hbtn,
+.dk-pagebar .pai-btn {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  background: transparent;
+  color: var(--dp-ink, #1e2a22);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  flex: none;
+  box-sizing: border-box;
+}
+.dk-pagebar .dk-hbtn:hover,
+.dk-pagebar .pai-btn:hover {
+  background: var(--dp-surface, #f6faf7);
+}
+.dk-pagebar .dk-hbtn-primary,
+.dk-pagebar .dk-hbtn-primary:hover {
+  background: var(--dp-link, #2e6f40);
+  border-color: var(--dp-link, #2e6f40);
+  color: var(--dp-page, #ffffff);
+}
+.dk-pagebar .dk-hbtn-primary:hover {
+  filter: brightness(0.92);
+}
+.dk-pagebar .dk-hico {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  background: transparent;
+  color: var(--dp-ink, #1e2a22);
+  flex: none;
+  box-sizing: border-box;
+}
+.dk-pagebar .dk-hico:hover {
+  background: var(--dp-surface, #f6faf7);
+}
+.dk-pagebar .dk-hico .dk-aa {
+  font-size: 15px;
+}
+/* a count on an icon button sits on its corner */
+.dk-pagebar .dk-hico .dc-btn-count {
+  position: absolute;
+  right: -2px;
+  top: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--dp-link, #2e6f40);
+  color: var(--dp-page, #ffffff);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.dk-pagebar .dk-hbtn .dc-btn-count {
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--dp-link, #2e6f40);
+  color: var(--dp-page, #ffffff);
+  font-size: 10.5px;
+}
+/* tablet: 44 px targets without a frame; phone: the same, Edit and More only */
+.dk-touch .dk-pagebar-actions {
+  gap: 0;
+}
+.dk-touch .dk-pagebar .dk-hico,
+.dk-touch .dk-pagebar .dk-bar-ico {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+}
+.dk-touch .dk-pagebar .dk-hico svg {
+  width: 19px;
+  height: 19px;
+}
+.dk-touch .dk-pagebar .dk-hico .dc-btn-count {
+  right: 2px;
+  top: 3px;
+}
+.dk-touch .dk-pagebar .dk-hbtn,
+.dk-touch .dk-pagebar .pai-btn {
+  height: 44px;
+  min-height: 44px;
+}
+.dk-touch .dk-pagebar .dk-hbtn.dk-hico {
+  padding: 0;
+}
+
+/* how far the page is read: a 3 px bar under the page bar */
+.dk-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 3px;
+  background: var(--dp-rule, #e3e8e5);
+  pointer-events: none;
+}
+.dk-progress i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 0 3px 3px 0;
+  background: #2e6f40;
+}
+.dk-touch .dk-progress {
+  top: calc(100% + 1px);
+}
+.dk-rt-night .dk-progress i {
+  background: #7fd196;
+}
+
+/* status chips under the title: 22 px, 12 px bold, a hairline of their own colour */
+.mc-chip.dk-schip {
+  height: 22px;
+  padding: 0 9px;
+  gap: 5px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-sizing: border-box;
+}
+.dk-schip .mc-dot {
+  flex: none;
+}
+.dk-schip-green {
+  background: #e6f2ea;
+  color: #1f5a31;
+  border-color: #cfe6d6 !important;
+}
+.dk-schip-green .mc-dot {
+  background: #2e6f40;
+}
+.dk-schip-amber {
+  background: #fdf3e3;
+  color: #8a5a00;
+  border-color: #ebd3a4 !important;
+}
+.dk-schip-amber .mc-dot {
+  background: #c98a1b;
+}
+.dk-schip-blue {
+  background: #e8f1fa;
+  color: #244e78;
+  border-color: #c9ddf0 !important;
+}
+.dk-schip-blue .mc-dot {
+  background: #2f6fb0;
+}
+.dk-schip-grey {
+  background: #f1f3f1;
+  color: #3a4a3e;
+  border-color: #e3e8e5 !important;
+}
+.dk-page-line {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--dp-muted, #5b6b60);
+}
+
+/* "On this page" beside the page: 190 px, a 2 px rule per entry, the one in view in green */
+.dk-toc {
+  width: 226px;
+  flex-shrink: 0;
+  /* level with the page's first line: 26 px under the bar and its 3 px progress (the bar spans this column) */
+  padding: 29px 36px 24px 0;
+  box-sizing: border-box;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.dk-toc-list .dk-toc-link {
+  display: block;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-left: 2px solid var(--dp-rule, #e3e8e5);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--dp-muted, #5b6b60);
+  text-decoration: none;
+  cursor: pointer;
+}
+.dk-toc-list .dk-toc-link[aria-current] {
+  border-left-color: var(--dp-link, #2e6f40);
+  color: var(--dp-ink, #1e2a22);
+  font-weight: 700;
+}
+.dk-toc-list .dk-toc-link:hover {
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-toc-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-toc-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--dp-link, #2e6f40);
+  cursor: pointer;
+}
+
+/* a tablet's outline: a pill over the top right of the page */
+.dk-outline-float {
+  position: sticky !important;
+  top: 71px;
+  z-index: 15;
+  height: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 14px;
+}
+.dk-outline-float > .st-btn {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  background: var(--dp-page, #ffffff);
+  color: var(--dp-ink, #1e2a22);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.dk-outline-float > .dk-menu {
+  right: 14px !important;
+  top: 50px !important;
+}
+
+/* a phone's bottom bar: Outline, Find, Text, Share */
+.dk-readbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  display: flex;
+  border-top: 1px solid var(--dp-rule, #e3e8e5);
+  background: var(--dp-page, #ffffff);
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+/* the page scrolls clear of the fixed bottom bar (56 + 16 + the rule) */
+.dk-layout-phone .dk-page-scroll {
+  padding-bottom: calc(73px + env(safe-area-inset-bottom, 0px));
+}
+.dk-readbar-btn {
+  flex: 1;
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--dp-muted, #5b6b60);
+  cursor: pointer;
+}
+.dk-readbar-btn .dk-aa {
+  font-size: 19px;
+  line-height: 20px;
+}
+.dk-ph-center + .dk-statusrow {
+  justify-content: center;
+}
+
+/* the Share popover (Reader boards, E): 36 px fields, the two ways in as option cards */
+.dk-share-field {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e2a22;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.dk-share-field > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dk-share-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5b6b60;
+}
+.dk-pl-static {
+  cursor: default;
+}
+.dk-pl-ico {
+  display: flex;
+  color: #2e6f40;
+}
+.dk-pl-text-amber,
+.dk-pl-text-blue {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 11px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.dk-pl-text-amber {
+  background: #fdf3e3;
+  color: #8a5a00;
+  border: 1px solid #ebd3a4;
+}
+.dk-pl-text-blue {
+  background: #e8f1fa;
+  color: #244e78;
+  border: 1px solid #c9ddf0;
+}
+.dk-pl .dk-rs-switch {
+  min-height: 44px;
+}
+.dk-pl-confirm-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.dk-pl-confirm-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e6f2ea;
+  color: #2e6f40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.dk-pl-sub {
+  display: block;
+  margin-top: 1px;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.dk-pl-confirm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 22px;
+}
+.dk-pl-lead {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #3a4a3e;
+}
+.dk-pl-confirm-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+}
+
+/* the Print panel (Reader boards, G: frame 54): 320 px, rows of switches, then paper and margins */
+.dk-print-dialog {
+  width: 320px;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
+  color: #1e2a22;
+}
+.dk-print-dialog-head {
+  display: flex;
+  align-items: center;
+}
+.dk-print-dialog-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+}
+.dk-print-close {
+  width: 30px;
+  height: 30px;
+}
+.dk-print-dialog .dk-rs-switch {
+  min-height: 36px;
+}
+.dk-print-dialog .dk-rs-row {
+  gap: 5px;
+}
+.dk-print-dialog .dk-rseg button {
+  min-height: 28px;
+}
+
+/* find in page while reading (Reader boards, F: frame 47) */
+.fx-find-read {
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.18) !important;
+}
+.fx-find-read .fx-findbtn {
+  width: 36px;
+  height: 36px;
+  color: #5b6b60;
+}
+/* matches are marked, not filled like a highlight; the current one is red */
+[data-testid='docs-page'] ::highlight(docs-find),
+.dk-public ::highlight(docs-find) {
+  background-color: rgba(201, 138, 27, 0.12);
+  text-decoration: underline 1.5px #c98a1b;
+}
+[data-testid='docs-page'] ::highlight(docs-find-current),
+.dk-public ::highlight(docs-find-current) {
+  background-color: rgba(196, 67, 42, 0.12);
+  color: inherit;
+  text-decoration: underline 2px #c4432a;
+}
+.dk-pagebar .dk-hbtn:disabled,
+.dk-pagebar .dk-hbtn-primary:disabled:hover {
+  opacity: 0.5;
+  filter: none;
+  cursor: default;
+}
+
+/* "People with access" in Share (Reader board, frame 38): 40 px rows, a 28 px avatar, the name 13/600, the role
+   12.5 #3A4A3E on the right */
+.dk-share-people {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dk-share-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+.dk-share-person-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dk-share-person-name > span {
+  color: #5b6b60;
+  font-weight: 500;
+}
+.dk-share-person-role {
+  font-size: 12.5px;
+  color: #3a4a3e;
+  white-space: nowrap;
+}
+.dk-share-more {
+  font-size: 12px;
+  color: #5b6b60;
+}
+
+/* "Sign in" on the public page's bar (frame 41): 34 high, 0 12, r8, a rule-coloured border, 12.5/600 */
+.dk-public-signin {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  background: transparent;
+  color: var(--dp-ink, #1e2a22);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  flex: none;
+  box-sizing: border-box;
+}
+.dk-public-signin:hover {
+  background: rgba(30, 42, 34, 0.04);
+}
+[data-layout='phone'] .dk-public-signin {
+  height: 44px;
+}
+
+/* the Print panel with its preview (Reader board, frame 54): the 320 px panel beside a grey stage holding the page */
+.dk-print-frame {
+  display: flex;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
+  border: 1px solid #e3e8e5;
+  background: #fff;
+}
+.dk-print-frame .dk-print-dialog {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  flex: none;
+}
+.dk-print-frame:not(.dk-print-frame-solo) .dk-print-dialog {
+  border-right: 1px solid #e3e8e5;
+}
+.dk-print-frame-solo {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.dk-print-frame-solo .dk-print-dialog {
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
+}
+.dk-print-stage {
+  width: 640px;
+  flex: none;
+  background: #e9efeb;
+  display: flex;
+  justify-content: center;
+  padding: 20px 20px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.dk-print-paper {
+  width: 560px;
+  height: 630px;
+  flex: none;
+  background: #fff;
+  box-shadow: 0 6px 26px rgba(30, 42, 34, 0.22);
+  padding: 40px 52px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.dk-print-paper[data-margins='narrow'] {
+  padding: 28px 36px 0;
+}
+.dk-print-paper[data-margins='wide'] {
+  padding: 52px 68px 0;
+}
+.dk-print-paper[data-paper='letter'] {
+  height: 600px;
+}
+/* the page is laid out 760 px wide and scaled to the paper's text width (456 px at normal margins: 0.6) */
+.dk-print-preview {
+  transform: scale(0.6);
+  transform-origin: top left;
+  pointer-events: none;
+}
+.dk-print-paper[data-margins='narrow'] .dk-print-preview {
+  transform: scale(0.642);
+}
+.dk-print-paper[data-margins='wide'] .dk-print-preview {
+  transform: scale(0.558);
+}
+.dk-print-preview .dk-print-sheet {
+  display: block;
+  background: var(--dp-page, #fff);
+  color: var(--dp-text, #3a4a3e);
+  font-family: var(--dp-body-font, 'Plus Jakarta Sans', sans-serif);
+}
+.dk-print-preview .dk-print-sheet[data-colours='off'] {
+  background: #fff;
+}
+.dk-print-preview .dk-print-sheet[data-colours='off'] .dk-md * {
+  color: #1e2a22 !important;
+  background: transparent !important;
+}
+.dk-print-preview .dk-print-cover {
+  height: 180px;
+  margin-bottom: 18px;
+  background-size: cover;
+  background-position: center;
+}
+.dk-print-preview .dk-print-title {
+  margin: 4px 0 6px;
+  font-family: var(--dp-heading-font, inherit);
+  font-size: 32px;
+  line-height: 1.15;
+  color: #1e2a22;
+}
+.dk-print-preview .dk-print-meta {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: #5b6b60;
+}
+.dk-print-preview .dk-print-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.dk-print-preview .dk-print-foot {
+  display: none;
+}
+@media (max-width: 1040px) {
+  .dk-print-stage {
+    display: none;
+  }
+  .dk-print-frame:not(.dk-print-frame-solo) .dk-print-dialog {
+    border-right: none;
+  }
+}
+
+/* ---------- touch outline: a drawer on a tablet (Reader 49), a sheet on a phone (Reader 50) ---------- */
+.dk-tout {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-tout-head {
+  display: flex;
+  align-items: center;
+  padding: 6px 6px 0 16px;
+}
+.dk-tout-head > span {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-tout-head .dk-icobtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: #1e2a22;
+}
+.dk-tout-tabs {
+  display: flex;
+  border-bottom: 1px solid #e3e8e5;
+}
+.dk-tout-tab {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.dk-tout-tab[aria-selected='true'] {
+  color: #2e6f40;
+  border-bottom-color: #2e6f40;
+}
+.dk-tout-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+}
+.dk-tout-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: #1e2a22;
+  text-decoration: none;
+}
+.dk-tout-row[aria-current] {
+  background: #eaf3ec;
+  font-weight: 700;
+}
+.dk-tout-text {
+  flex: 1;
+  min-width: 0;
+}
+.dk-tout-n {
+  width: 18px;
+  flex: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.dk-tout-foot {
+  padding: 14px 16px;
+  font-size: 12.5px;
+  color: #5b6b60;
+  border-top: 1px solid #eef3ef;
+}
+/* the phone sheet: 48 px tabs, 52 px rows with a rule between them, a tick on the one being read */
+.dk-tout-phone .dk-tout-tab {
+  height: 48px;
+  font-size: 14px;
+}
+.dk-tout-phone .dk-tout-list {
+  padding: 6px 0;
+}
+.dk-tout-phone .dk-tout-row {
+  min-height: 52px;
+  gap: 12px;
+  padding: 0 16px;
+  border-radius: 0;
+  border-top: 1px solid #f0f3f1;
+  font-size: 15px;
+  font-weight: 500;
+}
+.dk-tout-phone .dk-tout-row[aria-current] {
+  background: #f1f8f3;
+  font-weight: 700;
+}
+.dk-tout-phone .dk-tout-row > svg {
+  color: #2e6f40;
+  flex: none;
+}
+.dk-tout-phone .dk-tout-foot {
+  border-top: none;
+}
+.dk-sheet .dk-toc-sheet {
+  display: flex;
+  flex-direction: column;
+}
+.dk-drawer > .dk-tout {
+  flex: 1;
+}
+
+/* ---------- the phone's More sheet (Reader 28): 48 px rows of 15 px words and 18 px icons, a rule between them ---- */
+.dk-sheet-read .dk-sheet-body {
+  padding: 0 0 26px;
+}
+.dk-sheet-read .dk-menu-sheet .dk-mi {
+  min-height: 48px;
+  gap: 12px;
+  padding: 0 16px;
+  border-radius: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e2a22;
+}
+.dk-sheet-read .dk-menu-sheet .dk-mi svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.dk-sheet-read .dk-menu-sheet .dk-mi + .dk-mi,
+.dk-sheet-read .dk-menu-sheet > div + div,
+.dk-sheet-read .dk-menu-sheet + .dk-menu-sheet,
+.dk-sheet-read .dk-menu-sheet .dk-mi-sep + .dk-mi {
+  border-top: 1px solid #f0f3f1;
+}
+.dk-sheet-read .dk-menu-sheet > div > div:first-child:not(.dk-mi) {
+  display: none;
+}
+.dk-sheet-read .dk-menu-sheet .dc-btn-count {
+  margin-right: 0;
+}
+
+/* ---------- the phone's Share sheet (Reader 40): a 16 px title with a 44 px close, 44 px fields, buttons and rows */
+.dk-share-sheet-head {
+  display: flex;
+  align-items: center;
+  margin: 0 -8px -2px 0;
+}
+.dk-share-sheet-head > span {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-share-sheet-head .dk-icobtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  color: #5b6b60;
+}
+.dk-share-sheet .dk-share-field,
+.dk-share-sheet .st-btn {
+  height: 44px;
+  min-height: 44px !important;
+}
+.dk-share-sheet [data-testid='share-id-link'] {
+  min-height: 44px;
+}
+.dk-share-sheet .dk-share-person {
+  min-height: 44px;
+}
+
+/* ---------- focus reading (Reader 1, 4 and the phone frames): no app chrome, the page bar leads ---------- */
+/* a 56 px bar with a rule, "← Kanban Board" first; the app's Ask AI and bell join the page actions */
+.dk-pagebar.dk-pagebar-focus:not(.dk-touch .dk-pagebar) {
+  min-height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--dp-rule, #e3e8e5);
+}
+.dk-pagebar .dk-focus-back {
+  flex: none;
+}
+.dk-focus-back-label {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-pagebar .as-header-btn {
+  height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  border: 1px solid var(--dp-link, #2e6f40);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dp-ink, #1e2a22);
+  font-size: 12.5px;
+  box-sizing: border-box;
+}
+.dk-pagebar .as-header-btn .as-kbd {
+  background: transparent;
+  border-color: var(--dp-rule, #d5ddd8);
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-pagebar .as-header-btn.as-header-btn-icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+  border: none;
+}
+.dk-focus-bell {
+  display: inline-flex;
+}
+.dk-focus-bell button {
+  background: transparent;
+  border-color: var(--dp-rule, #e3e8e5);
+  color: var(--dp-ink, #3a4a3e);
+}
+.dk-touch .dk-focus-bell button {
+  width: 44px;
+  height: 44px;
+  border: none;
+}
+
+/* ---------- the page's tone dresses the whole Docs area (Reader 1, 7: a sepia or night page is sepia or night
+   from edge to edge): the tree and its rail, the bar, the outline, page comments and "Referenced by". The colours
+   are the page's own variables, set on the Docs root by DocsView (`data-docs-tone`, `dk-rt-*` for a reading theme) */
+.docs-root[data-docs-tone]:not([data-docs-tone='white']) {
+  --dk-side: color-mix(in srgb, var(--dp-page) 94%, var(--dp-ink));
+  background: var(--dp-page) !important;
+  color: var(--dp-ink);
+}
+:is(.docs-root[data-docs-tone='sepia'], .docs-root[data-docs-tone='night']) aside[aria-label^='Docs space'],
+:is(.docs-root[data-docs-tone='paper'], .docs-root[data-docs-tone='mist']) aside[aria-label^='Docs space'] {
+  background: var(--dk-side) !important;
+  color: var(--dp-ink) !important;
+  border-color: var(--dp-rule) !important;
+}
+.docs-root:not([data-docs-tone='white'])
+  aside[aria-label^='Docs space']
+  :is(.tr-head-eyebrow, .dk-icobtn, .tr-headbtn, .tr-chev, .tr-binrow, .tr-icon:not(.tr-emoji)),
+.docs-root:not([data-docs-tone='white']) .tr-head-name > span {
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .tr-head-name {
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-search {
+  background: var(--dp-page) !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-search input {
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .dk-kbd {
+  background: var(--dp-surface) !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .tr-seg {
+  background: var(--dp-surface) !important;
+}
+.docs-root:not([data-docs-tone='white']) .tr-seg button {
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .tr-seg button[aria-checked='true'] {
+  background: var(--dp-page) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-tool,
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-newpage button {
+  background: transparent !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-text) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-newpage button {
+  color: var(--dp-link) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-binrow {
+  border-color: var(--dp-rule) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dk-tree-row {
+  color: var(--dp-text) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dk-tree-row:hover {
+  background: color-mix(in srgb, var(--dk-side) 70%, var(--dp-ink) 8%) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dk-tree-row[aria-current='page'] {
+  background: var(--dp-surface) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dk-tree-row .tr-title {
+  color: inherit !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] :is(.tr-booktag, .tr-tag) {
+  background: transparent !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-link) !important;
+}
+/* page comments and "Referenced by" at the end of the page */
+.docs-root:not([data-docs-tone='white']) .dc-page-comments {
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dc-page-comments h2 {
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dc-page-comments .dc-sort {
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dc-page-comments .dc-count-pill {
+  background: var(--dp-surface) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dc-page-comments .dc-reply-field {
+  background: var(--dp-page) !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel {
+  background: transparent !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel > div:not(.rb-head) {
+  background: var(--dp-surface) !important;
+  border-color: var(--dp-rule) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel > div:not(.rb-head) > div:first-child {
+  background: var(--dp-page) !important;
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel :is(.rb-sum, [style*='color']) {
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel .rb-head,
+.docs-root:not([data-docs-tone='white']) .rb-panel > div > div:nth-child(2) {
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white'])
+  :is(.rb-panel, .dk-page-frame)
+  .st-btn:not(.st-btn-primary):not(.dk-hbtn-primary) {
+  background: transparent !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-ink) !important;
+}
+
+/* the path keeps its short parents whole; the page's own title is the one that ends in … (Reader 1, 1) */
+.dk-pagebar .dk-crumb {
+  flex-shrink: 0;
+}

@@ -1,0 +1,84 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "The "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight"
+            }
+          ],
+          "text": "key sentence"
+        },
+        {
+          "type": "text",
+          "text": " matters, and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "bold"
+            },
+            {
+              "type": "highlight"
+            }
+          ],
+          "text": "bold inside"
+        },
+        {
+          "type": "text",
+          "text": " too."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "A lone "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight"
+            }
+          ],
+          "text": "stays, and a"
+        },
+        {
+          "type": "text",
+          "text": "b"
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight"
+            }
+          ],
+          "text": "c joins. Code `"
+        },
+        {
+          "type": "text",
+          "text": "not==` is literal."
+        }
+      ]
+    }
+  ]
+}

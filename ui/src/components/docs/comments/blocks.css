@@ -1,0 +1,348 @@
+/* Comments on the blocks of a rich page: margin marks, the Comment button on a whole block, the thread states and
+   the phone list sheet and thread (design "History and comments on rich pages", D). */
+
+.dc-marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.dc-mark,
+.dc-mark-add {
+  pointer-events: auto;
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+/* the board puts the mark 25 px past the text in a 34 px column; the page's right gutter here is 36 px, so the
+   mark sits 8 px past the text to stay inside it (and clear of an open drawer) */
+.dc-mark {
+  left: calc(100% + 8px);
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  background: #1e2a22;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #fff;
+}
+.dc-mark.is-active {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px #e8b93a;
+}
+/* two threads on one block: one mark with a small count on its corner */
+.dc-mark-count {
+  position: absolute;
+  right: -6px;
+  top: -8px;
+  padding: 0 4px;
+  border-radius: 999px;
+  border: 1.5px solid #fff;
+  background: #8a5a00;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+/* History3 frames 25-26: on a tablet or a phone the mark sits on the block's right edge, 22 px with a 13 px number;
+   the tap target around it is 44 px */
+.dc-marks-edge .dc-mark {
+  left: auto;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+}
+.dc-marks-edge .dc-mark::before {
+  content: '';
+  position: absolute;
+  inset: -11px;
+}
+.dc-mark-add {
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #fff;
+  color: #2e6f40;
+  box-shadow:
+    0 0 0 1px #d5ddd8,
+    0 4px 12px rgba(30, 42, 34, 0.12);
+}
+.dc-mark-add:hover {
+  background: #f1f8f3;
+}
+
+/* thread states */
+.dc-chip-amber {
+  padding: 1px 7px;
+  border-radius: 5px;
+  border: 1px solid #ebd3a4;
+  background: #fdf3e3;
+  color: #8a5a00;
+  font-size: 11px;
+}
+.dc-quote.is-edited span {
+  border-bottom: 1.5px dashed #e8b93a;
+}
+.dc-quote-now {
+  font-size: 12px;
+  color: #5b6b60;
+  padding: 0 12px 4px 32px;
+}
+/* a whole-block comment: a 34 × 24 picture of the block, its kind and where (design D 18) */
+.dc-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dc-block-thumb {
+  width: 34px;
+  height: 24px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1px solid #e3e8e5;
+  background: #eef3ef;
+  color: #5b6b60;
+}
+.dc-block-thumb.is-table {
+  border-color: #cbd5ce;
+  background: #e6f2ea;
+  color: #2e6f40;
+}
+.dc-block-thumb.is-embed {
+  border-color: #c9ddf0;
+  background: #f4f9fe;
+  color: #2f6fb0;
+}
+.dc-block-label {
+  font-size: 12px;
+  line-height: 1.35;
+  min-width: 0;
+}
+.dc-block-label > span {
+  color: #5b6b60;
+}
+.dc-state-note {
+  display: flex;
+  gap: 6px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #5b6b60;
+}
+.dc-state-note > svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* phone: the list sheet and the full-screen thread (History3 frames 26-27) */
+[data-testid='phone-comments'] .dk-sheet-head span {
+  font-size: 15px;
+  font-weight: 700;
+}
+.dc-psheet-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  margin: 0 0 10px;
+  border-radius: 8px;
+  background: #eef3ef;
+}
+.dc-psheet-tabs button {
+  flex: 1;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5b6b60;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dc-psheet-tabs button[aria-selected='true'] {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.18);
+}
+.dc-prow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 0;
+  border: none;
+  border-top: 1px solid #e3e8e5;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dc-prow .dc-num,
+.dc-pthread .dc-num {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+}
+.dc-prow-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dc-prow-quote {
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.4;
+  color: #5b6b60;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dc-prow-last {
+  font-size: 13px;
+  color: #3a4a3e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dc-pthread {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+.dc-pthread-head {
+  height: 46px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  border-bottom: 1px solid #eef3ef;
+  font-size: 14px;
+  font-weight: 700;
+  flex: none;
+}
+.dc-pthread-head .dk-icobtn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  color: #3a4a3e;
+}
+.dc-pthread-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+}
+.dc-pthread-body .dc-card {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+.dc-pthread .dc-text {
+  font-size: 14.5px;
+}
+.dc-pthread .dc-meta b {
+  font-size: 14.5px;
+}
+.dc-pthread .dc-resolve,
+.dc-pthread .dc-card-head .dc-icon {
+  width: 44px;
+  height: 44px;
+  border: none;
+}
+.dc-pthread .dc-reply-field {
+  height: 44px;
+  border: 1.5px solid #2e6f40;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 14.5px;
+}
+/* History3 frame 24: on a tablet the drawer's head buttons and the reply field are 44 px */
+.dk-touch .dc-panel-head .dc-icon {
+  width: 44px;
+  height: 44px;
+}
+.dk-touch .dc-panel .dc-reply-field {
+  height: 44px;
+}
+/* History3 frame 27: the phone thread's reply bar is docked at the bottom: @ (44), a 44 px field with a green border,
+   send (44, green); the keyboard pushes it up, never over the thread */
+.dc-pthread .dc-pthread-body {
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+.dc-pthread .dc-reply-docked {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid #e3e8e5;
+  background: #fff;
+}
+.dc-pthread .dc-reply-docked > .dc-avatar,
+.dc-pthread .dc-reply-docked > span:first-child {
+  display: none;
+}
+.dc-dock-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.dc-dock-bar .dc-reply-field {
+  flex: 1;
+  min-width: 0;
+}
+.dc-dock-at,
+.dc-dock-send {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+.dc-dock-at {
+  border-radius: 7px;
+  background: transparent;
+  color: #5b6b60;
+}
+.dc-dock-send {
+  border-radius: 10px;
+  background: #2e6f40;
+  color: #fff;
+}
+.dc-dock-send:disabled {
+  cursor: default;
+}

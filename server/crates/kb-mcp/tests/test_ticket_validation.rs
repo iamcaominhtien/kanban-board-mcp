@@ -66,7 +66,7 @@ async fn test_mcp_block_link_test_case_and_delete_tools() {
     // the other way round would be a cycle
     call_err(&mcp, "manage_ticket", json!({"action": "block", "ticket_id": a["id"], "target_id": b})).await;
     let res = call(&mcp, "manage_ticket", json!({"action": "unblock", "ticket_id": b, "target_id": a["id"]})).await;
-    assert_eq!(res["blocker"]["blocks"], json!([]));
+    assert!(res["blocker"].get("blocks").is_none(), "{res}");
     let link = call(
         &mcp,
         "manage_ticket",
@@ -83,7 +83,7 @@ async fn test_mcp_block_link_test_case_and_delete_tools() {
         json!({"ticket_id": a["id"], "item": "test_case", "action": "delete", "item_id": tc["test_cases"][0]["id"]}),
     )
     .await;
-    assert_eq!(after["test_cases"], json!([]));
+    assert!(after["deleted"] == tc["test_cases"][0]["id"] && after["ticket"].get("test_cases").is_none(), "{after}");
     assert_eq!(call(&mcp, "manage_ticket", json!({"action": "delete", "ticket_id": b})).await, json!({"deleted": b}));
     let refused = call_err(&mcp, "manage_ticket", json!({"action": "delete", "ticket_id": b})).await;
     assert!(refused.contains("not found"), "{refused}");

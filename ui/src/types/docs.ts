@@ -1,4 +1,18 @@
+import type { JSONContent } from '@tiptap/core';
+
 export type DocsStatus = 'draft' | 'published';
+
+/**
+ * How a page's text is stored: `rich` is the TipTap JSON of Rich Docs format 1 (server/contract/richdoc), `md` the
+ * Markdown of before (a page not converted yet, or one whose conversion failed).
+ */
+export type DocsFormat = 'rich' | 'md';
+
+/** Where the conversion of a Markdown page to the rich format stands (`null`: nothing to convert). */
+export type DocsConvertState = 'waiting' | 'working' | 'done' | 'failed';
+
+/** A rich page: a TipTap JSON document (`{type: 'doc', content: [...]}`) with a `blockId` on every block. */
+export type RichDoc = JSONContent;
 
 export interface DocsTreeNode {
   id: string;
@@ -12,6 +26,23 @@ export interface DocsTreeNode {
   updatedAt: string;
   /** `canvas` pages open the Canvas editor instead of the text editor (the layers icon in the tree) */
   kind?: 'page' | 'canvas';
+  /** Where the page's conversion to the rich format stands (null or missing: nothing to convert). */
+  convertState?: DocsConvertState | null;
+  /** The page's `book` setting: a book holds its chapters (its child pages). */
+  book?: { isBook?: boolean; numberChapters?: boolean } | null;
+  /** The page's `status` setting (`outdated`, `in-review`…), when it has one. */
+  pageStatus?: string | null;
+  /** The address of the page's cover picture, when it has one. */
+  cover?: string | null;
+  /** AI suggestions waiting on the page (the tree's ✦ marker). */
+  suggestions?: number;
+  /** The page's `icon` setting: an emoji, `icon:<name>` or an uploaded picture (`/uploads/...`). */
+  icon?: string | null;
+  /** Who made the page and who edited it last, when the server sends them ("My pages"). */
+  createdBy?: string | null;
+  updatedBy?: string | null;
+  /** The page's `notForAi` setting, when the server sends it (Settings › Docs counts them). */
+  notForAi?: boolean;
 }
 
 export interface DocsHeading {
@@ -28,7 +59,12 @@ export interface DocsPathItem {
 
 export interface DocsDraft {
   title: string;
+  /** The plain-Markdown projection of `content` (a rich draft), or the draft itself (an `md` one). */
   markdown: string;
+  /** `rich` when `content` holds the draft (missing on a server or a saved copy from before Rich Docs: `md`). */
+  format?: DocsFormat;
+  /** The draft as rich JSON; null when `format` is `md`. */
+  content?: RichDoc | null;
   baseVersion: number;
   /** autosaves since the draft was started */
   saves: number;
@@ -46,6 +82,8 @@ export interface DocsAiSource {
   gaps?: string[];
   sources?: { n: number; label: string; quote?: string }[];
   accepted?: boolean;
+  /** The formatting the draft uses, in words ("Title and subtitle centred", "Pull quote"): the Gaps panel lists it. */
+  formatting?: string[];
 }
 
 export interface DocsPage {
@@ -60,7 +98,18 @@ export interface DocsPage {
   slugPath?: string | null;
   status: DocsStatus;
   version: number;
+  /** The plain-Markdown projection of `content` (a rich page), or the page itself (an `md` one). */
   markdown: string;
+  /** `rich` when `content` holds the published page (missing on a server or a saved copy from before Rich Docs). */
+  format?: DocsFormat;
+  /** The published page as rich JSON; null when `format` is `md`. */
+  content?: RichDoc | null;
+  /** Page settings (server/contract/richdoc/page-settings.json); a missing key is its default. */
+  settings?: Record<string, unknown>;
+  /** The conversion to the rich format: waiting / working (not editable yet), done, failed (kept read-only). */
+  convertState?: DocsConvertState | null;
+  /** Why the conversion failed, when `convertState` is `failed`. */
+  convertError?: string | null;
   headings: DocsHeading[];
   path: DocsPathItem[];
   createdBy: string;
@@ -93,6 +142,9 @@ export interface DocsVersionDetail {
   version: number;
   title: string;
   markdown: string;
+  /** `rich` for a version saved in the rich format; versions from before it stay `md` (content null). */
+  format?: DocsFormat;
+  content?: RichDoc | null;
   author: string;
   note: string | null;
   createdAt: string;
@@ -135,6 +187,8 @@ export interface DocsDeletedEntry {
   /** titles of the pages directly under it that were deleted with it */
   childTitles?: string[];
   daysLeft: number;
+  /** the page's icon (an emoji, icon:<name> or an upload); absent when it has none */
+  icon?: string | null;
 }
 
 export interface DocsTicketDoc {
@@ -148,11 +202,41 @@ export interface DocsTicketDoc {
 
 /** A reference to resolve; `bySlug` (from a Markdown link) also matches a page's slug, the slug of its title, or its id. */
 export type DocsRefRequest =
-  { kind: 'page'; title: string; anchor?: string | null; bySlug?: boolean } | { kind: 'ticket'; key: string };
+  | {
+      kind: 'page';
+      title: string;
+      anchor?: string | null;
+      bySlug?: boolean;
+      /** A rich page's link stores its page's id: the page is found by it, whatever its title is now. */
+      pageId?: string | null;
+      /** …and the heading or block it points at. */
+      blockId?: string | null;
+    }
+  | { kind: 'ticket'; key: string };
+
+/** A heading or block a link points at, as the server names it (`Limits` · `table` · `Table · 3 columns, 3 rows`). */
+export interface DocsLinkBlock {
+  blockId: string;
+  kind: string;
+  label: string;
+  detail: string;
+  /** A heading's anchor slug. */
+  slug?: string;
+}
+
+/** What a link can point at in a page (`[[Page#`), and how many pages link to each heading or block. */
+export interface DocsLinkTargets {
+  pageId: string;
+  title: string;
+  headings: { blockId: string; level: number; text: string; slug: string; under: string | null }[];
+  blocks: { blockId: string; kind: string; label: string; detail: string; section: string | null }[];
+  /** Block id → the number of pages whose links point at it. */
+  inbound: Record<string, number>;
+}
 
 export interface DocsRefResult {
   kind: 'page' | 'ticket';
-  status: 'ok' | 'missing' | 'section_missing' | 'in_bin' | 'ambiguous';
+  status: 'ok' | 'missing' | 'section_missing' | 'in_bin' | 'ambiguous' | 'block_missing';
   pageId?: string;
   title?: string;
   slug?: string;
@@ -162,6 +246,10 @@ export interface DocsRefResult {
   section?: string;
   key?: string;
   ticketStatus?: string;
+  /** The heading or block a link stores, when it is there (a heading link takes its current text as `section`). */
+  block?: DocsLinkBlock;
+  /** The block a `block_missing` link stored. */
+  blockId?: string;
   /** Set when status is in_bin. */
   deletedAt?: string | null;
   deletedBy?: string | null;
@@ -189,6 +277,8 @@ export interface DocsAnchor {
   section: string | null;
   state: 'attached' | 'orphaned';
   pos: number | null;
+  /** The block it is on (rich pages): an image, a table or an embed can be commented on as a whole. */
+  blockId?: string | null;
 }
 
 export interface DocsCommentItem {
@@ -303,6 +393,8 @@ export interface CommentAnchorInput {
   prefix: string;
   suffix: string;
   section: string | null;
+  /** The block it is in (rich pages; sent as `block_id`). */
+  blockId?: string;
 }
 
 export interface DocsCommentEvent {

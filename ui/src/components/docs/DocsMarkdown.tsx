@@ -1,43 +1,35 @@
 import type { Element } from 'hast';
-import {
-  Children,
-  createContext,
-  isValidElement,
-  memo,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { Children, isValidElement, memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import 'katex/dist/katex.min.css';
-import { resolveOrigin } from '../../api/resolveOrigin';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest } from '../../types/docs';
 import { escapeStrayDollars } from '../../utils/mathDollars';
 import { splitMarkdown } from '../../utils/markdownChunks';
 import { markNeedsInput, NEEDS_INPUT_SCHEME } from '../../utils/writeRules';
-import {
-  linkifyDocs,
-  pageRefKey,
-  parseDocRef,
-  remarkDocs,
-  slugify,
-  REF_SCHEME,
-  TICKET_SCHEME,
-} from '../../utils/docsMarkdown';
+import { linkifyDocs, pageRefKey, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../../utils/docsMarkdown';
 import { FileAttachmentCard } from '../FileAttachmentCard';
-import { galleryAround, previewAttrs, usePreview } from '../preview/PreviewContext';
-import { highlight } from './docsHighlight';
 import { useDocsPeek } from './DocsRefsContext';
 import { Icon } from './Icon';
-import { RefChip, type RefChipProps } from './RefChip';
+import {
+  ChipCtx,
+  CodeBlock,
+  Checkbox,
+  DocsImage,
+  METHOD_COLORS,
+  PageRefChip,
+  SectionAnchor,
+  TicketRefChip,
+  sectionOf,
+  textOf,
+  type ChipContext,
+  type ReaderCallbacks,
+  type RefResult,
+} from './readerParts';
 import { DiagramEmbed } from '../diagrams/DiagramEmbed';
 import { DIAGRAM_SCHEME, diagramIdOf, hasDiagram } from '../diagrams/diagramRefs';
 import { SketchEmbed } from '../sketch/SketchEmbed';
@@ -77,16 +69,6 @@ const CALLOUTS: Record<string, { bg: string; border: string; color: string; icon
   danger: { bg: '#FBE7E4', border: '#E8A99B', color: '#C4432A', icon: 'i22' },
 };
 
-const METHOD_COLORS: Record<string, string> = {
-  GET: '#2F6FB0',
-  POST: '#2E6F40',
-  PUT: '#B4791E',
-  PATCH: '#B4791E',
-  DELETE: '#C4432A',
-  HEAD: '#5B6B60',
-  OPTIONS: '#5B6B60',
-};
-
 const NO_REFS: DocsRefRequest[] = [];
 
 /** Props that mark a block: changed since the viewer last looked. */
@@ -103,7 +85,7 @@ export interface DocsMarkdownProps {
   onOpenTicket?: (ticketId: string) => void;
   onCreatePage?: (title: string) => void;
   onRestorePage?: (pageId: string) => void;
-  onReplaceSection?: RefChipProps['onReplaceSection'];
+  onReplaceSection?: ReaderCallbacks['onReplaceSection'];
   /** Source line text -> version that added it: marks those blocks "Changed in vN" (since last viewed). */
   changedIn?: Map<string, number>;
   /**
@@ -114,186 +96,6 @@ export interface DocsMarkdownProps {
   progressive?: boolean;
   /** Called once every piece is on the page (at once when not progressive). */
   onRendered?: () => void;
-}
-
-type RefResult = NonNullable<ReturnType<typeof useResolveRefs>['data']>[number];
-
-/** What the reference chips show and do. It reaches them through a context, so the parsed page (the slow part of
- *  rendering a long page) is not built again when the references resolve or a callback above changes. */
-interface ChipContext {
-  pages: Map<string, RefResult>;
-  tickets: Map<string, RefResult>;
-  projectId: string;
-  projectName?: string;
-  peek: ReturnType<typeof useDocsPeek>;
-  onOpenPage?: DocsMarkdownProps['onOpenPage'];
-  onOpenTicket?: DocsMarkdownProps['onOpenTicket'];
-  onCreatePage?: DocsMarkdownProps['onCreatePage'];
-  onRestorePage?: DocsMarkdownProps['onRestorePage'];
-  onReplaceSection?: DocsMarkdownProps['onReplaceSection'];
-}
-
-const ChipCtx = createContext<ChipContext | null>(null);
-
-function TicketRefChip({ ticketKey }: { ticketKey: string }) {
-  const c = useContext(ChipCtx)!;
-  return (
-    <RefChip
-      kind="ticket"
-      label={ticketKey}
-      result={c.tickets.get(ticketKey)}
-      projectId={c.projectId}
-      onOpenTicket={c.onOpenTicket}
-    />
-  );
-}
-
-function PageRefChip({
-  label,
-  pageTitle,
-  anchor,
-  custom,
-  refKey,
-}: {
-  label: string;
-  pageTitle?: string;
-  anchor?: string | null;
-  custom: boolean;
-  refKey: string | null;
-}) {
-  const c = useContext(ChipCtx)!;
-  return (
-    <RefChip
-      kind="page"
-      label={label}
-      pageTitle={pageTitle}
-      anchor={anchor}
-      custom={custom}
-      result={refKey != null ? c.pages.get(refKey) : undefined}
-      projectId={c.projectId}
-      projectName={c.projectName}
-      onOpenPage={c.onOpenPage}
-      onPeek={c.peek ?? undefined}
-      onCreatePage={c.onCreatePage}
-      onRestorePage={c.onRestorePage}
-      onReplaceSection={c.onReplaceSection}
-    />
-  );
-}
-
-function textOf(node: ReactNode): string {
-  if (node == null || typeof node === 'boolean') return '';
-  if (typeof node === 'string' || typeof node === 'number') return String(node);
-  if (Array.isArray(node)) return node.map(textOf).join('');
-  if (isValidElement(node)) return textOf((node.props as { children?: ReactNode }).children);
-  return '';
-}
-
-function CodeBlock({ code, lang }: { code: string; lang?: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="dk-code" data-lang={lang}>
-      {highlight(code, lang)}
-      <button
-        type="button"
-        className="dk-code-copy"
-        aria-label="Copy code"
-        onClick={() => {
-          void navigator.clipboard?.writeText(code).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1400);
-          });
-        }}
-      >
-        <Icon name={copied ? 'check' : 'i24'} size={12} strokeWidth={2} />
-        {copied ? 'Copied' : 'Copy'}
-      </button>
-    </div>
-  );
-}
-
-function Checkbox({ checked }: { checked: boolean }) {
-  return checked ? (
-    <span
-      role="checkbox"
-      aria-checked="true"
-      style={{
-        width: 16,
-        height: 16,
-        borderRadius: 4,
-        background: '#2E6F40',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        marginTop: 3,
-        color: '#FFFFFF',
-      }}
-    >
-      <Icon name="check" size={11} strokeWidth={3} />
-    </span>
-  ) : (
-    <span
-      role="checkbox"
-      aria-checked="false"
-      style={{
-        width: 16,
-        height: 16,
-        borderRadius: 4,
-        border: '1.5px solid #C7D2CB',
-        background: '#FFFFFF',
-        boxSizing: 'border-box',
-        flexShrink: 0,
-        marginTop: 3,
-      }}
-    />
-  );
-}
-
-/** An image in a page: click (or Enter / Space) to open it in the viewer with the other images on the page. */
-function DocsImage({ src, alt }: { src: string; alt: string }) {
-  const preview = usePreview();
-  const name = alt || src.split('/').pop() || 'image';
-  function open(el: HTMLElement) {
-    const { items, index } = galleryAround(el);
-    preview.open(items, index);
-  }
-  return (
-    <img
-      src={src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src}
-      alt={alt}
-      loading="lazy"
-      {...previewAttrs(src, name)}
-      tabIndex={0}
-      role="button"
-      aria-label={`Open ${name}`}
-      style={{ cursor: 'zoom-in' }}
-      onClick={(e) => open(e.currentTarget)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          open(e.currentTarget);
-        }
-      }}
-    />
-  );
-}
-
-/** The heading a `#section` link points at, in the page the link sits in (heading ids carry the `docs-` prefix). */
-function sectionOf(from: HTMLElement, href: string): HTMLElement | null {
-  let id = href.slice(1);
-  try {
-    id = decodeURIComponent(id);
-  } catch {
-    /* keep it as written */
-  }
-  const scope: ParentNode = from.closest('.dk-md') ?? document;
-  const ids = [id, `docs-${id}`, `docs-${slugify(id.replace(/^docs-/, ''))}`];
-  for (const candidate of ids) {
-    const el = scope.querySelector<HTMLElement>(`[id="${CSS.escape(candidate)}"]`);
-    if (el) return el;
-  }
-  return null;
 }
 
 const REMARK_PLUGINS = [remarkGfm, remarkMath, remarkDocs];
@@ -472,35 +274,7 @@ export function DocsMarkdown({
         return (
           <h2 id={id} {...changedProps(node)}>
             {inner}
-            {slug && (
-              <a
-                className="dk-anchor"
-                href={`#${slug}`}
-                title="Copy link to this section"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const url = `${window.location.origin}${window.location.pathname}${window.location.search}#${slug}`;
-                  void navigator.clipboard?.writeText(url);
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  color: '#2E6F40',
-                  padding: '2px 7px',
-                  borderRadius: 5,
-                  background: '#F1F8F3',
-                  textDecoration: 'none',
-                  maxWidth: 180,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <Icon name="link" size={12} strokeWidth={2} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>#{slug}</span>
-              </a>
-            )}
+            {slug && <SectionAnchor slug={slug} />}
           </h2>
         );
       },

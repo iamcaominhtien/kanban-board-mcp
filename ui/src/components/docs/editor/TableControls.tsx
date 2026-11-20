@@ -1,7 +1,17 @@
 import type { Editor } from '@tiptap/react';
 import { CellSelection } from '@tiptap/pm/tables';
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { Icon } from '../Icon';
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import {
+  canMergeCells,
+  canSplitCell,
+  cellAt,
+  mergeSelectedCells,
+  selectedCellCount,
+  setCellsAttr,
+  splitSelectedCell,
+} from './blocks/commands';
+import { CellProps, PhoneTableBar, TIcon, T_ICONS, TableProps, TableStyles } from './blocks/TableTools';
+import { useBlockLayout } from './blocks/ui';
 
 interface Geo {
   table: { left: number; top: number; width: number; height: number };
@@ -12,18 +22,10 @@ interface Geo {
   selRows: [number, number] | null;
   /** column / row of the cell that holds the caret (not a cell selection) */
   caret: { col: number; row: number } | null;
+  /** column / row of the cell the cell selection started in */
+  anchor: { col: number; row: number } | null;
   anySel: boolean;
 }
-
-const GRIP = (on: boolean): React.CSSProperties => ({
-  position: 'absolute',
-  borderRadius: 3,
-  background: on ? '#2E6F40' : '#C7D2CB',
-  cursor: 'pointer',
-  border: 'none',
-  padding: 0,
-  opacity: on ? 1 : 0.7,
-});
 
 function cellIndexOf(dom: HTMLElement | null): { col: number; row: number } | null {
   const cell = dom?.closest('td,th') as HTMLTableCellElement | null;
@@ -38,7 +40,14 @@ function cellIndexOf(dom: HTMLElement | null): { col: number; row: number } | nu
  */
 export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: RefObject<HTMLDivElement> }) {
   const [geo, setGeo] = useState<Geo | null>(null);
-  const [tip, setTip] = useState<string | null>(null);
+  // Rich Docs phase 4: Cell properties / Table properties panels, and the phone's bar under a selected cell
+  const [panel, setPanel] = useState<{ kind: 'cell' | 'table' | 'styles'; anchor: DOMRect } | null>(null);
+  const layout = useBlockLayout();
+  // a panel closed (Done, Esc): the caret goes back into the table, so typing carries on there
+  const closePanel = useCallback(() => {
+    setPanel(null);
+    if (!editor.isDestroyed) editor.commands.focus();
+  }, [editor]);
   // The overlay fills the editor column (inset 0), which sits below the page header inside the host; positions
   // are measured against it, not against the host.
   const layerRef = useRef<HTMLDivElement>(null);
@@ -68,9 +77,11 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
     });
     let selCols: [number, number] | null = null;
     let selRows: [number, number] | null = null;
+    let anchor: Geo['anchor'] = null;
     if (selection instanceof CellSelection) {
       const a = cellIndexOf(editor.view.nodeDOM(selection.$anchorCell.pos) as HTMLElement);
       const b = cellIndexOf(editor.view.nodeDOM(selection.$headCell.pos) as HTMLElement);
+      anchor = a;
       if (a && b) {
         if (selection.isColSelection()) selCols = [Math.min(a.col, b.col), Math.max(a.col, b.col)];
         else if (selection.isRowSelection()) selRows = [Math.min(a.row, b.row), Math.max(a.row, b.row)];
@@ -91,9 +102,20 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
       selCols,
       selRows,
       caret,
+      anchor,
       anySel: selection instanceof CellSelection,
     });
   }, [editor]);
+
+  // while the table has its handles, the block handle steps aside (CSS: [data-table-controls] .dk-handle)
+  const shown = !!geo;
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return undefined;
+    if (shown) host.setAttribute('data-table-controls', '');
+    else host.removeAttribute('data-table-controls');
+    return () => host.removeAttribute('data-table-controls');
+  }, [shown, hostRef]);
 
   useEffect(() => {
     compute();
@@ -112,6 +134,8 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
   }, [editor, compute, hostRef]);
 
   if (!geo) return <div ref={layerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />;
+  const splitable = canSplitCell(editor);
+  const phone = layout === 'phone';
 
   const tableOf = () => {
     const { $from } = editor.state.selection;
@@ -156,29 +180,27 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
 
   const lastCol = geo.cols.length - 1;
   const lastRow = geo.rows.length - 1;
-  const toolbarLeft = geo.selCols ? geo.cols[geo.selCols[0]].left : geo.selRows ? geo.table.left + 8 : geo.table.left;
-  const mini = (label: string, onClick: () => void, icon: string, flip?: 'x' | 'y', color?: string) => (
-    <button
-      key={label}
-      type="button"
-      className="dk-bubble-btn"
-      aria-label={label}
-      title={label}
-      style={{ color: color ?? '#EEF3EF' }}
-      onMouseDown={(e) => e.preventDefault()}
-      onMouseEnter={() => setTip(label)}
-      onMouseLeave={() => setTip(null)}
-      onClick={onClick}
-    >
-      <span
-        style={{ display: 'flex', transform: flip === 'y' ? 'scaleY(-1)' : flip === 'x' ? 'scaleX(-1)' : undefined }}
-      >
-        <Icon name={icon} size={15} />
-      </span>
-    </button>
-  );
-  const sep = <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.22)', margin: '0 4px' }} />;
+  const tablet = layout === 'tablet';
+  // the handles (Blocks board, F 27 desktop: 10 px bars 17 px out; L 61 tablet: 14 px bars 20 px out)
+  const bar = tablet ? 14 : 10;
+  const out = tablet ? 20 : 17;
+  const focus = geo.caret ?? geo.anchor;
+  const colOn = (i: number) =>
+    geo.selCols ? i >= geo.selCols[0] && i <= geo.selCols[1] : !geo.selRows && focus?.col === i;
+  const rowOn = (i: number) =>
+    geo.selRows ? i >= geo.selRows[0] && i <= geo.selRows[1] : !geo.selCols && focus?.row === i;
+  const plusCol = geo.selCols ? geo.selCols[1] : (focus?.col ?? lastCol);
   const c = () => editor.chain().focus();
+  const handle = (on: boolean): React.CSSProperties => ({
+    position: 'absolute',
+    pointerEvents: 'auto',
+    borderRadius: bar / 2,
+    background: on ? '#2E6F40' : '#C7D2CB',
+    cursor: 'pointer',
+    border: 'none',
+    padding: 0,
+  });
+  const showBar = (geo.anySel || splitable) && !phone;
 
   return (
     <div
@@ -186,154 +208,262 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
       style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 8 }}
       data-testid="table-controls"
     >
-      {geo.cols.map((col, i) => {
-        const on = !!geo.selCols && i >= geo.selCols[0] && i <= geo.selCols[1];
-        if (!on && geo.caret?.col !== i) return null;
-        return (
+      {!phone &&
+        geo.cols.map((col, i) => (
           <button
             key={`c${i}`}
             type="button"
             aria-label={`Select column ${i + 1}`}
+            className="dk-table-grip"
             style={{
-              ...GRIP(on),
-              pointerEvents: 'auto',
-              left: col.left + 2,
-              width: col.width - 4,
-              top: geo.table.top - 12,
-              height: 6,
+              ...handle(colOn(i)),
+              left: col.left + 3,
+              width: col.width - 6,
+              top: geo.table.top - out,
+              height: bar,
             }}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => selectCol(i)}
           />
-        );
-      })}
-      {geo.rows.map((row, i) => {
-        const on = !!geo.selRows && i >= geo.selRows[0] && i <= geo.selRows[1];
-        if (!on && geo.caret?.row !== i) return null;
-        return (
+        ))}
+      {!phone &&
+        geo.rows.map((row, i) => (
           <button
             key={`r${i}`}
             type="button"
             aria-label={`Select row ${i + 1}`}
+            className="dk-table-grip"
             style={{
-              ...GRIP(on),
-              pointerEvents: 'auto',
-              top: row.top + 2,
-              height: row.height - 4,
-              left: geo.table.left - 14,
-              width: 6,
+              ...handle(rowOn(i)),
+              top: row.top + 3,
+              height: row.height - 6,
+              left: geo.table.left - out,
+              width: bar,
             }}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => selectRow(i)}
           />
-        );
-      })}
+        ))}
       <button
         type="button"
-        aria-label="Add column"
-        title="Add column"
-        style={{
-          position: 'absolute',
-          pointerEvents: 'auto',
-          left: geo.table.left + geo.table.width - 10,
-          top: geo.table.top + 8,
-          width: 20,
-          height: 20,
-          borderRadius: '50%',
-          background: '#2E6F40',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 2px 6px rgba(30,42,34,0.25)',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-        }}
+        aria-label="Table properties"
+        title="Table properties"
+        className="dk-table-corner"
+        data-block-ui=""
+        style={{ left: geo.table.left - out, top: geo.table.top - out, width: bar, height: bar }}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => {
-          caretIn(0, lastCol);
-          c().addColumnAfter().run();
-        }}
-      >
-        <Icon name="i01" size={12} />
-      </button>
+        onClick={(e) => setPanel({ kind: 'table', anchor: e.currentTarget.getBoundingClientRect() })}
+      />
+      {panel?.kind === 'table' && <TableProps editor={editor} anchor={panel.anchor} onClose={closePanel} />}
+      {panel?.kind === 'cell' && <CellProps editor={editor} anchor={panel.anchor} onClose={closePanel} />}
+      {panel?.kind === 'styles' && <TableStyles editor={editor} anchor={panel.anchor} onClose={closePanel} />}
+      {phone && <PhoneTableBar editor={editor} />}
+      {!phone && (
+        <button
+          type="button"
+          aria-label="Add column"
+          title="Add column"
+          className="dk-table-plus"
+          style={{
+            left: geo.cols[plusCol].left + geo.cols[plusCol].width - 9,
+            top: geo.table.top - out - (18 - bar) / 2,
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            caretIn(0, plusCol);
+            c().addColumnAfter().run();
+          }}
+        >
+          <svg
+            aria-hidden="true"
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="3"
+            strokeLinecap="round"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+      )}
       <button
         type="button"
         aria-label="Add row"
         title="Add row"
-        style={{
-          position: 'absolute',
-          pointerEvents: 'auto',
-          // in the left margin, level with the bottom edge, so it never covers the next paragraph
-          left: geo.table.left - 34,
-          top: geo.table.top + geo.table.height - 10,
-          width: 20,
-          height: 20,
-          borderRadius: '50%',
-          background: '#fff',
-          border: '1px solid #C7D2CB',
-          color: '#5B6B60',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 0,
-          cursor: 'pointer',
-        }}
+        className="dk-table-plus dk-table-plus-row"
+        style={{ left: geo.table.left - out - 9 + bar / 2, top: geo.table.top + geo.table.height + 2 }}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => {
           caretIn(lastRow, 0);
           c().addRowAfter().run();
         }}
       >
-        <Icon name="i01" size={12} />
+        <svg
+          aria-hidden="true"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="3"
+          strokeLinecap="round"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
       </button>
 
-      {geo.anySel && (
-        <div
-          data-testid="cell-toolbar"
-          style={{
-            position: 'absolute',
-            pointerEvents: 'auto',
-            left: toolbarLeft,
-            top: geo.table.top - 52,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            padding: '4px 6px',
-            borderRadius: 9,
-            background: '#1E2A22',
-            boxShadow: '0 10px 24px rgba(30,42,34,0.3)',
-            zIndex: 3,
-          }}
+      {showBar && (
+        <CellToolbar
+          editor={editor}
+          tablet={tablet}
+          left={geo.selCols ? geo.cols[geo.selCols[0]].left : geo.table.left}
+          bottom={geo.table.top - out - 10}
+          selRows={!!geo.selRows}
+          selCols={!!geo.selCols}
+          onPanel={(kind, anchor) => setPanel({ kind, anchor })}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * The bar over the selected cells (Blocks board, F 28; tablet L 61 with 44 px buttons): Merge cells, Split, Shading
+ * and Borders (Cell properties), text alignment, vertical alignment, add a row or a column, delete, the cell count
+ * and the table's style.
+ */
+function CellToolbar({
+  editor,
+  tablet,
+  left,
+  bottom,
+  selRows,
+  selCols,
+  onPanel,
+}: {
+  editor: Editor;
+  tablet: boolean;
+  /** Left edge, in the overlay's px. */
+  left: number;
+  /** Where its bottom edge goes, in the overlay's px from the top. */
+  bottom: number;
+  selRows: boolean;
+  selCols: boolean;
+  onPanel: (kind: 'cell' | 'styles', anchor: DOMRect) => void;
+}) {
+  const [tip, setTip] = useState<string | null>(null);
+  const merge = canMergeCells(editor);
+  const split = canSplitCell(editor);
+  const n = Math.max(1, selectedCellCount(editor.state));
+  const cell = cellAt(editor.state);
+  const a = (cell?.node.attrs ?? {}) as Record<string, unknown>;
+  const align = (a.align as string | null) ?? 'left';
+  const valign = (a.verticalAlign as string | null) ?? 'middle';
+  const c = () => editor.chain().focus();
+  const isz = tablet ? 19 : 15;
+  const btn = (
+    label: string,
+    icon: ReactNode,
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void,
+    opts: { on?: boolean; danger?: boolean; disabled?: boolean; testId?: string } = {},
+  ) => (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={opts.on}
+      aria-disabled={opts.disabled || undefined}
+      data-testid={opts.testId}
+      className={`dk-ctb-btn${opts.on ? ' on' : ''}${opts.danger ? ' danger' : ''}${opts.disabled ? ' off' : ''}`}
+      onMouseDown={(e) => e.preventDefault()}
+      onMouseEnter={() => setTip(label)}
+      onMouseLeave={() => setTip(null)}
+      onClick={opts.disabled ? undefined : onClick}
+    >
+      <TIcon size={isz}>{icon}</TIcon>
+    </button>
+  );
+  const sep = <span className="dk-ctb-sep" />;
+  return (
+    <div
+      data-block-ui=""
+      data-testid="cell-toolbar"
+      role="toolbar"
+      aria-label="Cells"
+      className={`dk-ctb${tablet ? ' dk-ctb-tablet' : ''}`}
+      style={{ left, top: bottom, transform: 'translateY(-100%)' }}
+    >
+      {tip && <div className="dk-tt dk-ctb-tip">{tip}</div>}
+      <button
+        type="button"
+        className={`dk-ctb-merge${merge === 'ok' ? '' : ' off'}`}
+        aria-label="Merge cells"
+        aria-disabled={merge !== 'ok' || undefined}
+        data-testid="merge-cells"
+        onMouseDown={(e) => e.preventDefault()}
+        onMouseEnter={() =>
+          setTip(merge === 'ok' ? `Merge cells · ${n} cells` : 'Select a rectangle of cells to merge')
+        }
+        onMouseLeave={() => setTip(null)}
+        onClick={() => {
+          if (mergeSelectedCells(editor) !== 'ok') setTip('Merge not available · Select a rectangle of cells to merge');
+        }}
+      >
+        <TIcon size={tablet ? 18 : 15} sw={2.2}>
+          {T_ICONS.merge}
+        </TIcon>
+        Merge cells
+      </button>
+      {btn('Split cell', T_ICONS.split, () => splitSelectedCell(editor), {
+        disabled: !split,
+        testId: split ? 'split-cell' : undefined,
+      })}
+      {sep}
+      {btn('Shading', T_ICONS.shade, (e) => onPanel('cell', e.currentTarget.getBoundingClientRect()))}
+      {btn('Cell properties', T_ICONS.borders, (e) => onPanel('cell', e.currentTarget.getBoundingClientRect()))}
+      {sep}
+      {(['left', 'center', 'right'] as const).map((v) => (
+        <Fragment key={v}>
+          {btn(
+            v === 'left' ? 'Align left' : v === 'center' ? 'Align centre' : 'Align right',
+            T_ICONS[v],
+            () => setCellsAttr(editor, 'align', v === 'left' ? null : v),
+            { on: align === v },
+          )}
+        </Fragment>
+      ))}
+      {!tablet && sep}
+      {!tablet &&
+        (['top', 'middle', 'bottom'] as const).map((v) => (
+          <Fragment key={v}>
+            {btn(`Align ${v}`, T_ICONS[v], () => setCellsAttr(editor, 'verticalAlign', v === 'middle' ? null : v), {
+              on: valign === v,
+            })}
+          </Fragment>
+        ))}
+      {sep}
+      {btn('Add row below', T_ICONS.row, () => c().addRowAfter().run())}
+      {btn('Add column right', T_ICONS.col, () => c().addColumnAfter().run())}
+      {btn(
+        selCols ? 'Delete column' : selRows ? 'Delete row' : 'Delete row',
+        T_ICONS.trash,
+        () => (selCols ? c().deleteColumn().run() : c().deleteRow().run()),
+        { danger: true },
+      )}
+      {!tablet && sep}
+      {!tablet && (
+        <button
+          type="button"
+          className="dk-ctb-count"
+          aria-label="Table style"
+          onMouseDown={(e) => e.preventDefault()}
+          onMouseEnter={() => setTip('Table style')}
+          onMouseLeave={() => setTip(null)}
+          onClick={(e) => onPanel('styles', e.currentTarget.getBoundingClientRect())}
         >
-          {tip && (
-            <div className="dk-tt" style={{ position: 'absolute', left: 52, top: -36, zIndex: 4 }}>
-              {tip}
-            </div>
-          )}
-          {mini('Add row above', () => c().addRowBefore().run(), 'i55', 'y')}
-          {mini('Add row below', () => c().addRowAfter().run(), 'i55')}
-          {mini('Add column left', () => c().addColumnBefore().run(), 'i56', 'x')}
-          {mini('Add column right', () => c().addColumnAfter().run(), 'i56')}
-          {sep}
-          <button
-            type="button"
-            className="dk-bubble-btn"
-            style={{ width: 'auto', padding: '0 7px', fontSize: 12, color: '#EEF3EF' }}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => c().toggleHeaderRow().run()}
-          >
-            Header row
-          </button>
-          {sep}
-          {mini(
-            geo.selRows ? 'Delete row' : 'Delete column',
-            () => (geo.selRows ? c().deleteRow().run() : c().deleteColumn().run()),
-            'i12',
-          )}
-          {mini('Delete table', () => c().deleteTable().run(), 'i12', undefined, '#C4432A')}
-        </div>
+          {n === 1 ? '1 cell' : `${n} cells`}
+        </button>
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { CanvasEmbed } from '../../../canvas/CanvasEmbed';
 import { CANVAS_LINE } from '../../../canvas/canvasRefs';
+import { dataOnly } from '../../../../richdoc/extensions/attr';
 
 function CanvasView({ node, updateAttributes, deleteNode, editor }: NodeViewProps) {
   const { id, label, fragment } = node.attrs as { id: string; label: string; fragment: string };
@@ -45,11 +46,15 @@ export const Canvas = Node.create({
     ];
   },
 
-  renderHTML({ node }) {
+  renderHTML({ node, HTMLAttributes }) {
     const a = node.attrs as { id: string; label: string; fragment: string };
     return [
       'div',
-      mergeAttributes({ 'data-canvas': a.id, 'data-label': a.label, 'data-fragment': a.fragment }),
+      mergeAttributes(dataOnly(HTMLAttributes), {
+        'data-canvas': a.id,
+        'data-label': a.label,
+        'data-fragment': a.fragment,
+      }),
       a.label,
     ];
   },

@@ -1,0 +1,1746 @@
+/*
+ * AI teams on rich pages: the chip, the review bar, the suggested blocks, the sheets (design "AI teams on rich pages",
+ * RichDocsAi1-3; values from the boards' code). The class names avoid .sg-head, .sg-step and .sg-chip, which the AI
+ * accounts sign-in window (ai/accounts/signIn.css) also defines globally.
+ */
+
+/* ---------- the header chip (A 1-5, I 52) ---------- */
+.sg-hchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 26px;
+  max-width: 100%;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #efe8fb;
+  border: 1px solid #d9ccf7;
+  color: #5b3aa6;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.sg-hchip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sg-hchip-quiet {
+  background: #f1f3f1;
+  border-color: #dce3de;
+  color: #3a4a3e;
+}
+.sg-hchip-quiet:disabled {
+  cursor: default;
+}
+.sg-hchip-wrap {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+}
+.sg-touch .sg-hchip,
+.sg-hchip-touch {
+  height: 32px;
+}
+
+/* ---------- the review bar (A 1, 3, 4; B 6) ---------- */
+.sg-bar {
+  position: sticky;
+  top: 52px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 6px 10px 6px 12px;
+  border-radius: 10px;
+  background: #f1ecfb;
+  border: 1px solid #dcd0f3;
+  font-size: 13px;
+  color: #1e2a22;
+  box-sizing: border-box;
+}
+.sg-bar-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sg-bar-words {
+  min-width: 0;
+  font-size: 13px;
+}
+.sg-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.sg-nav-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #5b3aa6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  cursor: pointer;
+  padding: 0;
+}
+.sg-nav-btn:hover:not(:disabled) {
+  background: #e6dcf8;
+}
+.sg-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.sg-count {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #3a2a7a;
+  min-width: 46px;
+  text-align: center;
+  background: none;
+  border: none;
+  font-family: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.sg-note-offline {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.sg-bar:has(.sg-note-offline) {
+  flex-wrap: wrap;
+}
+
+/* buttons of the bar and the blocks: always visible, never on hover only */
+.sg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: #fff;
+  color: #1e2a22;
+  border: 1px solid #d5ddd8;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+.sg-btn:disabled {
+  opacity: 0.45;
+  background: #f1f3f1;
+  cursor: default;
+}
+.sg-btn-primary {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #fff;
+}
+.sg-btn-primary:disabled {
+  background: #2e6f40;
+}
+.sg-btn-look {
+  border-color: #d9ccf7;
+  background: #efe8fb;
+  color: #5b3aa6;
+}
+.sg-btn-danger {
+  background: #fff;
+  border-color: #f0c4b8;
+  color: #a5321e;
+}
+/* the confirmations' buttons */
+.sg-btn-dlg {
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* tablet: 44 px targets (A 3, C 11) */
+.sg-touch .sg-btn,
+.sg-touch.sg-btn {
+  height: 44px;
+  padding: 0 15px;
+  font-size: 13.5px;
+  border-radius: 8px;
+}
+.sg-touch .sg-btn svg {
+  width: 14.5px;
+  height: 14.5px;
+}
+.sg-touch .sg-nav-btn {
+  width: 44px;
+  height: 44px;
+}
+.sg-touch .sg-count {
+  font-size: 13.5px;
+}
+.sg-touch .sg-bhead {
+  min-height: 44px;
+}
+
+/* phone: the bar is docked at the bottom of the screen, under a rule (A 4, C 12) */
+.sg-bar-phone {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  z-index: 30;
+  margin: 0;
+  gap: 6px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  border: none;
+  border-top: 1px solid #e3e8e5;
+  border-radius: 0;
+  background: #fff;
+}
+/* while suggestions wait, the review bar takes the place of the reading bar (Ai1 frames 4-5): both sit at the
+   bottom of the screen and the reading bar covered the review */
+body:has(.sg-bar-phone) .dk-readbar {
+  display: none;
+}
+.sg-bar-phone .sg-btn {
+  padding: 0 16px;
+  font-size: 14.5px;
+}
+.sg-bar-phone .sg-count {
+  font-size: 14px;
+}
+
+/* ---------- a suggested block (B 6-7, C 11-12) ---------- */
+.sg-block {
+  position: relative;
+  box-sizing: border-box;
+  border-left: 3px solid #7c5cd6;
+  background: #f9f7fe;
+  border-radius: 0 9px 9px 0;
+  padding: 8px 12px 10px 14px;
+  margin: 0 0 12px;
+  display: flow-root;
+}
+.sg-block.sg-current {
+  box-shadow: 0 0 0 2px #d9ccf7;
+}
+.sg-bhead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+  min-height: 26px;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  font-style: normal;
+  line-height: normal;
+}
+.sg-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #5b3aa6;
+  white-space: nowrap;
+}
+.sg-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: #efe8fb;
+  color: #5b3aa6;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex: none;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  font-style: normal;
+}
+.sg-tag-muted {
+  background: #f1f3f1;
+  color: #3a4a3e;
+}
+.sg-tag-stale {
+  background: #fdf3e3;
+  color: #8a5a00;
+}
+.sg-tag-ok {
+  background: #e4f3e8;
+  color: #1f5a31;
+}
+.sg-tag-del {
+  background: #fdedea;
+  color: #a5321e;
+}
+.sg-tag-blue {
+  background: #e8f1fa;
+  color: #244e78;
+}
+.sg-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #d9ccf7;
+  color: #3a2a7a;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+}
+.sg-change-big {
+  height: 24px;
+  font-size: 12px;
+}
+.sg-change .sg-from {
+  color: #5e4f94;
+  font-weight: 500;
+}
+.sg-change .sg-arrow {
+  color: #5b3aa6;
+}
+.sg-change b {
+  font-weight: 700;
+}
+.sg-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* phone: a smaller frame and a "Review ›" link per block (C 12, D 21) */
+.sg-phone-page .sg-block,
+.sg-block.sg-phone {
+  border-radius: 0 8px 8px 0;
+  padding: 6px 10px 8px;
+  margin-bottom: 10px;
+}
+.sg-block.sg-phone .sg-bhead {
+  gap: 6px;
+  margin-bottom: 4px;
+  min-height: 0;
+  flex-wrap: nowrap;
+}
+.sg-review-chip {
+  margin: -12px 0 -12px auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 44px;
+  padding: 0 0 0 16px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5b3aa6;
+  cursor: pointer;
+}
+.sg-block.sg-phone .sg-actions {
+  margin-left: auto;
+}
+.sg-stale-line {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a5a00;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+}
+
+/* the words a suggestion changes: struck = removed, underlined = added */
+.sg-del {
+  background: #fdedea;
+  color: #a5321e;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  border-radius: 2px;
+}
+.sg-ins {
+  background: #e4f3e8;
+  color: #1f5a31;
+  text-decoration: underline;
+  text-decoration-color: #2e6f40;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  border-radius: 2px;
+}
+.sg-diff {
+  white-space: pre-wrap;
+}
+.sg-removed > :not(.sg-bhead):not(.sg-msg) {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+.sg-block .dk-md,
+.sg-block > p,
+.sg-block > h1,
+.sg-block > h2,
+.sg-block > h3 {
+  margin-bottom: 0;
+}
+
+/* Before and After of a whole object, each in its card (D 15-20, G 37) */
+.sg-sides {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: stretch;
+}
+.sg-sides-stacked {
+  flex-direction: column;
+}
+.sg-side {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 9px;
+  background: #fff;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sg-side-after {
+  border-color: #bfdcc7;
+}
+.sg-side-gone {
+  border-color: #f0c4b8;
+}
+.sg-side-none:not(.sg-side-gone) {
+  border-style: dashed;
+  border-color: #c7d2cb;
+}
+.sg-side-empty {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #5b6b60;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+}
+.sg-side-gone .sg-side-empty {
+  border: 1px dashed #c7d2cb;
+  border-radius: 8px;
+}
+.sg-sides-arrow {
+  align-self: center;
+  flex: none;
+  display: flex;
+}
+.sg-side .dk-md > :first-child {
+  margin-top: 0;
+}
+.sg-side .dk-md > :last-child {
+  margin-bottom: 0;
+}
+
+/* Before / After one at a time: the board's segmented switch (D 22, B 10) */
+.sg-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: #eef3ef;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.sg-switch button {
+  flex: none;
+  height: 26px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #5b6b60;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sg-switch button[aria-pressed='true'] {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.18);
+}
+.sg-switch button:disabled {
+  cursor: default;
+}
+.sg-switch-wide {
+  display: flex;
+  margin-bottom: 8px;
+}
+.sg-switch-wide button {
+  flex: 1;
+  height: 40px;
+  font-size: 13.5px;
+}
+.sg-switch-team {
+  width: 250px;
+}
+.sg-label-small {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #5b6b60;
+  text-transform: uppercase;
+  margin: 4px 0;
+}
+.sg-empty {
+  padding: 14px;
+  border: 1px dashed #c7d2cb;
+  border-radius: 8px;
+  color: #5b6b60;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* the notes under a block: changed since, failed (B 6, I 53) */
+.sg-msg {
+  box-sizing: border-box;
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 11px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  font-style: normal;
+}
+.sg-msg > svg {
+  margin-top: 2px;
+}
+.sg-msg > div {
+  flex: 1;
+  min-width: 0;
+}
+.sg-msg-stale {
+  background: #fdf3e3;
+  color: #8a5a00;
+  border: 1px solid #ebd3a4;
+}
+.sg-msg-error {
+  background: #fdf1ee;
+  color: #c4432a;
+  border: 1px solid #f0c4b8;
+}
+.sg-stale-wrap {
+  margin-top: 6px;
+}
+.sg-stale-wrap > .sg-msg {
+  margin-top: 0;
+}
+.sg-look-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+}
+.sg-look-hint {
+  font-size: 12px;
+  color: #5b6b60;
+}
+.sg-compare {
+  margin-top: 8px;
+}
+@media (max-width: 640px) {
+  .sg-compare {
+    flex-direction: column;
+  }
+}
+.sg-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #5b6b60;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+}
+
+/* ---------- once everything is settled: the quiet chip's card (I 52) ---------- */
+.sg-settled {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  width: 330px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.16);
+  color: #1e2a22;
+  white-space: normal;
+  text-align: left;
+}
+.sg-settled-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.sg-settled-text {
+  font-size: 12.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+  margin: 3px 0 10px;
+}
+.sg-settled-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- the confirmations (B 8, I 51) ---------- */
+.sg-confirm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.sg-confirm {
+  width: 400px;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.16);
+  color: #1e2a22;
+}
+.sg-confirm-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.sg-confirm-sub {
+  font-size: 12.5px;
+  color: #5b6b60;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.sg-confirm-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.sg-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sg-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 0;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+.sg-row-place {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sg-row-what {
+  color: #5b6b60;
+  font-size: 11.5px;
+}
+
+/* ---------- phone sheets (A 5, C 13-14, D 22, F 34) ---------- */
+.sg-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 16px 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.sg-sheet-act {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.dk-sheet-body:has(> .sg-list),
+.dk-sheet-body:has(> .sg-sheet-body),
+.dk-sheet-body:has(> .sg-ask-phone) {
+  padding: 0;
+}
+.sg-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 12px;
+}
+.sg-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-top: 1px solid #e3e8e5;
+  background: none;
+  font: inherit;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+}
+.sg-list-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #efe8fb;
+  color: #5b3aa6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.sg-list-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sg-list-place {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sg-list-change {
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.sg-sheet-body {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 16px;
+}
+.sg-sheet-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.sg-sheet-box {
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.sg-sheet-box .dk-md p {
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+.sg-sheet-body > .sg-btn-look {
+  margin-top: 8px;
+  align-self: flex-start;
+}
+.sg-sheet-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.sg-sheet-actions .sg-btn-look {
+  flex: 1.4;
+}
+.sg-sheet-actions .sg-btn {
+  flex: 1;
+  padding: 0 16px;
+  font-size: 14.5px;
+}
+.sg-sheet-actions .sg-btn-accept {
+  flex: 1.4;
+}
+.sg-sheet-actions .sg-btn svg {
+  width: 15.5px;
+  height: 15.5px;
+}
+.sg-sheet-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #5b6b60;
+}
+
+/* ---------- run endings (G 39) ---------- */
+.sg-ending {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid #bfdcc7;
+  background: #f1f8f3;
+  font-size: 13px;
+  color: #1e2a22;
+}
+.sg-ending > span {
+  flex: 1;
+  min-width: 0;
+}
+.sg-ending-failed {
+  background: #fdf1ee;
+  border-color: #f0c4b8;
+}
+.sg-ending-needs {
+  background: #e8edf3;
+  border-color: #b8c4d2;
+}
+.sg-ending-needs-word {
+  font-weight: 600;
+  color: #34455a;
+}
+.sg-ending-x {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  cursor: pointer;
+}
+.sg-ending-x:hover {
+  background: rgba(30, 42, 34, 0.06);
+}
+
+/* the ✦ of a page with suggestions in the tree */
+.sg-tree-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  margin: 0 3px;
+  padding: 0 5px;
+  height: 16px;
+  border-radius: 999px;
+  background: #efe8fb;
+  color: #5b3aa6;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* ---------- the page menu's AI changes (B 9) and Settings › Docs AI (B 10) ---------- */
+.sg-menu-sub {
+  padding: 2px 0 4px;
+  display: flex;
+  flex-direction: column;
+}
+.sg-menu-head {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #5b6b60;
+}
+.sg-menu-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.sg-menu-opt:hover {
+  background: #f6faf7;
+}
+.sg-menu-opt-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sg-menu-opt small {
+  display: block;
+  font-size: 12px;
+  color: #5b6b60;
+  line-height: 1.4;
+}
+.sg-menu-opt[aria-checked='true'] {
+  background: #f1f8f3;
+}
+.sg-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #9aa8a0;
+  box-sizing: border-box;
+  margin-top: 2px;
+  flex: none;
+}
+.sg-menu-opt[aria-checked='true'] .sg-radio {
+  border: 5px solid #2e6f40;
+}
+.sg-menu-default {
+  margin-top: 4px;
+  border-top: 1px solid #e3e8e5;
+  border-radius: 0 0 8px 8px;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.sg-menu-default .sg-radio {
+  width: 14px;
+  height: 14px;
+  margin-top: 0;
+}
+.sg-menu-link {
+  color: #2e6f40;
+  font-weight: 600;
+}
+.sg-team-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid #eef3ef;
+}
+.sg-team-badge,
+.sg-ask-badge {
+  position: relative;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #dceee1;
+  color: #2e6f40;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sg-team-badge-ai,
+.sg-ask-badge-ai {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #1e2a22;
+  border: 1.5px solid #fff;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Ask the team (F 28-34) ---------- */
+/* doubled so it wins over the selection bars' own button rules (.dc-selbar button, the editor's bubble) */
+.sg-ask-btn.sg-ask-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 7px;
+  background: #efe8fb;
+  color: #5b3aa6;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+.sg-ask-btn.sg-ask-btn:hover {
+  background: #e6dcf8;
+}
+@media (pointer: coarse) {
+  .sg-ask-btn.sg-ask-btn {
+    height: 44px;
+    font-size: 14px;
+  }
+}
+.sg-ask-menu {
+  position: fixed;
+  z-index: 1200;
+  width: 260px;
+  max-height: min(70vh, 480px);
+  overflow-y: auto;
+  padding: 8px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.16);
+  font-size: 13px;
+  color: #1e2a22;
+}
+.sg-ask-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 6px 8px;
+}
+.sg-ask-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+}
+.sg-ask-badge-ai {
+  width: 11px;
+  height: 11px;
+}
+.sg-ask-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sg-ask-who b {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.sg-ask-who span {
+  font-size: 11px;
+  color: #5b6b60;
+}
+.sg-ask-sep {
+  height: 1px;
+  background: #e3e8e5;
+  margin: 5px 0;
+}
+.sg-ask-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: none;
+  background: none;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.sg-ask-item:hover,
+.sg-ask-item:focus-visible {
+  background: #f1f8f3;
+  outline: none;
+}
+.sg-ask-ico {
+  width: 18px;
+  display: inline-flex;
+  justify-content: center;
+  color: #5b6b60;
+  flex: none;
+}
+.sg-ask-label {
+  flex: 1;
+  white-space: nowrap;
+}
+.sg-ask-more {
+  display: inline-flex;
+  color: #5b6b60;
+}
+.sg-ask-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 4px 2px;
+  height: 34px;
+  padding: 0 4px 0 10px;
+  box-sizing: border-box;
+  border: 1px solid #d9ccf7;
+  border-radius: 8px;
+}
+.sg-ask-input input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+  padding: 0;
+}
+.sg-ask-input input::placeholder {
+  color: #5b6b60;
+}
+.sg-ask-input:focus-within {
+  border-color: #7c5cd6;
+}
+.sg-ask-input button {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.sg-ask-input button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.sg-ask-foot {
+  padding: 6px 8px 0;
+  font-size: 11px;
+  color: #5b6b60;
+}
+.sg-ask-touch .sg-ask-item {
+  min-height: 44px;
+  height: auto;
+}
+/* phone: a sheet with 48 px rows under a rule (F 34) */
+.sg-ask-phone {
+  padding: 0 16px 14px;
+}
+.sg-ask-phone .sg-ask-item {
+  gap: 12px;
+  min-height: 48px;
+  padding: 0;
+  border-radius: 0;
+  border-top: 1px solid #e3e8e5;
+  font-size: 15px;
+  font-weight: 600;
+}
+.sg-ask-phone .sg-ask-ico {
+  width: 28px;
+}
+.sg-ask-phone .sg-ask-input {
+  height: 48px;
+  margin: 8px 0 0;
+}
+.sg-ask-phone .sg-ask-input input {
+  font-size: 15px;
+}
+
+/* the editor's dark selection bubble */
+.dk-bubble-ask {
+  margin: 0 2px;
+}
+
+/* ---------- a team is working on this page (G 38-41, PageWork.tsx) ---------- */
+.pw-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 20px;
+}
+.pw-banner {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2daf6;
+  background: #f7f4fe;
+  min-width: 0;
+}
+.pw-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7c5cd6;
+  box-shadow: 0 0 0 3px rgba(124, 92, 214, 0.18);
+  flex: none;
+}
+.pw-dot.ai-pulse {
+  animation: sg-pulse 1.6s ease-out infinite;
+}
+.pw-dot-needs {
+  background: #34455a;
+  box-shadow: none;
+}
+@keyframes sg-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(46, 111, 64, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(46, 111, 64, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 111, 64, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-dot.ai-pulse {
+    animation: none;
+  }
+}
+.pw-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: #1e2a22;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.pw-text b,
+.pw-phone-text b {
+  font-weight: 700;
+}
+.pw-state {
+  color: #5b4a9e;
+  font-weight: 600;
+}
+.pw-needs {
+  color: #34455a;
+  font-weight: 600;
+}
+.pw-doing {
+  color: #5b6b60;
+  margin-left: 6px;
+}
+.pw-ticket {
+  flex: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid #ddd3f5;
+  background: #fff;
+  border-radius: 6px;
+  padding: 1px 8px;
+  color: #1e2a22;
+}
+@media (pointer: coarse) {
+  .pw-open.sg-btn {
+    height: 44px;
+    padding: 0 15px;
+    font-size: 13.5px;
+    border-radius: 8px;
+  }
+}
+.pw-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.pw-phone {
+  width: 100%;
+  gap: 8px;
+  padding: 8px 10px;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pw-phone-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #1e2a22;
+}
+.pw-phone-sub {
+  display: block;
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.pw-phone-go {
+  width: 44px;
+  height: 44px;
+  margin: -8px -6px -8px 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #5b6b60;
+  flex: none;
+}
+
+/* ---------- Give this page to an AI team (E 23-24, GivePageDialog.tsx) ---------- */
+.gp-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.gp-card {
+  width: 520px;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(30, 42, 34, 0.16);
+  overflow: hidden;
+  color: #1e2a22;
+}
+.gp-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 22px 12px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.gp-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #efe8fb;
+  color: #5b3aa6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.gp-head-text {
+  flex: 1;
+  min-width: 0;
+}
+.gp-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.gp-sub {
+  font-size: 12.5px;
+  color: #5b6b60;
+  margin-top: 1px;
+}
+.gp-x {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  cursor: pointer;
+}
+.gp-x:hover {
+  background: #f1f3f1;
+}
+.gp-body {
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.gp-field {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.gp-label {
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #5b6b60;
+  margin-bottom: 6px;
+}
+.gp-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gp-opt {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.gp-radio-input {
+  position: absolute;
+  opacity: 0;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+}
+.gp-radio[data-on] {
+  border: 5px solid #2e6f40;
+}
+.gp-radio-input:focus-visible + .gp-radio {
+  outline: 2px solid #2e6f40;
+  outline-offset: 2px;
+}
+.gp-opt-label {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.gp-opt-hint {
+  display: block;
+  font-size: 12.5px;
+  color: #5b6b60;
+  line-height: 1.45;
+}
+.gp-text {
+  resize: vertical;
+  min-height: 60px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #cfddd3;
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #1e2a22;
+}
+.gp-hint {
+  font-size: 12px;
+  color: #5b6b60;
+  margin-top: 6px;
+  line-height: 1.45;
+}
+.gp-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
+  font-size: 12.5px;
+}
+.gp-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-top: 1px solid #e3e8e5;
+}
+
+/* Ai2 frame 27: on a phone, Give the page is a bottom sheet (20 px corners, grab 36x4), 44 px rows and two 44 px
+   buttons that share the width */
+@media (max-width: 599px) {
+  .gp-scrim {
+    align-items: flex-end;
+    padding: 0;
+    background: rgba(30, 42, 34, 0.3) !important;
+  }
+  .gp-card {
+    width: 100%;
+    max-height: 92vh;
+    border: none;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 30px rgba(30, 42, 34, 0.16);
+  }
+  .gp-card::before {
+    content: '';
+    display: block;
+    flex: none;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: #c7d2cb;
+    margin: 8px auto 4px;
+  }
+  .gp-head {
+    align-items: center;
+    padding: 4px 4px 6px 16px;
+    border-bottom: none;
+  }
+  .gp-badge,
+  .gp-sub {
+    display: none;
+  }
+  .gp-title {
+    font-size: 15px;
+  }
+  .gp-x {
+    width: 44px;
+    height: 44px;
+  }
+  .gp-body {
+    padding: 0 16px 12px;
+  }
+  .gp-opt {
+    min-height: 44px;
+  }
+  .gp-foot {
+    padding: 8px 16px 16px;
+    border-top: none;
+  }
+  .gp-foot > span {
+    display: none;
+  }
+  .gp-foot .sg-btn {
+    flex: 1;
+    height: 44px;
+    justify-content: center;
+    font-size: 14.5px;
+  }
+}
+
+/* ---------- a team's note under a block it did not change (G 35-36) ---------- */
+.sg-team-note {
+  margin: 8px 0 14px;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  color: #1e2a22;
+}
+.sg-team-note > .sg-msg-note {
+  margin-top: 0;
+  gap: 9px;
+  background: #f1ecfb;
+  border: 1px solid #dcd0f3;
+}
+.sg-msg-note > div {
+  flex: 1;
+}
+.sg-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.sg-note-wrote {
+  margin-top: 8px;
+  border: 1px dashed #d9ccf7;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #fff;
+}
+.sg-note-wrote-head {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #5b3aa6;
+  margin-bottom: 4px;
+}
+.sg-note-wrote-text {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ---------- edited at the same time (G 37) ---------- */
+.sg-tag-clash {
+  background: #fdf3e3;
+  color: #8a5a00;
+}
+.sg-clash-line {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #5b6b60;
+}
+
+/* ---------- the chip of a page a team edited directly, and its list (A 2) ---------- */
+.sg-edited-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.16);
+  padding: 12px;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  color: #1e2a22;
+  text-align: left;
+}
+.sg-edited-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 8px;
+}
+.sg-edited-head > b {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.sg-edited-head > span {
+  font-size: 12px;
+  color: #5b6b60;
+}
+.sg-edited-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.sg-edited-row:hover:not(:disabled),
+.sg-edited-row:focus-visible {
+  background: #f1ecfb;
+}
+.sg-edited-row:disabled {
+  cursor: default;
+}
+.sg-edited-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #efe8fb;
+  color: #5b3aa6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.sg-edited-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sg-edited-place {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sg-edited-what {
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.sg-edited-n {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b3aa6;
+}
+.sg-edited-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 4px 2px;
+  border-top: 1px solid #e3e8e5;
+  margin-top: 6px;
+}
+.sg-edited-ask {
+  flex: 1 1 100%;
+  font-size: 12px;
+  color: #5b6b60;
+}
+
+/* ---------- a block a team is changing now (States H 59-61) ---------- */
+[data-ai-changing] {
+  position: relative;
+  border-left: 3px solid #7b6fd0;
+  background: #f5f3fd;
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px 8px 11px;
+}
+[data-ai-changing]::before {
+  content: attr(data-ai-changing);
+  position: absolute;
+  right: 8px;
+  top: -9px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  background: #efeafb;
+  color: #5b4bb5;
+  border: 1px solid #d5ccf0;
+  border-radius: 999px;
+  font:
+    700 10.5px 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+/* RichDocsAi2 frame 42: the phone sheet of a block edited at the same time */
+.sg-clash-who {
+  font-size: 12.5px;
+  color: #5b6b60;
+  margin-bottom: 10px;
+}
+.sg-clash-card {
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 9px;
+  background: #fff;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sg-clash-card-team {
+  border-color: #bfdcc7;
+}
+.sg-phone .sg-switch-wide button {
+  font-size: 13px;
+}

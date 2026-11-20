@@ -1,12 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import type { Editor } from '@tiptap/react';
 import { useEditorState } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { NodeSelection } from '@tiptap/pm/state';
 import { CellSelection } from '@tiptap/pm/tables';
 import { Icon } from '../Icon';
-import { HighlightGlyph } from './EditorToolbar';
 import { LineIcon } from '../../ui/LineIcon';
+import { BubbleColors } from './ribbon/BubbleColors';
+import { ColorPicker } from './ribbon/ColorPicker';
+import {
+  clearFormatting,
+  markAttr,
+  markState,
+  setHighlight,
+  setTextColor,
+  toggleMark,
+  type Tri,
+} from './ribbon/format';
+import { cssColor, rememberColor } from './ribbon/palette';
+import { ColorGlyph, Glyph, HighlightGlyph, Popover } from './ribbon/parts';
+import { startPainter } from './ribbon/RichFormatting';
+import { LinkPanel, type LinkTargets } from './LinkPanel';
 
 interface Props {
   editor: Editor;
@@ -19,21 +33,63 @@ interface Props {
   onAi?: (action: 'summarise' | 'rewrite' | 'ask', text: string) => void;
   /** Shows an "AI" item that swaps this bar for the AI selection bar (Improve, Shorten, Explain, Ask…). */
   onAiBar?: () => void;
+  /** The "Ask the team" button (a Docs page with an AI team): it takes the place of the AI items. */
+  askTeam?: ReactNode;
+  /** The page colour, for the colour swatches (default white). */
+  pageHex?: string;
+  /** The text is stored as Markdown (an idea): no underline or colours. */
+  plain?: boolean;
+  /**
+   * A phone (Editor board, frame 39): 42×44 buttons, only B I U, colours, link, comment and More; strikethrough and
+   * the AI items move into More, the block type and the references stay in the Aa sheet and Insert.
+   */
+  touch?: boolean;
+  /** Pages and tickets the link panel offers for what is typed in its address. */
+  linkTargets?: LinkTargets;
 }
 
-const SEP = <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.22)', margin: '0 4px' }} />;
-const ON = { background: 'rgba(255,255,255,0.18)' };
+/** A button of the bar (a stable component, so a popover keeps its anchor between renders). */
+const Btn = ({
+  label,
+  on,
+  onClick,
+  children,
+  wide,
+  expanded,
+  className,
+}: {
+  label: string;
+  /** On, mixed (drawn dashed) or off. */
+  on?: boolean | Tri;
+  onClick: (e: ReactMouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+  wide?: boolean;
+  expanded?: boolean;
+  className?: string;
+}) => {
+  const tri = on === true ? 'on' : on === false || on === undefined ? 'off' : on;
+  return (
+    <button
+      type="button"
+      className={`dk-bubble-btn${tri === 'on' ? ' dk-rb-on' : tri === 'mixed' ? ' dk-rb-mixed' : ''}${className ? ` ${className}` : ''}`}
+      aria-label={label}
+      title={label}
+      aria-pressed={on === undefined ? undefined : tri === 'mixed' ? 'mixed' : tri === 'on'}
+      aria-haspopup={expanded === undefined ? undefined : true}
+      aria-expanded={expanded}
+      style={wide ? { width: 'auto', padding: '0 9px', gap: 6, display: 'flex' } : undefined}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+};
 
-function normalizeUrl(raw: string): string {
-  const v = raw.trim();
-  if (!v) return '';
-  if (/^(https?:|mailto:|tel:|\/|#)/i.test(v)) return v;
-  if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(v)) return `https://${v}`;
-  return v;
-}
+const SEP = <span className="dk-bubble-sep" />;
 
 const BLOCKS: { label: string; run: (e: Editor) => void; on: (e: Editor) => boolean }[] = [
-  { label: 'Text', run: (e) => e.chain().focus().setParagraph().run(), on: (e) => e.isActive('paragraph') },
+  { label: 'Body', run: (e) => e.chain().focus().setParagraph().run(), on: (e) => e.isActive('paragraph') },
   {
     label: 'Heading 1',
     run: (e) => e.chain().focus().setHeading({ level: 1 }).run(),
@@ -82,72 +138,63 @@ function editorColumn(editor: Editor): Element | null {
  * @param props.onComment - Shows a Comment button that starts an inline comment on the selection.
  * @param props.onAi - Shows Summarise / Rewrite / Ask AI… for the selection.
  * @param props.onAiBar - Shows an "AI" item that opens the AI selection bar in place of this one.
+ * @param props.askTeam - The "Ask the team" button, drawn where the AI items go.
+ * @param props.pageHex - The page colour, for the colour swatches.
+ * @param props.plain - The text is stored as Markdown: no underline or colours.
  */
-export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onComment, onAi, onAiBar }: Props) {
+export function BubbleToolbar({
+  editor,
+  linkOpen,
+  setLinkOpen,
+  ticketPrefix,
+  onComment,
+  onAi,
+  onAiBar,
+  askTeam,
+  pageHex = '#FFFFFF',
+  plain,
+  touch,
+  linkTargets,
+}: Props) {
   const st = useEditorState({
     editor,
-    selector: ({ editor: e }) => ({
-      bold: !!e?.isActive('bold'),
-      italic: !!e?.isActive('italic'),
-      strike: !!e?.isActive('strike'),
-      code: !!e?.isActive('code'),
-      highlight: !!e?.isActive('highlight'),
-      link: !!e?.isActive('link'),
-      href: (e?.getAttributes('link').href as string | undefined) ?? '',
-      block: BLOCKS.find((b) => e && b.on(e))?.label ?? 'Text',
-    }),
+    selector: ({ editor: e }) => {
+      const tri = (m: string): Tri => (e ? markState(e.state, m) : 'off');
+      return {
+        bold: tri('bold'),
+        italic: tri('italic'),
+        underline: tri('underline'),
+        strike: tri('strike'),
+        code: tri('code'),
+        highlight: tri('highlight'),
+        color: e ? markAttr(e.state, 'textStyle', 'color') : null,
+        highlightColor: e ? markAttr(e.state, 'highlight', 'color') : null,
+        link: !!e?.isActive('link'),
+        href: (e?.getAttributes('link').href as string | undefined) ?? '',
+        // a caret on a link: the bar turns into the link's actions
+        caretOnLink: !!e && e.state.selection.empty && e.isActive('link'),
+        block: BLOCKS.find((b) => e && b.on(e))?.label ?? 'Body',
+      };
+    },
   });
   const [blockOpen, setBlockOpen] = useState(false);
-  const [url, setUrl] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
+  // a colour or More popover is open: it keeps the bar up while a field in it has the focus
+  const [pop, setPop] = useState<{ id: 'color' | 'hl' | 'more'; anchor: HTMLElement } | null>(null);
+  const popOpen = useRef(false);
+  popOpen.current = !!pop;
+  const togglePop = (id: 'color' | 'hl' | 'more') => (e: ReactMouseEvent<HTMLButtonElement>) => {
+    const anchor = e.currentTarget;
+    setPop((p) => (p?.id === id ? null : { id, anchor }));
+  };
   useEffect(() => {
-    if (linkOpen) {
-      setUrl(st?.href ?? '');
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }
     // The bar changes width and height between the buttons and the URL field; re-anchor it above the selection.
     editor.view.dispatch(editor.state.tr.setMeta('docsBubble', 'updatePosition'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkOpen]);
 
-  const apply = () => {
-    const href = normalizeUrl(url);
-    const chain = editor.chain().focus();
-    if (!href) chain.extendMarkRange('link').unsetLink().run();
-    else chain.extendMarkRange('link').setLink({ href }).run();
-    setLinkOpen(false);
-  };
-  const cancel = () => {
-    setLinkOpen(false);
-    editor.commands.focus();
-  };
-
-  const Btn = ({
-    label,
-    on,
-    onClick,
-    children,
-    wide,
-  }: {
-    label: string;
-    on?: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-    wide?: boolean;
-  }) => (
-    <button
-      type="button"
-      className="dk-bubble-btn"
-      aria-label={label}
-      title={label}
-      style={{ ...(on ? ON : null), ...(wide ? { width: 'auto', padding: '0 7px', gap: 4, display: 'flex' } : null) }}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
+  const hlValue =
+    st?.highlight === 'off' || !st ? null : st.highlightColor === 'mixed' ? 'mixed' : (st.highlightColor ?? 'yellow');
+  const link = st?.href ?? '';
 
   return (
     <BubbleMenu
@@ -168,166 +215,201 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
         shift: { padding: 8, boundary: editorColumn(editor) ?? 'clippingAncestors' },
         onHide: () => {
           setBlockOpen(false);
+          setPop(null);
         },
       }}
       shouldShow={({ editor: e, state }) => {
         const { selection } = state;
-        if (selection.empty || !e.isEditable) return false;
+        if (!e.isEditable) return false;
+        if (selection.empty) return linkOpen || (e.isFocused && e.isActive('link'));
         if (selection instanceof CellSelection) return false;
         if (selection instanceof NodeSelection) return false;
         if (e.isActive('codeBlock')) return false;
-        return e.isFocused || linkOpen;
+        return e.isFocused || linkOpen || popOpen.current;
       }}
     >
       <div
         data-testid="bubble-toolbar"
+        className={`dk-bubble${touch ? ' dk-bubble-touch' : ''}${linkOpen ? ' dk-bubble-linkp' : ''}`}
         style={{
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
           gap: 1,
-          padding: '4px 6px',
-          minHeight: 36,
+          padding: 4,
+          minHeight: 38,
           boxSizing: 'border-box',
-          borderRadius: 9,
+          borderRadius: 10,
           background: '#1E2A22',
-          boxShadow: '0 10px 24px rgba(30,42,34,0.3)',
+          color: '#E8F0EA',
+          boxShadow: '0 10px 28px rgba(20,32,24,.32)',
           zIndex: 30,
           whiteSpace: 'nowrap',
         }}
       >
         {linkOpen ? (
-          <>
-            <span style={{ display: 'flex', color: '#EEF3EF', padding: '0 4px' }}>
-              <Icon name="i11" size={15} />
+          <LinkPanel editor={editor} targets={linkTargets} onClose={() => setLinkOpen(false)} />
+        ) : st?.caretOnLink ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 1 }} data-testid="bubble-link">
+            <span className="dk-bubble-link" title={link}>
+              <Icon name="i11" size={14} />
+              {link.replace(/^https?:\/\//, '')}
             </span>
-            <input
-              ref={inputRef}
-              aria-label="Link URL"
-              value={url}
-              placeholder="Paste or type a link"
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  apply();
-                } else if (e.key === 'Escape') {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  cancel();
-                }
-              }}
-              style={{
-                width: 220,
-                border: 'none',
-                outline: 'none',
-                background: 'transparent',
-                color: '#EEF3EF',
-                fontSize: 12.5,
-                fontFamily: 'inherit',
-                padding: '0 4px',
-                caretColor: '#68BA7F',
-              }}
-            />
             {SEP}
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={apply}
-              style={{
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#CFFFDC',
-                padding: '0 6px',
-              }}
-            >
-              Apply
-            </button>
-            <button
-              type="button"
-              aria-label="Cancel"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={cancel}
-              style={{
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                color: '#B7C9BE',
-                padding: 0,
-              }}
-            >
-              <Icon name="i08" size={13} />
-            </button>
-          </>
+            <Btn label="Open link" onClick={() => window.open(link, '_blank', 'noopener,noreferrer')}>
+              <Glyph name="open" size={15} />
+            </Btn>
+            <Btn label="Copy link" onClick={() => void navigator.clipboard?.writeText(link).catch(() => undefined)}>
+              <Glyph name="copy" size={15} />
+            </Btn>
+            <Btn label="Edit link" onClick={() => setLinkOpen(true)}>
+              <Glyph name="edit" size={15} />
+            </Btn>
+            <Btn label="Remove link" onClick={() => editor.chain().focus().extendMarkRange('link').unsetLink().run()}>
+              <Glyph name="unlink" size={15} />
+            </Btn>
+          </div>
         ) : (
           <>
-            <Btn label="Bold" on={st?.bold} onClick={() => editor.chain().focus().toggleBold().run()}>
-              <span style={{ fontWeight: 800, fontSize: 14 }}>B</span>
-            </Btn>
-            <Btn label="Italic" on={st?.italic} onClick={() => editor.chain().focus().toggleItalic().run()}>
-              <span style={{ fontStyle: 'italic', fontFamily: 'Georgia,serif', fontSize: 14 }}>i</span>
-            </Btn>
-            <Btn label="Strikethrough" on={st?.strike} onClick={() => editor.chain().focus().toggleStrike().run()}>
-              <Icon name="i47" size={15} />
-            </Btn>
-            <Btn label="Inline code" on={st?.code} onClick={() => editor.chain().focus().toggleCode().run()}>
-              <Icon name="i33" size={15} />
-            </Btn>
-            <Btn label="Highlight" on={st?.highlight} onClick={() => editor.chain().focus().toggleHighlight().run()}>
-              <HighlightGlyph />
-            </Btn>
-            {SEP}
-            <div style={{ position: 'relative' }}>
-              <Btn label="Block type" wide onClick={() => setBlockOpen((o) => !o)}>
-                <span style={{ fontSize: 12 }}>{st?.block === 'Text' || !st?.block ? 'Text' : st.block}</span>
-                <Icon name="i06" size={11} />
-              </Btn>
-              {blockOpen && (
-                <div className="dk-menu" style={{ position: 'absolute', left: 0, top: 34, width: 170, zIndex: 5 }}>
-                  {BLOCKS.map((b) => (
-                    <div
-                      key={b.label}
-                      role="menuitem"
-                      className={`dk-mi${b.on(editor) ? ' dk-mi-on' : ''}`}
-                      style={{ padding: '6px 10px' }}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        b.run(editor);
-                        setBlockOpen(false);
-                      }}
-                    >
-                      {b.label}
+            {!touch && (
+              <>
+                <div style={{ position: 'relative' }}>
+                  <Btn label="Block type" wide onClick={() => setBlockOpen((o) => !o)}>
+                    <span style={{ fontSize: 12.5, fontWeight: 600 }}>{st?.block ?? 'Body'}</span>
+                    <Glyph name="chevron" size={10} strokeWidth={2.4} className="dk-bubble-chev" />
+                  </Btn>
+                  {blockOpen && (
+                    <div className="dk-menu" style={{ position: 'absolute', left: 0, top: 38, width: 170, zIndex: 5 }}>
+                      {BLOCKS.map((b) => (
+                        <div
+                          key={b.label}
+                          role="menuitem"
+                          className={`dk-mi${b.on(editor) ? ' dk-mi-on' : ''}`}
+                          style={{ padding: '6px 10px' }}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            b.run(editor);
+                            setBlockOpen(false);
+                          }}
+                        >
+                          {b.label}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
+            {SEP}
+            <Btn label="Bold" on={st?.bold} onClick={() => toggleMark(editor, 'bold')}>
+              <span style={{ fontWeight: 800, fontSize: touch ? 16 : 15 }}>B</span>
+            </Btn>
+            <Btn label="Italic" on={st?.italic} onClick={() => toggleMark(editor, 'italic')}>
+              <span
+                style={{
+                  fontStyle: 'italic',
+                  fontWeight: 600,
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: touch ? 17 : 16,
+                }}
+              >
+                I
+              </span>
+            </Btn>
+            {!plain && (
+              <Btn label="Underline" on={st?.underline} onClick={() => toggleMark(editor, 'underline')}>
+                <span style={{ fontWeight: 700, fontSize: touch ? 15 : 14, textDecoration: 'underline' }}>U</span>
+              </Btn>
+            )}
+            {!touch && (
+              <>
+                <Btn label="Strikethrough" on={st?.strike} onClick={() => toggleMark(editor, 'strike')}>
+                  <span style={{ fontWeight: 700, fontSize: 14, textDecoration: 'line-through' }}>S</span>
+                </Btn>
+                <Btn label="Inline code" on={st?.code} onClick={() => toggleMark(editor, 'code')}>
+                  <Icon name="i33" size={15} />
+                </Btn>
+              </>
+            )}
+            {SEP}
+            {!plain && (
+              <Btn
+                label="Text colour"
+                className="dk-bubble-w40"
+                on={st?.color === 'mixed' ? 'mixed' : undefined}
+                expanded={pop?.id === 'color'}
+                onClick={togglePop('color')}
+              >
+                <ColorGlyph color={st?.color && st.color !== 'mixed' ? cssColor('text', st.color) : '#68BA7F'} />
+              </Btn>
+            )}
+            <Btn
+              label="Highlight"
+              className={plain ? 'dk-bubble-w40' : 'dk-bubble-hl'}
+              on={st?.highlight}
+              onClick={() => toggleMark(editor, 'highlight')}
+            >
+              <HighlightGlyph
+                size={15}
+                color={typeof hlValue === 'string' && hlValue !== 'mixed' ? cssColor('highlight', hlValue) : undefined}
+              />
+            </Btn>
+            {!plain && (
+              <Btn
+                label="Highlight colours"
+                className="dk-bubble-caret"
+                expanded={pop?.id === 'hl'}
+                onClick={togglePop('hl')}
+              >
+                <Glyph name="chevron" size={9} strokeWidth={2.4} />
+              </Btn>
+            )}
             {SEP}
             <Btn label="Link" on={st?.link} onClick={() => setLinkOpen(true)}>
-              <Icon name="i11" size={15} />
+              <Glyph name="link" size={16} strokeWidth={1.9} />
             </Btn>
-            <Btn
-              label="Reference a page or section"
-              onClick={() => {
-                const { from, to } = editor.state.selection;
-                editor
-                  .chain()
-                  .focus()
-                  .insertContent(`[[${editor.state.doc.textBetween(from, to, ' ')}`)
-                  .run();
-              }}
-            >
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>[[</span>
+            {onComment && (
+              <Btn label="Comment" onClick={onComment}>
+                <svg
+                  aria-hidden="true"
+                  width={16}
+                  height={16}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.9}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  data-testid="bubble-comment"
+                >
+                  <path d="M4 5h16v11H9l-5 4z" />
+                </svg>
+              </Btn>
+            )}
+            {!touch && (
+              <>
+                <Btn
+                  label="Reference a page or section"
+                  onClick={() => {
+                    const { from, to } = editor.state.selection;
+                    editor
+                      .chain()
+                      .focus()
+                      .insertContent(`[[${editor.state.doc.textBetween(from, to, ' ')}`)
+                      .run();
+                  }}
+                >
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>[[</span>
+                </Btn>
+                <Btn label="Ticket" onClick={() => editor.chain().focus().insertContent(`[[${ticketPrefix}-`).run()}>
+                  <Icon name="i13" size={15} />
+                </Btn>
+              </>
+            )}
+            <Btn label="More formatting" expanded={pop?.id === 'more'} onClick={togglePop('more')}>
+              <Glyph name="more" size={16} strokeWidth={2.6} />
             </Btn>
-            <Btn label="Ticket" onClick={() => editor.chain().focus().insertContent(`[[${ticketPrefix}-`).run()}>
-              <Icon name="i13" size={15} />
-            </Btn>
-            {onAi && (
+            {onAi && !touch && (
               <>
                 {SEP}
                 {(
@@ -353,7 +435,7 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
                 ))}
               </>
             )}
-            {onAiBar && (
+            {onAiBar && !touch && (
               <>
                 {SEP}
                 <Btn label="AI on the selection" wide onClick={onAiBar}>
@@ -365,15 +447,10 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
                 </Btn>
               </>
             )}
-            {onComment && (
+            {askTeam && (
               <>
                 {SEP}
-                <Btn label="Comment" wide onClick={onComment}>
-                  <Icon name="comment" size={15} />
-                  <span style={{ fontSize: 12 }} data-testid="bubble-comment">
-                    Comment
-                  </span>
-                </Btn>
+                {askTeam}
               </>
             )}
           </>
@@ -390,6 +467,93 @@ export function BubbleToolbar({ editor, linkOpen, setLinkOpen, ticketPrefix, onC
             transform: 'rotate(45deg)',
           }}
         />
+        {pop && (pop.id === 'color' || pop.id === 'hl') && (
+          <Popover
+            anchor={pop.anchor}
+            label="Colour"
+            width={touch ? 340 : 300}
+            onClose={() => setPop(null)}
+            testId={`bubble-pop-${pop.id}`}
+          >
+            {touch ? (
+              <ColorPicker
+                kind={pop.id === 'color' ? 'text' : 'highlight'}
+                value={pop.id === 'color' ? (st?.color ?? null) : hlValue}
+                pageHex={pageHex}
+                touch
+                onPick={(v) => {
+                  if (pop.id === 'color') setTextColor(editor, v);
+                  else setHighlight(editor, v);
+                  if (v) rememberColor(pop.id === 'color' ? 'text' : 'highlight', v);
+                  setPop(null);
+                  editor.commands.focus();
+                }}
+              />
+            ) : (
+              // Start board, frame 16: one popover for both, opened on the tab of the button pressed
+              <BubbleColors
+                initial={pop.id === 'color' ? 'text' : 'highlight'}
+                text={st?.color ?? null}
+                highlight={hlValue}
+                pageHex={pageHex}
+                onPick={(kind, v) => {
+                  if (kind === 'text') setTextColor(editor, v);
+                  else setHighlight(editor, v);
+                  if (v) rememberColor(kind, v);
+                  setPop(null);
+                  editor.commands.focus();
+                }}
+              />
+            )}
+          </Popover>
+        )}
+        {pop?.id === 'more' && (
+          <Popover anchor={pop.anchor} label="More formatting" role="menu" width={220} onClose={() => setPop(null)}>
+            {(
+              [
+                ...(touch ? ([['Strikethrough', () => toggleMark(editor, 'strike')]] as const) : []),
+                ['Superscript', () => toggleMark(editor, 'superscript')],
+                ['Subscript', () => toggleMark(editor, 'subscript')],
+                ['Clear formatting', () => clearFormatting(editor, 'text')],
+                ['Format painter', () => startPainter(editor, false)],
+                ...(touch && onAiBar ? ([['AI on the selection', onAiBar]] as const) : []),
+                ...(touch && onAi
+                  ? (
+                      [
+                        ['summarise', 'Summarise'],
+                        ['rewrite', 'Rewrite'],
+                        ['ask', 'Ask AI…'],
+                      ] as const
+                    ).map(
+                      ([action, label]) =>
+                        [
+                          label,
+                          () => {
+                            const { from, to } = editor.state.selection;
+                            onAi(action, editor.state.doc.textBetween(from, to, '\n'));
+                          },
+                        ] as const,
+                    )
+                  : []),
+              ] as const
+            ).map(([label, run]) => (
+              <button
+                key={label}
+                type="button"
+                role="menuitem"
+                className="dk-mi dk-rb-row"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  run();
+                  setPop(null);
+                  editor.commands.focus();
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </Popover>
+        )}
       </div>
     </BubbleMenu>
   );

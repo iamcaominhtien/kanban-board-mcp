@@ -8,6 +8,14 @@ export interface CareReason {
   /** What was compared ("ticket KAN-12 (status, title, recent comments)"). */
   compared: string;
   quote?: string;
+  /** The block of the page the reason compared (RichDocsLinks I 58): Review opens the page there. */
+  blockId?: string | null;
+  /** The words that name that block ("Limits"). */
+  blockLabel?: string | null;
+  /** The node type of that block (`callout`, `taskList`…): the reason's chip names it ("Callout · Show", H 46). */
+  blockType?: string | null;
+  /** The ticket key or page title the check compared the page with (a freshness check's own word). */
+  source?: string | null;
 }
 
 /** "Checked today 06:10", "Checked yesterday", "Checked 3 days ago". */

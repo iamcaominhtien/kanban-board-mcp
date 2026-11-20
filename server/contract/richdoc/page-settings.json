@@ -1,0 +1,278 @@
+{
+  "note": "Per-page settings (docs_page.settings, JSON). Every key is optional; a missing key is its default. They belong to the page, not to a person. Reader preferences (text size, theme, justify, sans) are kept on the device, not here.",
+  "keys": {
+    "width": {
+      "default": "normal",
+      "values": [
+        "narrow",
+        "normal",
+        "wide",
+        "full"
+      ],
+      "px": {
+        "narrow": 560,
+        "normal": 680,
+        "wide": 880,
+        "full": null
+      }
+    },
+    "margins": {
+      "default": "normal",
+      "values": [
+        "tight",
+        "normal",
+        "roomy"
+      ],
+      "note": "the room around the text column"
+    },
+    "blockSpacing": {
+      "default": "normal",
+      "values": [
+        "tight",
+        "normal",
+        "roomy"
+      ],
+      "note": "the space between blocks"
+    },
+    "view": {
+      "default": "continuous",
+      "values": [
+        "continuous",
+        "paged"
+      ],
+      "note": "paged adds page breaks for print and PDF; reading stays continuous"
+    },
+    "editorOutline": {
+      "default": true,
+      "values": [
+        true,
+        false
+      ],
+      "note": "the headings beside the page in the editor"
+    },
+    "background": {
+      "default": "white",
+      "values": [
+        "white",
+        "paper",
+        "mist",
+        "sepia",
+        "night"
+      ]
+    },
+    "bodyFont": {
+      "default": "jakarta",
+      "values": [
+        "jakarta",
+        "lora",
+        "source-serif",
+        "merriweather",
+        "playfair",
+        "inter",
+        "jetbrains-mono",
+        "caveat"
+      ]
+    },
+    "headingFont": {
+      "default": null,
+      "note": "null = the body font",
+      "values": [
+        null,
+        "jakarta",
+        "lora",
+        "source-serif",
+        "merriweather",
+        "playfair",
+        "inter",
+        "jetbrains-mono",
+        "caveat"
+      ]
+    },
+    "textSize": {
+      "default": "m",
+      "values": [
+        "s",
+        "m",
+        "l"
+      ]
+    },
+    "baseSize": {
+      "default": null,
+      "shape": "number 12..22 (CSS px, steps of 0.5)",
+      "note": "null = the text size step; wins over textSize when set"
+    },
+    "lineHeight": {
+      "default": 1.6,
+      "values": [
+        1.4,
+        1.6,
+        1.8,
+        2.0
+      ]
+    },
+    "paragraphs": {
+      "default": "space",
+      "values": [
+        "space",
+        "indent"
+      ],
+      "note": "space between paragraphs, or a first-line indent"
+    },
+    "textAlign": {
+      "default": "left",
+      "values": [
+        "left",
+        "center",
+        "right",
+        "justify"
+      ]
+    },
+    "dropCap": {
+      "default": false,
+      "values": [
+        true,
+        false
+      ],
+      "note": "a drop cap on the first paragraph"
+    },
+    "showOutline": {
+      "default": true,
+      "values": [
+        true,
+        false
+      ]
+    },
+    "cover": {
+      "default": null,
+      "shape": {
+        "src": "string (or none with a colour)",
+        "color": "#rrggbb (a colour cover, instead of a picture)",
+        "positionX": "number 0..100",
+        "positionY": "number 0..100",
+        "height": "s|m|l|full",
+        "fit": "fill|fit",
+        "dim": "number 0..80 (per cent of black over the picture)",
+        "titleOnCover": "boolean"
+      }
+    },
+    "icon": {
+      "default": null,
+      "note": "an emoji, an icon name (icon:<name>) or an uploaded image (/uploads/...)"
+    },
+    "titleStyle": {
+      "default": "plain",
+      "values": [
+        "plain",
+        "serif",
+        "display",
+        "eyebrow"
+      ]
+    },
+    "titleSize": {
+      "default": "standard",
+      "values": [
+        "standard",
+        "large",
+        "huge"
+      ]
+    },
+    "titleAlign": {
+      "default": "left",
+      "values": [
+        "left",
+        "center",
+        "right"
+      ]
+    },
+    "eyebrow": {
+      "default": null,
+      "note": "the small line above the title (ENGINEERING NOTES)"
+    },
+    "showTitle": {
+      "default": true,
+      "values": [
+        true,
+        false
+      ]
+    },
+    "showByline": {
+      "default": true,
+      "values": [
+        true,
+        false
+      ]
+    },
+    "showReadingTime": {
+      "default": true,
+      "values": [
+        true,
+        false
+      ]
+    },
+    "showEditedBy": {
+      "default": true,
+      "values": [
+        true,
+        false
+      ],
+      "note": "the 'Edited by … · 2h ago' line"
+    },
+    "outlineDepth": {
+      "default": 3,
+      "values": [
+        2,
+        3
+      ],
+      "note": "the deepest heading level in 'On this page'"
+    },
+    "highlights": {
+      "default": "comment",
+      "values": [
+        "comment",
+        "off"
+      ],
+      "note": "people who can comment can highlight / off for this page"
+    },
+    "notForAi": {
+      "default": false,
+      "values": [
+        true,
+        false
+      ]
+    },
+    "aiApply": {
+      "default": null,
+      "values": [
+        null,
+        "suggest",
+        "direct"
+      ],
+      "note": "null = the team setting; the page wins over the team"
+    },
+    "book": {
+      "default": null,
+      "shape": {
+        "isBook": "boolean",
+        "numberChapters": "boolean"
+      }
+    },
+    "status": {
+      "default": null,
+      "values": [
+        null,
+        "draft",
+        "in-review",
+        "final",
+        "outdated"
+      ]
+    },
+    "reviewedAt": {
+      "default": null,
+      "note": "ISO time of Mark as reviewed"
+    },
+    "lockedBlocks": {
+      "default": [],
+      "note": "top-level block ids AI teams may not change (\"Teams cannot change this\"); at most 500"
+    }
+  }
+}

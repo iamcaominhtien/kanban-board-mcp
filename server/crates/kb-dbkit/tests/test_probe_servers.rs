@@ -130,14 +130,14 @@ async fn test_postgresql_databases() {
         finding(
             "empty",
             "warn",
-            "Already holds a Kanban board · 77 tables, 0 tickets",
+            "Already holds a Kanban board · 82 tables, 0 tickets",
             "Use it as it is (Use this database), or empty it in the next step to copy your data in.",
             ""
         )
     );
     assert_eq!(
         (&report["ok"], &report["state"], &report["tables"], &report["tickets"]),
-        (&json!(true), &json!("board"), &json!(77), &json!(0))
+        (&json!(true), &json!("board"), &json!(82), &json!(0))
     );
     assert_eq!(report["revision"], include_str!("../../kb-db/schema/head.txt").trim());
 
@@ -273,12 +273,12 @@ async fn test_mysql_databases() {
         finding(
             "empty",
             "warn",
-            "Already holds a Kanban board · 77 tables, 0 tickets",
+            "Already holds a Kanban board · 82 tables, 0 tickets",
             "Use it as it is (Use this database), or empty it in the next step to copy your data in.",
             ""
         )
     );
-    assert_eq!((&report["state"], &report["tables"], &report["tickets"]), (&json!("board"), &json!(77), &json!(0)));
+    assert_eq!((&report["state"], &report["tables"], &report["tickets"]), (&json!("board"), &json!(82), &json!(0)));
     wipe(&own).await;
 
     // a wrong password, and a database this user may not use
@@ -355,12 +355,12 @@ async fn test_sqlite_files() {
         finding(
             "empty",
             "warn",
-            "Already holds a Kanban board · 95 tables, 0 tickets",
+            "Already holds a Kanban board · 100 tables, 0 tickets",
             "Use it as it is (Use this database), or empty it in the next step to copy your data in.",
             ""
         )
     );
-    assert_eq!((&report["state"], &report["tables"], &report["tickets"]), (&json!("board"), &json!(95), &json!(0)));
+    assert_eq!((&report["state"], &report["tables"], &report["tickets"]), (&json!("board"), &json!(100), &json!(0)));
     let foreign = tmp.path().join("other.db");
     sqlite_exec(&foreign, "CREATE TABLE a (x)", &[]).await;
     sqlite_exec(&foreign, "CREATE TABLE b (y)", &[]).await;

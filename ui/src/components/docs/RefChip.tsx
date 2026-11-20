@@ -9,6 +9,10 @@ import { avatarColors, ticketStatus } from './docsUi';
 import './docs.css';
 import { TicketDeletedCard, TicketPageCard } from './RefCardsTicket';
 import { Icon } from './Icon';
+import { BlockCard, BlockGoneCard } from './links/BlockCard';
+import { KindGlyph } from './links/BlockKind';
+import './links/links.css';
+import { DOCS_PHONE_BELOW } from '../../hooks/useDocsLayout';
 
 export interface RefChipProps {
   kind: 'page' | 'ticket';
@@ -20,6 +24,10 @@ export interface RefChipProps {
   /** Page references: the page title and optional section parsed from `[[Page#Section|label]]`. */
   pageTitle?: string;
   anchor?: string | null;
+  /** A rich page's link to a heading or block: the block id it stores (it opens the page there). */
+  blockId?: string | null;
+  /** The heading's or block's name stored with the link (`targetLabel`): a gone block's chip still names it. */
+  blockLabel?: string | null;
   /** true when the author wrote `[[Page|custom text]]`. */
   custom?: boolean;
   onOpenPage?: (pageId: string, anchor?: string | null) => void;
@@ -101,6 +109,9 @@ function Floating({
   role = 'dialog',
   label,
   ticket,
+  touch,
+  onClose,
+  anchor,
 }: {
   rect: DOMRect;
   width: number;
@@ -110,8 +121,28 @@ function Floating({
   role?: string;
   label?: string;
   ticket?: boolean;
+  /** Opened by a tap (RichDocsLinks K 67-68): `tablet` keeps the card at the chip with 44 px buttons and closes on a
+   * tap elsewhere; `phone` shows it as a bottom sheet over a scrim with 48 px buttons. */
+  touch?: 'tablet' | 'phone';
+  /** Closes the card (a tap outside it, or on the scrim). */
+  onClose?: () => void;
+  /** The chip that opened the card: a second tap on it goes on instead of closing. */
+  anchor?: HTMLElement | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (touch !== 'tablet' || !onClose) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (ref.current && !ref.current.contains(t) && !anchor?.contains(t)) onClose();
+    };
+    // the tap that opened the card is still going; listen from the next one on
+    const t = setTimeout(() => document.addEventListener('pointerdown', onDown), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('pointerdown', onDown);
+    };
+  }, [touch, onClose, anchor]);
   const gap = ticket ? 9 : 6;
   const [pos, setPos] = useState<{ left: number; top: number; flipped: boolean }>({
     left: rect.left,
@@ -133,12 +164,24 @@ function Floating({
     arrowLeft: Math.max(14, Math.min(width - 28, rect.left + rect.width / 2 - pos.left - 6)),
     flipped: pos.flipped,
   };
+  if (touch === 'phone')
+    return createPortal(
+      <div className="docs-root ref-sheet-wrap">
+        <div className="ref-sheet-scrim" aria-hidden="true" onClick={onClose} />
+        <div className="ref-sheet" ref={ref} role={role} aria-label={label} data-testid="ref-tap-sheet">
+          <div className="ref-sheet-grab" aria-hidden="true" />
+          {typeof children === 'function' ? children(info) : children}
+        </div>
+      </div>,
+      document.body,
+    );
   return createPortal(
     <div
-      className="docs-root"
+      className={touch ? 'docs-root ref-tap' : 'docs-root'}
       ref={ref}
       role={role}
       aria-label={label}
+      data-testid={touch ? 'ref-tap-card' : undefined}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
       style={{ position: 'fixed', left: pos.left, top: pos.top, width, zIndex: 1500 }}
@@ -304,6 +347,7 @@ function PageChipBody({
   custom,
   label,
   color,
+  block,
 }: {
   title?: string;
   anchor?: string | null;
@@ -311,10 +355,22 @@ function PageChipBody({
   custom?: boolean;
   label: string;
   color?: string;
+  /** A link to a block (not a heading): "Rate limiting › [table] Limits" (RichDocsLinks D 21). */
+  block?: { kind: string; label: string } | null;
 }) {
   if (!title) return <>{label}</>;
   if (custom) {
     return <span style={{ borderBottom: `1px dotted ${color ?? '#68BA7F'}` }}>{label}</span>;
+  }
+  if (block && block.kind !== 'heading') {
+    return (
+      <>
+        {title}
+        <span className="dk-chip-sep">›</span>
+        <KindGlyph kind={block.kind} size={11} />
+        <span className="dk-chip-target">{block.label}</span>
+      </>
+    );
   }
   const slash = title.lastIndexOf('/');
   return (
@@ -347,6 +403,9 @@ export function RefChip(props: RefChipProps) {
   const ticketSurface = props.surface === 'ticket';
   const hover = useHoverCard(ticketSurface ? 300 : 400, ticketSurface ? 150 : 250);
   const ref = useRef<HTMLElement | null>(null);
+  // K 67-68: with no hover, the first tap shows the card and a second tap (or Open) goes on
+  const tapped = useRef(false);
+  const [tapMode, setTapMode] = useState<'tablet' | 'phone' | undefined>(undefined);
   const status = result?.status ?? 'ok';
   const ticketKey = kind === 'ticket' ? (result?.key ?? label) : '';
 
@@ -594,7 +653,62 @@ export function RefChip(props: RefChipProps) {
     );
   }
 
-  const goAnchor = sectionMissing && !ticketSurface ? null : (result?.anchor ?? props.anchor ?? null);
+  if (status === 'block_missing') {
+    const open = () => {
+      hover.close();
+      if (!result?.pageId) return;
+      if (ticketSurface && props.onPeek) props.onPeek(result.pageId, null);
+      else onOpenPage?.(result.pageId, null);
+    };
+    return (
+      <>
+        <span
+          ref={ref as React.RefObject<HTMLSpanElement>}
+          role="link"
+          tabIndex={0}
+          className="dk-chip dk-chip-block-missing"
+          data-testid="ref-block-missing"
+          onClick={open}
+          onKeyDown={(e) => e.key === 'Enter' && open()}
+          onMouseEnter={() => hover.enter(ref.current, 150)}
+          onMouseMove={() => hover.enter(ref.current, 150)}
+          onMouseLeave={() => {
+            if (!ref.current?.matches(':hover')) hover.leave();
+          }}
+          onFocus={() => hover.enter(ref.current, 0)}
+          onBlur={hover.leave}
+        >
+          <Icon name="page" size={11} strokeWidth={2} />
+          {props.custom ? label : (result?.title ?? pageTitle ?? label)}
+          {!props.custom && (
+            <>
+              <span className="dk-chip-sep">›</span>
+              <KindGlyph kind="text" size={11} />
+              <span className="dk-chip-target">{props.anchor ?? props.blockLabel ?? 'block'}</span>
+            </>
+          )}
+        </span>
+        {hover.open && hover.rect && (
+          <Floating rect={hover.rect} width={360} onEnter={hover.keep} onLeave={hover.leave} label="Block not found">
+            <BlockGoneCard
+              title={result?.title ?? pageTitle ?? label}
+              name={props.anchor ?? props.blockLabel ?? null}
+              onOpen={open}
+            />
+          </Floating>
+        )}
+      </>
+    );
+  }
+
+  const linkedBlock = status === 'ok' && result?.block ? result.block : null;
+  // a link to a heading or block opens the page at it (by its id, so a renamed heading still works)
+  const goAnchor =
+    linkedBlock && props.blockId
+      ? props.blockId
+      : sectionMissing && !ticketSurface
+        ? null
+        : (result?.anchor ?? props.anchor ?? null);
   const go = () => {
     if (!result?.pageId) return;
     if (ticketSurface && props.onPeek) props.onPeek(result.pageId, goAnchor);
@@ -613,94 +727,150 @@ export function RefChip(props: RefChipProps) {
         className={sectionMissing ? 'dk-chip' : 'dk-chip dk-chip-page'}
         data-testid={sectionMissing ? 'ref-section-missing' : 'ref-page'}
         style={baseStyle}
-        onClick={go}
+        onPointerDown={(e) => {
+          tapped.current = e.pointerType === 'touch';
+          if (!tapped.current) setTapMode(undefined);
+        }}
+        onClick={() => {
+          if (tapped.current && !hover.open && result?.pageId) {
+            setTapMode(window.innerWidth < DOCS_PHONE_BELOW ? 'phone' : 'tablet');
+            hover.close();
+            hover.enter(ref.current, 0);
+            return;
+          }
+          go();
+        }}
         onKeyDown={(e) => e.key === 'Enter' && go()}
         onMouseEnter={() => hover.enter(ref.current)}
         onMouseMove={() => hover.enter(ref.current)}
         onMouseLeave={() => {
-          if (!ref.current?.matches(':hover')) hover.leave();
+          if (!tapped.current && !ref.current?.matches(':hover')) hover.leave();
         }}
         onFocus={() => hover.enter(ref.current)}
-        onBlur={hover.leave}
+        onBlur={() => !tapped.current && hover.leave()}
       >
         <Icon name="page" size={13} strokeWidth={1.9} style={iconColor ? { color: iconColor } : undefined} />
         <PageChipBody
-          title={shownTitle(pageTitle, result)}
-          anchor={props.anchor}
+          title={shownTitle(pageTitle, result) ?? result?.title}
+          anchor={linkedBlock?.kind === 'heading' ? linkedBlock.label : props.anchor}
           section={result?.section}
           custom={props.custom}
           label={label}
           color={iconColor}
+          block={linkedBlock}
         />
       </span>
-      {hover.open && hover.rect && result?.pageId && ticketSurface && !sectionMissing && (
+      {hover.open && hover.rect && result?.pageId && linkedBlock && linkedBlock.kind !== 'heading' && (
         <Floating
           rect={hover.rect}
-          width={400}
-          ticket
+          width={tapMode === 'tablet' ? 420 : 340}
+          ticket={ticketSurface}
           onEnter={hover.keep}
-          onLeave={hover.leave}
-          label={`Preview of ${pageTitle ?? label}`}
+          onLeave={tapMode ? () => {} : hover.leave}
+          label={`Preview of ${linkedBlock.label}`}
+          touch={tapMode}
+          onClose={hover.close}
+          anchor={ref.current}
         >
-          {(i) => (
-            <TicketPageCard
-              {...i}
-              pageId={result.pageId!}
-              anchor={result.anchor ?? props.anchor ?? null}
-              onPeek={() => {
-                hover.close();
-                go();
-              }}
-              onOpenDocs={() => {
-                hover.close();
-                props.onOpenInDocs?.(result.pageId!, result.anchor ?? props.anchor ?? null);
-              }}
-            />
-          )}
+          <BlockCard
+            pageId={result.pageId}
+            block={linkedBlock}
+            onOpen={() => {
+              hover.close();
+              if (ticketSurface && props.onOpenInDocs) props.onOpenInDocs(result.pageId!, goAnchor);
+              else onOpenPage?.(result.pageId!, goAnchor);
+            }}
+            onPeek={
+              props.onPeek
+                ? () => {
+                    hover.close();
+                    props.onPeek?.(result.pageId!, goAnchor);
+                  }
+                : undefined
+            }
+          />
         </Floating>
       )}
-      {hover.open && hover.rect && result?.pageId && !(ticketSurface && !sectionMissing) && (
-        <Floating
-          rect={hover.rect}
-          width={sectionMissing ? 330 : 400}
-          onEnter={hover.keep}
-          onLeave={hover.leave}
-          label={`Preview of ${pageTitle ?? label}`}
-        >
-          {sectionMissing ? (
-            <MissingSection
-              pageId={result.pageId}
-              title={pageTitle ?? label}
-              anchor={props.anchor ?? ''}
-              onOpen={() => {
-                hover.close();
-                if (ticketSurface && props.onPeek) props.onPeek(result.pageId!, props.anchor ?? null);
-                else onOpenPage?.(result.pageId!, null);
-              }}
-              onUse={props.onReplaceSection}
-              onDone={hover.close}
-            />
-          ) : (
-            <PageCard
-              pageId={result.pageId}
-              anchor={result.anchor ?? props.anchor ?? null}
-              projectName={props.projectName}
-              onOpen={() => {
-                hover.close();
-                go();
-              }}
-              onPeek={
-                props.onPeek
-                  ? () => {
-                      hover.close();
-                      props.onPeek?.(result.pageId!, result.anchor ?? props.anchor ?? null);
-                    }
-                  : undefined
-              }
-            />
-          )}
-        </Floating>
-      )}
+      {hover.open &&
+        hover.rect &&
+        result?.pageId &&
+        !(linkedBlock && linkedBlock.kind !== 'heading') &&
+        ticketSurface &&
+        !sectionMissing && (
+          <Floating
+            rect={hover.rect}
+            width={400}
+            ticket
+            onEnter={hover.keep}
+            onLeave={hover.leave}
+            label={`Preview of ${pageTitle ?? label}`}
+          >
+            {(i) => (
+              <TicketPageCard
+                {...i}
+                pageId={result.pageId!}
+                anchor={result.anchor ?? props.anchor ?? null}
+                onPeek={() => {
+                  hover.close();
+                  go();
+                }}
+                onOpenDocs={() => {
+                  hover.close();
+                  props.onOpenInDocs?.(result.pageId!, result.anchor ?? props.anchor ?? null);
+                }}
+              />
+            )}
+          </Floating>
+        )}
+      {hover.open &&
+        hover.rect &&
+        result?.pageId &&
+        !(linkedBlock && linkedBlock.kind !== 'heading') &&
+        !(ticketSurface && !sectionMissing) && (
+          <Floating
+            rect={hover.rect}
+            width={sectionMissing ? 330 : tapMode === 'tablet' ? 420 : 400}
+            onEnter={hover.keep}
+            onLeave={tapMode ? () => {} : hover.leave}
+            label={`Preview of ${pageTitle ?? label}`}
+            touch={tapMode}
+            onClose={hover.close}
+            anchor={ref.current}
+          >
+            {sectionMissing ? (
+              <MissingSection
+                pageId={result.pageId}
+                title={pageTitle ?? label}
+                anchor={props.anchor ?? ''}
+                onOpen={() => {
+                  hover.close();
+                  if (ticketSurface && props.onPeek) props.onPeek(result.pageId!, props.anchor ?? null);
+                  else onOpenPage?.(result.pageId!, null);
+                }}
+                onUse={props.onReplaceSection}
+                onDone={hover.close}
+              />
+            ) : (
+              <PageCard
+                pageId={result.pageId}
+                anchor={result.anchor ?? props.anchor ?? null}
+                projectName={props.projectName}
+                onOpen={() => {
+                  hover.close();
+                  go();
+                }}
+                onPeek={
+                  props.onPeek
+                    ? () => {
+                        hover.close();
+                        props.onPeek?.(result.pageId!, result.anchor ?? props.anchor ?? null);
+                      }
+                    : undefined
+                }
+              />
+            )}
+          </Floating>
+        )}
     </>
   );
 }

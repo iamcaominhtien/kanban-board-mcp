@@ -25,6 +25,7 @@ pub mod ideas;
 pub mod items;
 pub mod knowledge;
 pub mod projects;
+pub mod reply;
 pub mod routing;
 pub mod schedules;
 pub mod tickets;

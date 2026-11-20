@@ -9035,7 +9035,8 @@
         }
        ],
        "title": "Status"
-      }
+      },
+      "description": "Only pages in this status (`published`, `draft`); `outdated`: pages that may be outdated."
      },
      {
       "name": "sort",
@@ -9046,6 +9047,51 @@
        "default": "relevance",
        "title": "Sort"
       }
+     },
+     {
+      "name": "kind",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Kind"
+      },
+      "description": "Only matches of these types, comma separated: page, image, table, file, code, diagram."
+     },
+     {
+      "name": "facets",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Facets"
+      },
+      "description": "Comma separated: `kinds` adds facets.kinds (pages per match type), `outdated` facets.outdated (pages that may be outdated), `projects` facets.projects (results per project, scope all)."
+     },
+     {
+      "name": "cards",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Cards"
+      },
+      "description": "Each match of a picture, video, table, code block, file or diagram carries `card`, what its result card shows."
      }
     ],
     "responses": {
@@ -9208,6 +9254,63 @@
           "additionalProperties": true
          },
          "title": "Response Post Resolve Projects  Project Id  Docs Resolve Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/links/fix": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Post Fix Links",
+    "description": "Fix a group of broken links in the pages that hold them: point them at another page, heading or block (relink), or keep their words and drop the links (remove). Each changed page gets a new version with a note.",
+    "operationId": "post_fix_links_projects__project_id__docs_links_fix_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true,
+        "title": "LinkFixBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Post Fix Links Projects  Project Id  Docs Links Fix Post"
         }
        }
       }
@@ -9505,6 +9608,17 @@
        "default": "",
        "title": "Title"
       }
+     },
+     {
+      "name": "mentions",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Mentions"
+      },
+      "description": "Also list the plain-text mentions of the current title in other pages, block by block."
      }
     ],
     "responses": {
@@ -10220,6 +10334,68 @@
       }
      }
     }
+   },
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Patch Version Note",
+    "description": "Change the note of one version (the history's \"Edit note\"); returns the version as `GET` does.",
+    "operationId": "patch_version_note_docs_pages__page_id__versions__version__patch",
+    "parameters": [
+     {
+      "name": "page_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Page Id"
+      }
+     },
+     {
+      "name": "version",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Version"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VersionNoteBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Patch Version Note Docs Pages  Page Id  Versions  Version  Patch"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/docs/pages/{page_id}/versions/{a}/diff/{b}": {
@@ -10394,6 +10570,51 @@
     }
    }
   },
+  "/docs/pages/{page_id}/link-targets": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Get Link Targets",
+    "description": "List the headings and blocks of a page a link can point at, and how many pages link to each.",
+    "operationId": "get_link_targets_docs_pages__page_id__link_targets_get",
+    "parameters": [
+     {
+      "name": "page_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Page Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Get Link Targets Docs Pages  Page Id  Link Targets Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/docs/pages/{page_id}/work": {
    "get": {
     "tags": [
@@ -10511,6 +10732,17 @@
        "type": "string",
        "title": "Ticket Id"
       }
+     },
+     {
+      "name": "blocks",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Blocks"
+      },
+      "description": "Rows of rich pages also carry block_id, block and excerpt: the heading or block they point at."
      }
     ],
     "responses": {
@@ -25609,6 +25841,445 @@
      }
     }
    }
+  },
+  "/docs/exports/{export_id}": {
+   "delete": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/highlights/{highlight_id}": {
+   "delete": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/highlights/{highlight_id}/to-page": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/templates/{template_id}": {
+   "delete": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/exports/{export_id}/download": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/file-preview": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/link-preview": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/highlights": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/public-link": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/public/{token}": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/exports": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/gallery": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/settings": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/settings": {
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/convert": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/exports/{export_id}/cancel": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/convert/retry": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/highlights/clear": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/highlights/restore": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions/accept": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions/accept-all": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions/reject": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/pages/from-template": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/uploads": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions/notes/dismiss": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions/notes/{note_id}/replace": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
   }
  },
  "components": {
@@ -30290,6 +30961,32 @@
       "type": "boolean",
       "title": "Rewrite Links",
       "default": false
+     },
+     "rewrite_mentions": {
+      "anyOf": [
+       {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "page_id": {
+           "type": "string"
+          },
+          "block_id": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "page_id",
+          "block_id"
+         ]
+        }
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rewrite Mentions"
      }
     },
     "type": "object",
@@ -32623,6 +33320,17 @@
      "page_id": {
       "type": "string",
       "title": "Page Id"
+     },
+     "block_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Block Id"
      }
     },
     "type": "object",
@@ -33708,6 +34416,24 @@
     "type": "object",
     "title": "VersionName",
     "description": "Name a version."
+   },
+   "VersionNoteBody": {
+    "properties": {
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "title": "VersionNoteBody",
+    "description": "Request body to change a version's note."
    },
    "VoteBody": {
     "properties": {

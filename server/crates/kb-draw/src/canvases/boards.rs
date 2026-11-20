@@ -1,6 +1,8 @@
 //! `services/canvases.py` lines 1427-1923 (frames): add a frame, save a frame's content under its lock, duplicate, copy a
 //! whole canvas, and read a frame's files, source, snapshot and the canvas overview.
 
+use std::fmt::Write as _;
+
 use kb_base::{activity, pyjson, pytext};
 use kb_db::Session;
 use kb_db::entities::{canvas, diagram, sketch};
@@ -597,6 +599,141 @@ pub async fn board_snapshot(session: &Session, canvas_id: &str, board_id: &str, 
     }
     let int = |k: &str| board.get(k).map_or(0, as_int);
     Ok(canvas_png::board_snapshot(html_text.as_deref(), int("w"), int("h"), 360))
+}
+
+/// A PNG of one page tab as it looks: each HTML frame drawn by a browser where it sits on the plane, pictures and
+/// sketches as themselves, notes with their words and the arrows between them; `Ok(None)` when no browser can draw
+/// it (the caller falls back to [`overview_png`]). `max_width` is the widest the picture may be, in pixels.
+///
+/// # Errors
+/// The canvas or its file cannot be read.
+pub async fn plane_png(
+    session: &Session,
+    canvas_id: &str,
+    page: Option<&str>,
+    max_width: i64,
+) -> Result<Option<Vec<u8>>> {
+    let c = get_row(session, canvas_id, false).await?;
+    let doc = read_doc(&c.id)?;
+    let first_page = list(&doc, "pages").first().and_then(|p| p.get("id")).and_then(Value::as_str).map(str::to_string);
+    let page = page.filter(|p| !p.is_empty()).map(str::to_string).or(first_page);
+    let on_page = |item: &&Value| item.get("page").and_then(Value::as_str) == page.as_deref();
+    let boards: Vec<&Value> = list(&doc, "boards").iter().filter(on_page).collect();
+    let notes: Vec<&Value> = list(&doc, "notes").iter().filter(on_page).collect();
+    let labels: Vec<&Value> = list(&doc, "labels").iter().filter(on_page).collect();
+    if boards.is_empty() && notes.is_empty() {
+        return Ok(None);
+    }
+    let n = |v: Option<&Value>, d: f64| v.and_then(Value::as_f64).unwrap_or(d);
+    // the box of everything on the page, with a margin
+    let mut boxes: Vec<(f64, f64, f64, f64)> = boards
+        .iter()
+        .map(|b| (n(b.get("x"), 0.0), n(b.get("y"), 0.0), n(b.get("w"), 390.0), n(b.get("h"), 844.0)))
+        .collect();
+    boxes.extend(
+        notes.iter().map(|t| (n(t.get("x"), 0.0), n(t.get("y"), 0.0), n(t.get("w"), 160.0), n(t.get("h"), 100.0))),
+    );
+    let margin = 48.0;
+    let left = boxes.iter().map(|b| b.0).fold(f64::INFINITY, f64::min) - margin;
+    let top = boxes.iter().map(|b| b.1).fold(f64::INFINITY, f64::min) - margin;
+    let right = boxes.iter().map(|b| b.0 + b.2).fold(f64::NEG_INFINITY, f64::max) + margin;
+    let bottom = boxes.iter().map(|b| b.1 + b.3).fold(f64::NEG_INFINITY, f64::max) + margin;
+    let (width, height) = (right - left, bottom - top);
+    let scale = (max_width as f64 / width).min(1.0);
+    let esc = |t: &str| t.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;");
+    let mut body = String::new();
+    let mut centres: Map<String, Value> = Map::new();
+    for b in &boards {
+        let (x, y, w, h) =
+            (n(b.get("x"), 0.0) - left, n(b.get("y"), 0.0) - top, n(b.get("w"), 390.0), n(b.get("h"), 844.0));
+        let id = b.get("id").and_then(Value::as_str).unwrap_or_default();
+        centres.insert(id.into(), json!([x + w / 2.0, y + h / 2.0]));
+        let name = esc(b.get("name").and_then(Value::as_str).unwrap_or_default());
+        let place = format!("left:{x}px;top:{y}px;width:{w}px;height:{h}px");
+        let content = b.get("content").filter(|c| pyjson::truthy(c));
+        let kind = b.get("kind").and_then(Value::as_str).unwrap_or_default();
+        let inner = match (content, kind) {
+            (Some(content), "html" | "image") => {
+                let rev = content.get("rev").map_or(0, as_int);
+                let entry = content.get("entry").and_then(Value::as_str).unwrap_or_default();
+                let src = format!("boards/{id}/r{rev}/{entry}");
+                if kind == "image" {
+                    format!("<img src=\"{}\" style=\"width:100%;height:100%;object-fit:contain\">", esc(&src))
+                } else {
+                    format!("<iframe src=\"{}\" scrolling=\"no\"></iframe>", esc(&src))
+                }
+            }
+            _ => format!("<div class=\"empty\">{name}</div>"),
+        };
+        let _ = write!(body, "<div class=\"board\" style=\"{place}\"><p class=\"name\">{name}</p>{inner}</div>");
+    }
+    for t in &notes {
+        let (x, y, w, h) =
+            (n(t.get("x"), 0.0) - left, n(t.get("y"), 0.0) - top, n(t.get("w"), 160.0), n(t.get("h"), 100.0));
+        if let Some(id) = t.get("id").and_then(Value::as_str) {
+            centres.insert(id.into(), json!([x + w / 2.0, y + h / 2.0]));
+        }
+        let colour = match t.get("color").and_then(Value::as_str).unwrap_or("yellow") {
+            "green" => "#DDEFE3",
+            "blue" => "#DCE9F7",
+            "pink" => "#F8DDE6",
+            "violet" => "#E8E0F6",
+            "orange" => "#FBE6D2",
+            _ => "#FFF2B8",
+        };
+        let text = esc(t.get("text").and_then(Value::as_str).unwrap_or_default());
+        let _ = write!(
+            body,
+            "<div class=\"note\" style=\"left:{x}px;top:{y}px;width:{w}px;min-height:{h}px;background:{colour}\">{text}</div>"
+        );
+    }
+    for t in &labels {
+        let (x, y) = (n(t.get("x"), 0.0) - left, n(t.get("y"), 0.0) - top);
+        let text = esc(t.get("text").and_then(Value::as_str).unwrap_or_default());
+        let _ = write!(body, "<div class=\"label\" style=\"left:{x}px;top:{y}px\">{text}</div>");
+    }
+    let mut lines = String::new();
+    for a in list(&doc, "arrows").iter().filter(|a| on_page(a) || a.get("page").is_none()) {
+        let end = |k: &str| a.get(k).and_then(Value::as_str).and_then(|id| centres.get(id)).cloned();
+        if let (Some(from), Some(to)) = (end("from"), end("to")) {
+            let (x1, y1, x2, y2) = (n(from.get(0), 0.0), n(from.get(1), 0.0), n(to.get(0), 0.0), n(to.get(1), 0.0));
+            let _ = write!(lines, "<line x1=\"{x1}\" y1=\"{y1}\" x2=\"{x2}\" y2=\"{y2}\" marker-end=\"url(#tip)\"/>");
+            if let Some(label) = a.get("label").and_then(Value::as_str).filter(|l| !l.is_empty()) {
+                let _ = write!(
+                    lines,
+                    "<text x=\"{}\" y=\"{}\">{}</text>",
+                    (x1 + x2) / 2.0,
+                    (y1 + y2) / 2.0 - 8.0,
+                    esc(label)
+                );
+            }
+        }
+    }
+    let page_html = format!(
+        "<!doctype html><html><head><meta charset=\"utf-8\"><style>\
+         html,body{{margin:0;background:#F3F5F4}} .plane{{position:relative;width:{width}px;height:{height}px;\
+         transform:scale({scale});transform-origin:0 0;font-family:system-ui,sans-serif}}\
+         .board{{position:absolute;background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.12);overflow:visible}}\
+         .board iframe{{width:100%;height:100%;border:0;border-radius:14px;display:block;background:#fff}}\
+         .name{{position:absolute;top:-26px;left:2px;margin:0;font-size:15px;font-weight:600;color:#3A4A3E}}\
+         .empty{{display:flex;align-items:center;justify-content:center;height:100%;color:#7A8A80}}\
+         .note{{position:absolute;padding:10px 12px;border-radius:6px;font-size:15px;line-height:1.35;color:#1E2A22;\
+         box-shadow:0 1px 4px rgba(0,0,0,.12);box-sizing:border-box}} .label{{position:absolute;font-size:22px;font-weight:700;color:#1E2A22}}\
+         svg{{position:absolute;left:0;top:0;width:{width}px;height:{height}px;pointer-events:none;z-index:2}}\
+         line{{stroke:#5B6B60;stroke-width:2.5}} text{{font:14px system-ui;fill:#3A4A3E;text-anchor:middle}}\
+         </style></head><body><div class=\"plane\">{body}<svg><defs><marker id=\"tip\" markerWidth=\"10\" markerHeight=\"10\" \
+         refX=\"9\" refY=\"5\" orient=\"auto\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B60\"/></marker></defs>{lines}</svg>\
+         </div></body></html>"
+    );
+    let folder = canvas_dir(&c.id)?;
+    // a name of its own, so two pictures of the same canvas at once do not meet
+    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+    let name = format!(".plane-{}-{stamp}.html", std::process::id());
+    std::fs::write(folder.join(&name), page_html)?;
+    let shown = ((width * scale).ceil() as i64).max(200);
+    let png = crate::screenshots::content_png(&folder, &name, shown).await;
+    let _ = std::fs::remove_file(folder.join(&name));
+    Ok(png)
 }
 
 /// A PNG wireframe of one page tab (what an export writes where the canvas stood).

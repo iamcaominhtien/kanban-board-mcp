@@ -3,7 +3,7 @@
 
 use serde_json::{Map, Value};
 
-use crate::common::{ToolResult, arg_int, arg_str, arg_strings, arg_text};
+use crate::common::{ToolResult, arg_bool, arg_int, arg_object, arg_str, arg_strings, arg_text};
 use crate::operations as ops;
 use crate::operations::pictures::PictureArgs;
 use crate::tools::routing::{Op, dispatch, params_of};
@@ -24,11 +24,28 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
             |a| {
                 Box::pin(async move {
                     let section = arg_str(&a, "section");
-                    ops::get_docs_page(&arg_text(&a, "page_id"), section.as_deref()).await
+                    let plain = arg_bool(&a, "plain").unwrap_or(false);
+                    ops::get_docs_page(&arg_text(&a, "page_id"), section.as_deref(), plain).await
                 })
             },
             &["page_id"],
-            &["section"],
+            &["section", "plain"],
+        ),
+    ),
+    (
+        "block",
+        Op::new(
+            |a| Box::pin(async move { ops::get_docs_block(&arg_text(&a, "page_id"), &arg_text(&a, "block_id")).await }),
+            &["page_id", "block_id"],
+            &[],
+        ),
+    ),
+    (
+        "highlights",
+        Op::new(
+            |a| Box::pin(async move { ops::get_docs_highlights(&arg_text(&a, "page_id")).await }),
+            &["page_id"],
+            &[],
         ),
     ),
     (
@@ -53,9 +70,9 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
     (
         "versions",
         Op::new(
-            |a| Box::pin(async move { ops::list_docs_versions(&arg_text(&a, "page_id")).await }),
+            |a| Box::pin(async move { ops::list_docs_versions(&arg_text(&a, "page_id"), arg_int(&a, "limit")).await }),
             &["page_id"],
-            &[],
+            &["limit"],
         ),
     ),
     (
@@ -73,6 +90,30 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
             },
             &["page_id", "version"],
             &["compare_to"],
+        ),
+    ),
+    (
+        "templates",
+        Op::new(
+            |a| Box::pin(async move { ops::list_docs_templates(&arg_text(&a, "project_id")).await }),
+            &["project_id"],
+            &[],
+        ),
+    ),
+    (
+        "export",
+        Op::new(
+            |a| {
+                Box::pin(async move {
+                    let scope = arg_str(&a, "scope").unwrap_or_else(|| "page".to_string());
+                    let format = arg_str(&a, "format").unwrap_or_else(|| "md".to_string());
+                    let print = arg_object(&a, "print");
+                    ops::export_docs(&arg_text(&a, "page_id"), &scope, &format, &arg_text(&a, "path"), print.as_ref())
+                        .await
+                })
+            },
+            &["page_id", "path"],
+            &["scope", "format", "print"],
         ),
     ),
     (
@@ -190,7 +231,19 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
             &["path", "diagram_id", "version", "canvas_id", "board_id", "sketch_id", "width"],
         ),
     ),
-    ("guides", Op::new(|_| Box::pin(async move { ops::shared_guides().await }), &[], &[])),
+    (
+        "guides",
+        Op::new(
+            |a| {
+                Box::pin(async move {
+                    let query = arg_str(&a, "query");
+                    ops::shared_guides(query.as_deref()).await
+                })
+            },
+            &[],
+            &["query"],
+        ),
+    ),
     (
         "role_guide",
         Op::new(
@@ -205,12 +258,25 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
         ),
     ),
     ("ticket_guide", Op::new(|_| Box::pin(async move { ops::ticket_guide().await }), &[], &[])),
-    ("docs_guide", Op::new(|_| Box::pin(async move { ops::docs_guide().await }), &[], &[])),
+    (
+        "docs_guide",
+        Op::new(
+            |a| {
+                Box::pin(async move {
+                    let section = arg_str(&a, "section");
+                    ops::docs_guide(section.as_deref()).await
+                })
+            },
+            &[],
+            &["section"],
+        ),
+    ),
 ];
 
-/// Read a project's Docs: a tree of Markdown pages. `action`: list, get, search, versions, version, recycle_bin,
-/// check_links, comments, diagrams, diagram, sketches, sketch, canvases, canvas, design_guide, diagram_guide,
-/// picture, guides, role_guide, ticket_guide, docs_guide (the tool's description says what each takes).
+/// Read a project's Docs: a tree of rich pages, read as Markdown with a block id before each block. `action`: list,
+/// get, block, highlights, search, versions, version, recycle_bin, check_links, comments, diagrams, diagram,
+/// sketches, sketch, canvases, canvas, design_guide, diagram_guide, picture, guides, role_guide, ticket_guide,
+/// docs_guide (the tool's description says what each takes).
 pub async fn docs_read(args: Map<String, Value>) -> ToolResult {
     super::super::checked_read("docs_read", args, |a| {
         Box::pin(async move {

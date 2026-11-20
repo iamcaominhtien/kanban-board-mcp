@@ -20,6 +20,15 @@ pub struct Model {
     pub updated_at: String,
     /// "Drafted with AI": JSON {kind, from, member_id, gaps: [], sources: [], accepted: bool}; None for a plain draft
     pub ai_source: Option<String>,
+    /// `md` (Markdown in `markdown`) or `rich` (the page is the JSON in `content`)
+    #[serde(default = "markdown_format")]
+    pub format: String,
+    /// The page as rich JSON; None while `format` is `md`
+    #[serde(default)]
+    pub content: Option<String>,
+    /// Plain-text projection of `content`, for search and AI; None while `format` is `md`
+    #[serde(default)]
+    pub text: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -40,5 +49,13 @@ pub fn new() -> ActiveModel {
         saves: Set(1),
         updated_at: Set(kb_base::time::now_iso()),
         ai_source: Set(None),
+        format: Set("md".to_string()),
+        content: Set(None),
+        text: Set(None),
     }
+}
+
+/// The `format` of a row written before format 1 (a dump of an older database has no such column).
+fn markdown_format() -> String {
+    "md".to_string()
 }

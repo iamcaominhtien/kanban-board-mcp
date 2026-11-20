@@ -1,0 +1,479 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Title"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Some "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
+          "text": "bold"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "italic"
+            }
+          ],
+          "text": "it"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "strike"
+            }
+          ],
+          "text": "s"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "code"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "highlight"
+            }
+          ],
+          "text": "hi"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "https://x.y"
+              }
+            }
+          ],
+          "text": "a link"
+        },
+        {
+          "type": "text",
+          "text": " "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "KAN-12"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "label": "lbl",
+            "page": "Page",
+            "section": "Sec"
+          }
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000003",
+        "kind": "warning"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000004"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Careful\nbody line"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "attrs": {
+        "blockId": "b-000005"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000006"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000007"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "a"
+                }
+              ]
+            },
+            {
+              "type": "bulletList",
+              "attrs": {
+                "blockId": "b-000008"
+              },
+              "content": [
+                {
+                  "type": "listItem",
+                  "attrs": {
+                    "blockId": "b-000009"
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "blockId": "b-00000a"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "b"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "taskList",
+      "attrs": {
+        "blockId": "b-00000b"
+      },
+      "content": [
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-00000c"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00000d"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "task"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "orderedList",
+      "attrs": {
+        "blockId": "b-00000e"
+      },
+      "content": [
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-00000f"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000010"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "one"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "attrs": {
+            "blockId": "b-000011"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000012"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "two"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "blockId": "b-000013",
+        "language": "ts"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "let x = 1;"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "attrs": {
+        "blockId": "b-000014"
+      },
+      "content": [
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000015"
+          },
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-000016"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000017"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "A"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": "center",
+                "blockId": "b-000018"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000019"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "B"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-00001a"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00001b"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00001c"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "1"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": "center",
+                "blockId": "b-00001d"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00001e"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "horizontalRule",
+      "attrs": {
+        "blockId": "b-00001f"
+      }
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "alt",
+        "blockId": "b-000020",
+        "src": "/uploads/x.png",
+        "width": 640
+      }
+    },
+    {
+      "type": "diagram",
+      "attrs": {
+        "blockId": "b-000021",
+        "id": "dg_abc12345",
+        "label": "Flow"
+      }
+    },
+    {
+      "type": "sketch",
+      "attrs": {
+        "blockId": "b-000022",
+        "id": "sk_abc12345",
+        "label": "S"
+      }
+    },
+    {
+      "type": "canvas",
+      "attrs": {
+        "blockId": "b-000023",
+        "fragment": "b_12345678",
+        "id": "cv_abc12345",
+        "label": "C"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000024"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Inline "
+        },
+        {
+          "type": "mathInline",
+          "attrs": {
+            "latex": "x^2"
+          }
+        },
+        {
+          "type": "text",
+          "text": " math."
+        }
+      ]
+    },
+    {
+      "type": "mathBlock",
+      "attrs": {
+        "blockId": "b-000025",
+        "latex": "E=mc^2"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000026"
+      }
+    }
+  ]
+}

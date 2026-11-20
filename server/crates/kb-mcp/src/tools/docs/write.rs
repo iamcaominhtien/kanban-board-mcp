@@ -3,7 +3,7 @@
 use serde_json::{Map, Value};
 
 use super::composite;
-use crate::common::{ToolError, ToolResult, arg_bool, arg_int, arg_str, arg_text};
+use crate::common::{ToolError, ToolResult, arg_bool, arg_int, arg_object, arg_str, arg_text};
 use crate::operations as ops;
 use crate::tools::routing::{Op, batch, dispatch, params_of};
 
@@ -26,17 +26,21 @@ pub const DOCS_WRITE_OPS: &[(&str, Op)] = &[
             |a| {
                 Box::pin(async move {
                     let (markdown, parent_id) = (arg_str(&a, "markdown").unwrap_or_default(), arg_str(&a, "parent_id"));
+                    let template = arg_str(&a, "template");
+                    let settings = arg_object(&a, "settings");
                     ops::create_docs_page(
                         &arg_text(&a, "project_id"),
                         &arg_text(&a, "title"),
                         &markdown,
                         parent_id.as_deref(),
+                        template.as_deref(),
+                        settings.as_ref(),
                     )
                     .await
                 })
             },
             &["project_id", "title"],
-            &["markdown", "parent_id"],
+            &["markdown", "parent_id", "template", "settings"],
         ),
     ),
     (
@@ -74,16 +78,36 @@ pub const DOCS_WRITE_OPS: &[(&str, Op)] = &[
         ),
     ),
     (
+        "settings",
+        Op::new(
+            |a| {
+                Box::pin(async move {
+                    let settings = arg_object(&a, "settings").unwrap_or_default();
+                    ops::set_docs_settings(&arg_text(&a, "page_id"), &settings).await
+                })
+            },
+            &["page_id", "settings"],
+            &[],
+        ),
+    ),
+    (
         "move",
         Op::new(
             |a| {
                 Box::pin(async move {
                     let (parent_id, after_id) = (arg_str(&a, "parent_id"), arg_str(&a, "after_id"));
-                    ops::move_docs_page(&arg_text(&a, "page_id"), parent_id.as_deref(), after_id.as_deref()).await
+                    let before_id = arg_str(&a, "before_id");
+                    ops::move_docs_page(
+                        &arg_text(&a, "page_id"),
+                        parent_id.as_deref(),
+                        after_id.as_deref(),
+                        before_id.as_deref(),
+                    )
+                    .await
                 })
             },
             &["page_id"],
-            &["parent_id", "after_id"],
+            &["parent_id", "after_id", "before_id"],
         ),
     ),
     (
@@ -326,6 +350,22 @@ pub const DOCS_WRITE_OPS: &[(&str, Op)] = &[
         ),
     ),
     (
+        "canvas_delete",
+        Op::new(
+            |a| Box::pin(async move { ops::delete_canvas_by_id(&arg_text(&a, "canvas_id")).await }),
+            &["canvas_id"],
+            &[],
+        ),
+    ),
+    (
+        "canvas_restore",
+        Op::new(
+            |a| Box::pin(async move { ops::restore_canvas_by_id(&arg_text(&a, "canvas_id")).await }),
+            &["canvas_id"],
+            &[],
+        ),
+    ),
+    (
         "canvas_comment",
         Op::new(
             |a| {
@@ -381,8 +421,8 @@ pub async fn run_write(action: String, given: Map<String, Value>) -> ToolResult 
 
 /// Write a project's Docs. `action`: create, update, edit, upload, tickets, assign, move, duplicate, delete, restore,
 /// restore_version, import, comment, reply, edit_comment, delete_comment, resolve, reopen, diagram_create,
-/// diagram_save, diagram_delete, diagram_restore, sketch_create, sketch_save, canvas_create, canvas_comment,
-/// canvas_update (the tool's description says what each takes).
+/// diagram_save, diagram_delete, diagram_restore, sketch_create, sketch_save, canvas_create, canvas_delete,
+/// canvas_restore, canvas_comment, canvas_update (the tool's description says what each takes).
 pub async fn docs_write(args: Map<String, Value>) -> ToolResult {
     let action = arg_text(&args, "action");
     let mut given = params_of(args);
@@ -393,7 +433,9 @@ pub async fn docs_write(args: Map<String, Value>) -> ToolResult {
         "assign" => return composite::assign(given).await,
         _ => {}
     }
-    for key in ["section", "find", "mode", "data", "name", "ticket_id", "author", "member_id", "kind"] {
+    for key in
+        ["section", "find", "block_id", "attrs", "mode", "data", "name", "ticket_id", "author", "member_id", "kind"]
+    {
         if given.get(key).is_some_and(|v| !v.is_null()) {
             return Err(ToolError::Value(format!("docs_write(action='{action}') does not use: {key}.")));
         }

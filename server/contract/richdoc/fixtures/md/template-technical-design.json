@@ -1,0 +1,285 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Overview"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "What are we building and why?"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000003",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Diagram"
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "blockId": "b-000004",
+        "language": "text"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "client -> api -> db"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000005",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "API"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "attrs": {
+        "blockId": "b-000006"
+      },
+      "content": [
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-000007"
+          },
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-000008"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000009"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Method"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-00000a"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00000b"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Path"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "blockId": "b-00000c"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-00000d"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Description"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "attrs": {
+            "blockId": "b-00000e"
+          },
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-00000f"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000010"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "GET"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000011"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000012"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ],
+                      "text": "/resource"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "blockId": "b-000013"
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "blockId": "b-000014"
+                  },
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Describe it"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000015",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Rollout"
+        }
+      ]
+    },
+    {
+      "type": "taskList",
+      "attrs": {
+        "blockId": "b-000016"
+      },
+      "content": [
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-000017"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-000018"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Ship behind a flag"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "taskItem",
+          "attrs": {
+            "blockId": "b-000019"
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "b-00001a"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Announce"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00001b"
+      }
+    }
+  ]
+}

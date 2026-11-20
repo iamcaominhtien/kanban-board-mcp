@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import './docs.css';
 import { Icon } from './Icon';
 import { useDocsSearch } from '../../api/docsFx';
 import { docsErrorDetail, useDocsTree } from '../../api/docs';
 import { useDocsOnline, searchDocsCache } from './useDocsOffline';
 import { Avatar, Snip, StatusDot, TICKET_KEY, ancestors, highlight, sectionLabelStyle, timeAgo } from './searchShared';
-import type { DocsSearchPage, DocsSearchParams, DocsSearchResponse } from '../../types/docsFx';
+import type { DocsMatchType, DocsSearchPage, DocsSearchParams, DocsSearchResponse } from '../../types/docsFx';
+import { MatchMarker, TableRowSnip, markerWords, matchAnchor } from './links/MatchMarker';
+import { BlockResultCard, isBlockMatch } from './links/BlockResultCard';
+import { useDocsLayout } from '../../hooks/useDocsLayout';
+import './links/links.css';
 
 export interface SearchResultsProps {
   projectId: string;
@@ -14,6 +18,79 @@ export interface SearchResultsProps {
   onOpenPage: (id: string, anchor?: string) => void;
   onOpenTicket: (id: string) => void;
   onBack: () => void;
+  /** The page open behind the results: the "This page" scope searches it alone (RichDocsLinks B 11). */
+  currentPage?: { id: string; title: string } | null;
+}
+
+/** The Type filter (RichDocsLinks B 7): what a match sits in, with its 20 px tile. */
+const TYPES: { id: DocsMatchType; label: string; bg: string; fg: string; svg: string }[] = [
+  {
+    id: 'page',
+    label: 'Pages',
+    bg: '#E6F2EA',
+    fg: '#2E6F40',
+    svg: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/>',
+  },
+  {
+    id: 'image',
+    label: 'Images',
+    bg: '#F0E8FA',
+    fg: '#6B3FA8',
+    svg: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/>',
+  },
+  {
+    id: 'table',
+    label: 'Tables',
+    bg: '#E3EFFA',
+    fg: '#2F6FB0',
+    svg: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M3 15h18M9 5v14"/>',
+  },
+  {
+    id: 'file',
+    label: 'Files',
+    bg: '#EEF0EF',
+    fg: '#5B6B60',
+    svg: '<path d="M20 11l-8.5 8.5a5 5 0 0 1-7-7L13 4a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L14 7.5"/>',
+  },
+  { id: 'code', label: 'Code', bg: '#1E2A22', fg: '#9FE0B2', svg: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 5l-4 14"/>' },
+  {
+    id: 'diagram',
+    label: 'Diagrams',
+    bg: '#FCEFD9',
+    fg: '#8A5A00',
+    svg: '<rect x="3" y="3" width="7" height="6" rx="1.5"/><rect x="14" y="15" width="7" height="6" rx="1.5"/><path d="M6.5 9v4a2 2 0 0 0 2 2H14"/>',
+  },
+];
+
+function TypeTile({ t }: { t: (typeof TYPES)[number] }) {
+  return (
+    <span
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: 6,
+        background: t.bg,
+        color: t.fg,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 'none',
+      }}
+    >
+      <svg
+        aria-hidden="true"
+        width={10}
+        height={10}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        dangerouslySetInnerHTML={{ __html: t.svg }}
+      />
+    </span>
+  );
 }
 
 type Edited = 'any' | 'day' | 'week' | 'month' | 'custom';
@@ -62,6 +139,7 @@ function Check({
   return (
     <div
       role="checkbox"
+      className="sr-opt"
       aria-checked={on}
       tabIndex={0}
       onClick={onChange}
@@ -115,6 +193,7 @@ function Radio({
   return (
     <div
       role="radio"
+      className="sr-opt"
       aria-checked={on}
       tabIndex={0}
       onClick={onChange}
@@ -166,20 +245,33 @@ export function SearchResults({
   onOpenPage,
   onOpenTicket,
   onBack,
+  currentPage,
 }: SearchResultsProps) {
   const online = useDocsOnline();
   const [input, setInput] = useState(initialQuery);
   const [q, setQ] = useState(initialQuery);
-  const [scope, setScope] = useState<'space' | 'all' | 'tickets'>('space');
+  const [scope, setScope] = useState<'page' | 'space' | 'all' | 'tickets'>('space');
+  const [types, setTypes] = useState<DocsMatchType[]>([]);
   const [sort, setSort] = useState<'relevance' | 'edited_at'>('relevance');
   const [authors, setAuthors] = useState<string[]>([]);
   const [edited, setEdited] = useState<Edited>('month');
   const [customFrom, setCustomFrom] = useState('');
   const [under, setUnder] = useState('');
   const [hasTickets, setHasTickets] = useState(false);
-  const [status, setStatus] = useState<{ published: boolean; draft: boolean }>({ published: true, draft: true });
+  const [status, setStatus] = useState<{ published: boolean; draft: boolean; outdated: boolean }>({
+    published: true,
+    draft: true,
+    outdated: false,
+  });
+  // All projects (B 12): the results of one project only
+  const [onlyProject, setOnlyProject] = useState<string | null>(null);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [within, setWithin] = useState('');
+  // RichDocsLinks B 8-10: on a tablet and a phone the filters sit behind one button and open as a sheet
+  const layout = useDocsLayout(null);
+  const touch = layout !== 'desktop';
+  const phone = layout === 'phone';
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [ticketsOpen, setTicketsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -194,7 +286,7 @@ export function SearchResults({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onBack]);
-  useEffect(() => setLimit(PAGE_SIZE), [q, scope, sort, authors, edited, customFrom, under, hasTickets, status]);
+  useEffect(() => setLimit(PAGE_SIZE), [q, scope, sort, authors, edited, customFrom, under, hasTickets, status, types]);
 
   const editedSince = useMemo(() => {
     if (edited === 'any') return null;
@@ -204,7 +296,13 @@ export function SearchResults({
 
   const params: DocsSearchParams = {
     q,
-    scope: scope === 'tickets' ? 'tickets' : scope,
+    scope: scope === 'page' ? 'space' : scope,
+    pageId: scope === 'page' ? (currentPage?.id ?? null) : null,
+    kinds: types,
+    kindFacets: scope !== 'tickets',
+    outdatedFacet: scope !== 'tickets',
+    projectFacets: scope === 'all',
+    cards: true,
     mode: q.trim().startsWith('#') ? 'headings' : undefined,
     limit,
     sort,
@@ -212,9 +310,12 @@ export function SearchResults({
     editedSince,
     underPage: under || null,
     hasTickets,
-    status: [status.published && 'published', status.draft && 'draft'].filter(
-      (x): x is string => !!x && !(status.published && status.draft),
-    ),
+    // "May be outdated" narrows to the published pages that may be outdated (B 7)
+    status: status.outdated
+      ? ['outdated']
+      : [status.published && 'published', status.draft && 'draft'].filter(
+          (x): x is string => !!x && !(status.published && status.draft),
+        ),
   };
   if (params.mode) params.q = q.trim().slice(1);
   const res = useDocsSearch(projectId, params, { enabled: online && q.trim().length > 0, keepPrevious: true });
@@ -227,15 +328,17 @@ export function SearchResults({
   const loading = res.isFetching && !res.data;
   const failed = res.isError && !netError;
 
+  useEffect(() => setOnlyProject(null), [scope, q]);
   const shown = useMemo(() => {
-    const pages = data?.pages ?? [];
+    const all = data?.pages ?? [];
+    const pages = onlyProject ? all.filter((p) => p.projectId === onlyProject) : all;
     const w = within.trim().toLowerCase();
     return w
       ? pages.filter((p) =>
           (p.title + ' ' + p.matches.map((m) => m.section + ' ' + m.snippet).join(' ')).toLowerCase().includes(w),
         )
       : pages;
-  }, [data, within]);
+  }, [data, within, onlyProject]);
 
   const total = data?.total ?? 0;
   const matchCount = data?.matchCount ?? (data?.pages ?? []).reduce((n, p) => n + Math.max(1, p.matches.length), 0);
@@ -243,11 +346,12 @@ export function SearchResults({
     setQ(input.trim());
   };
   const clearAll = () => {
+    setTypes([]);
     setAuthors([]);
     setEdited('any');
     setUnder('');
     setHasTickets(false);
-    setStatus({ published: true, draft: true });
+    setStatus({ published: true, draft: true, outdated: false });
     setWithin('');
   };
   const f = data?.facets;
@@ -264,15 +368,22 @@ export function SearchResults({
   };
 
   const card = (p: DocsSearchPage) => {
-    const secs = p.matches;
+    // a picture, table, code block, file or diagram that matched gets a card of its own (B 7)
+    const blocks = p.matches.filter(isBlockMatch);
+    const secs = p.matches.filter((m) => !isBlockMatch(m));
+    const blockCards = blocks.map((m, i) => (
+      <BlockResultCard key={`${p.pageId}-b${i}`} page={p} match={m} q={q} onOpen={onOpenPage} />
+    ));
+    if (blocks.length && !secs.length) return <Fragment key={p.pageId}>{blockCards}</Fragment>;
     const open = expanded[p.pageId];
     const visible = open ? secs : secs.slice(0, 3);
     const anc = ancestors(p);
     const crumb = [scope === 'all' ? p.projectName : projectName, ...anc];
     const nm = Math.max(secs.length, 1);
-    return (
+    const pageCard = (
       <div
         key={p.pageId}
+        className="sr-card"
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -291,7 +402,8 @@ export function SearchResults({
               e.preventDefault();
               onOpenPage(p.pageId);
             }}
-            style={{ fontSize: 16, fontWeight: 700, color: '#1E2A22', textDecoration: 'none' }}
+            className="sr-title"
+            style={{ fontWeight: 700, color: '#1E2A22', textDecoration: 'none' }}
           >
             {highlight(p.title, q)}
           </a>
@@ -333,8 +445,8 @@ export function SearchResults({
                 key={i}
                 role="link"
                 tabIndex={0}
-                onClick={() => onOpenPage(p.pageId, m.slug || undefined)}
-                onKeyDown={(e) => e.key === 'Enter' && onOpenPage(p.pageId, m.slug || undefined)}
+                onClick={() => onOpenPage(p.pageId, matchAnchor(m))}
+                onKeyDown={(e) => e.key === 'Enter' && onOpenPage(p.pageId, matchAnchor(m))}
                 style={{
                   display: 'flex',
                   gap: 10,
@@ -345,7 +457,7 @@ export function SearchResults({
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
-                  {m.section && (
+                  {(m.section || markerWords(m)) && (
                     <div
                       style={{
                         display: 'flex',
@@ -356,22 +468,31 @@ export function SearchResults({
                         color: '#2E6F40',
                       }}
                     >
-                      <Icon name="i04" size={11} strokeWidth={2.2} />
-                      {m.section}
+                      {m.section && (
+                        <>
+                          <Icon name="i04" size={11} strokeWidth={2.2} />
+                          {m.section}
+                        </>
+                      )}
+                      {m.kind !== 'heading' && <MatchMarker match={m} />}
                     </div>
                   )}
-                  <Snip
-                    html={m.snippet}
-                    style={{
-                      fontSize: 13.5,
-                      lineHeight: 1.5,
-                      color: '#3A4A3E',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  />
+                  {m.cells?.length ? (
+                    <TableRowSnip cells={m.cells} terms={q.split(/\s+/).filter((w) => !w.startsWith('-'))} />
+                  ) : (
+                    <Snip
+                      html={m.snippet}
+                      style={{
+                        fontSize: 13.5,
+                        lineHeight: 1.5,
+                        color: '#3A4A3E',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -408,6 +529,14 @@ export function SearchResults({
           )}
         </div>
       </div>
+    );
+    return blocks.length ? (
+      <Fragment key={p.pageId}>
+        {pageCard}
+        {blockCards}
+      </Fragment>
+    ) : (
+      pageCard
     );
   };
 
@@ -479,9 +608,131 @@ export function SearchResults({
       </div>
     ) : null;
 
+  const filterCount =
+    (scope !== 'tickets' ? types.length : 0) +
+    authors.length +
+    (edited !== 'any' ? 1 : 0) +
+    (under ? 1 : 0) +
+    (hasTickets ? 1 : 0);
+  const countWords = data
+    ? scope === 'tickets'
+      ? `${data.tickets.length} tickets`
+      : `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`
+    : '';
+  const scopeChoices: { id: typeof scope; label: string }[] = [
+    { id: 'space', label: 'This space' },
+    ...(currentPage ? [{ id: 'page' as const, label: 'This page' }] : []),
+    { id: 'all', label: 'All projects' },
+    { id: 'tickets', label: 'Tickets' },
+  ];
+  const touchHeader = (
+    <div className="sr-head">
+      <div className="sr-head-row">
+        <button type="button" className="qo-back" aria-label="Back" onClick={onBack}>
+          <Icon name="chevronRight" size={20} strokeWidth={1.9} style={{ transform: 'rotate(180deg)' }} />
+        </button>
+        <div className="sr-q">
+          <Icon name="i09" size={phone ? 16 : 18} strokeWidth={2} style={{ color: '#2E6F40' }} />
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
+            placeholder={`Search ${projectName} docs…`}
+            aria-label="Search docs"
+            enterKeyHint="search"
+          />
+          {input && (
+            <button
+              type="button"
+              className="qo-clear"
+              aria-label="Clear search"
+              onClick={() => {
+                setInput('');
+                setQ('');
+                inputRef.current?.focus();
+              }}
+            >
+              <Icon name="close" size={15} strokeWidth={2} />
+            </button>
+          )}
+        </div>
+        {phone ? (
+          <span className="sr-filter-wrap">
+            <button
+              type="button"
+              className="sr-filter-ico"
+              aria-label={filterCount ? `Filters, ${filterCount} on` : 'Filters'}
+              onClick={() => setFiltersOpen(true)}
+            >
+              <Icon name="filter" size={18} strokeWidth={1.9} />
+            </button>
+            {filterCount > 0 && <span className="sr-badge sr-badge-corner">{filterCount}</span>}
+          </span>
+        ) : (
+          <>
+            <label className="sr-scope">
+              <Icon
+                name={scope === 'all' ? 'i21' : scope === 'tickets' ? 'i13' : scope === 'page' ? 'i00' : 'i07'}
+                size={15}
+                strokeWidth={1.9}
+                style={{ color: '#2E6F40' }}
+              />
+              <span>{scopeChoices.find((c) => c.id === scope)?.label}</span>
+              <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
+              <select
+                aria-label="Search scope"
+                value={scope}
+                onChange={(e) => setScope(e.target.value as typeof scope)}
+              >
+                {scopeChoices.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" className="st-btn st-btn-primary sr-go" onClick={submit}>
+              <Icon name="i09" size={14} strokeWidth={2} />
+              Search
+            </button>
+          </>
+        )}
+      </div>
+      <div className="sr-chips">
+        {phone ? (
+          scopeChoices.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`sr-pill${scope === c.id ? ' is-on' : ''}`}
+              aria-pressed={scope === c.id}
+              onClick={() => setScope(c.id)}
+            >
+              {c.label}
+            </button>
+          ))
+        ) : (
+          <button type="button" className="sr-filter-btn" onClick={() => setFiltersOpen(true)}>
+            <Icon name="filter" size={14} strokeWidth={1.9} />
+            Filter
+            {filterCount > 0 && <span className="sr-badge">{filterCount}</span>}
+          </button>
+        )}
+      </div>
+      {data && q && (
+        <div className="sr-count">
+          <b>{countWords}</b>
+          {!phone && ` · ${data.tookMs} ms`}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div
-      className="docs-root"
+      className="docs-root sr-root"
+      data-layout={layout}
       style={{
         flex: 1,
         minWidth: 0,
@@ -490,365 +741,461 @@ export function SearchResults({
         background: '#FFFFFF',
         height: '100%',
         minHeight: 0,
+        position: 'relative',
       }}
     >
-      <div
-        style={{
-          padding: '18px 28px 14px',
-          borderBottom: '1px solid #E3E8E5',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button type="button" className="dk-icobtn" aria-label="Back" title="Back (Esc)" onClick={onBack}>
-            <Icon name="i60" size={16} strokeWidth={1.9} />
-          </button>
-          <div
-            style={{
-              flex: 1,
-              minWidth: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 14px',
-              borderRadius: 10,
-              border: '1px solid #C7D2CB',
-              background: '#FFFFFF',
-            }}
-          >
-            <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && submit()}
-              placeholder={`Search ${projectName} docs…`}
-              aria-label="Search docs"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                border: 'none',
-                outline: 'none',
-                fontSize: 15,
-                fontWeight: 500,
-                color: '#1E2A22',
-                fontFamily: 'inherit',
-                background: 'transparent',
-              }}
-            />
-            {input && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => {
-                  setInput('');
-                  setQ('');
-                  inputRef.current?.focus();
-                }}
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: '50%',
-                  background: '#E3E8E5',
-                  color: '#5B6B60',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                <Icon name="i08" size={11} strokeWidth={2.2} />
-              </button>
-            )}
-            <span className="dk-kbd">/</span>
-          </div>
-          <div style={{ width: 170, position: 'relative' }}>
-            <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'flex', color: '#2E6F40' }}>
-                <Icon
-                  name={scope === 'all' ? 'i21' : scope === 'tickets' ? 'i13' : 'i07'}
-                  size={15}
-                  strokeWidth={1.9}
-                />
-              </span>
-              <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>
-                {scope === 'all' ? 'All projects' : scope === 'tickets' ? 'Tickets' : 'This space'}
-              </span>
-              <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
-            </div>
-            <select
-              aria-label="Search scope"
-              value={scope}
-              onChange={(e) => setScope(e.target.value as typeof scope)}
-              style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer' }}
-            >
-              <option value="space">This space</option>
-              <option value="all">All projects</option>
-              <option value="tickets">Tickets</option>
-            </select>
-          </div>
-          <button type="button" className="st-btn st-btn-primary" style={{ padding: '11px 18px' }} onClick={submit}>
-            <Icon name="i09" size={14} strokeWidth={2} />
-            Search
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ flex: 1, fontSize: 13.5, color: '#5B6B60' }}>
-            {data && q ? (
-              <>
-                <b style={{ color: '#1E2A22', fontWeight: 700 }}>
-                  {scope === 'tickets'
-                    ? `${data.tickets.length} tickets`
-                    : `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`}
-                </b>
-                {scope !== 'tickets' && (
-                  <>
-                    {' '}
-                    in{' '}
-                    <b style={{ color: '#1E2A22', fontWeight: 700 }}>
-                      {total} {total === 1 ? 'page' : 'pages'}
-                    </b>
-                  </>
-                )}{' '}
-                for “<b style={{ color: '#1E2A22', fontWeight: 700 }}>{q}</b>” ·{' '}
-                <span style={{ color: '#9AA8A0' }}>{data.tookMs} ms</span>
-              </>
-            ) : (
-              <span>{q ? 'Searching…' : 'Type to search pages, headings and tickets'}</span>
-            )}
-          </div>
-          <div
-            style={{
-              width: 230,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: '1px solid #E3E8E5',
-              background: '#FFFFFF',
-            }}
-          >
-            <Icon name="i09" size={13} strokeWidth={1.9} style={{ color: '#9AA8A0' }} />
-            <input
-              value={within}
-              onChange={(e) => setWithin(e.target.value)}
-              placeholder="Search within results…"
-              aria-label="Search within results"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                border: 'none',
-                outline: 'none',
-                fontSize: 12.5,
-                color: '#1E2A22',
-                fontFamily: 'inherit',
-                background: 'transparent',
-              }}
-            />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#5B6B60' }}>Sort by</span>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 2,
-                padding: 3,
-                borderRadius: 8,
-                background: '#EEF3EF',
-              }}
-            >
-              <button
-                type="button"
-                className={`mb-view-btn${sort === 'relevance' ? ' mb-view-btn-active' : ''}`}
-                onClick={() => setSort('relevance')}
-              >
-                Relevance
-              </button>
-              <button
-                type="button"
-                className={`mb-view-btn${sort === 'edited_at' ? ' mb-view-btn-active' : ''}`}
-                onClick={() => setSort('edited_at')}
-              >
-                Recently edited
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      {touch ? (
+        touchHeader
+      ) : (
         <div
-          className="fx-scroll"
           style={{
-            width: 236,
-            flexShrink: 0,
-            borderRight: '1px solid #E3E8E5',
-            background: '#FBFCFB',
-            padding: '18px 18px 12px',
-            boxSizing: 'border-box',
-            overflowY: 'auto',
+            padding: '18px 28px 14px',
+            borderBottom: '1px solid #E3E8E5',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Filters</span>
-            <button
-              type="button"
-              onClick={clearAll}
-              style={{
-                border: 'none',
-                background: 'none',
-                fontSize: 12,
-                fontWeight: 600,
-                color: '#2E6F40',
-                cursor: 'pointer',
-                padding: 0,
-                fontFamily: 'inherit',
-              }}
-            >
-              Clear all
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button type="button" className="dk-icobtn" aria-label="Back" title="Back (Esc)" onClick={onBack}>
+              <Icon name="i60" size={16} strokeWidth={1.9} />
             </button>
-          </div>
-          {filterSection(
-            'Author',
-            f?.authors?.length ? (
-              f.authors.map((a) => (
-                <Check
-                  key={a.name}
-                  on={authors.includes(a.name)}
-                  onChange={() =>
-                    setAuthors((l) => (l.includes(a.name) ? l.filter((x) => x !== a.name) : [...l, a.name]))
-                  }
-                  count={a.count}
-                >
-                  <Avatar name={a.name} />
-                  <span>{a.name}</span>
-                </Check>
-              ))
-            ) : (
-              <span className="st-hint">No authors in these results.</span>
-            ),
-          )}
-          {filterSection(
-            'Edited',
-            <>
-              {EDITED.map((e) => (
-                <Radio
-                  key={e.id}
-                  on={edited === e.id}
-                  onChange={() => setEdited(e.id)}
-                  count={e.id === 'custom' ? undefined : f?.edited?.[e.id as 'any']}
-                >
-                  {e.label}
-                </Radio>
-              ))}
-              {edited === 'custom' && (
-                <input
-                  type="date"
-                  aria-label="Edited since"
-                  value={customFrom}
-                  onChange={(e) => setCustomFrom(e.target.value)}
-                  className="st-input"
-                  style={{ marginTop: 4 }}
-                />
-              )}
-            </>,
-          )}
-          {filterSection(
-            'Page tree location',
-            <>
-              <div style={{ position: 'relative' }}>
-                <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ display: 'flex', color: '#2E6F40' }}>
-                    <Icon name="i07" size={15} strokeWidth={1.9} />
-                  </span>
-                  <span
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {underNode?.title ?? 'Anywhere in space'}
-                  </span>
-                  <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
-                </div>
-                <select
-                  aria-label="Page tree location"
-                  value={under}
-                  onChange={(e) => setUnder(e.target.value)}
-                  style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer' }}
-                >
-                  <option value="">Anywhere in space</option>
-                  {nodes.map((n) => (
-                    <option key={n.id} value={n.id}>
-                      {' '.repeat(depthOf(n.id))}
-                      {n.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', paddingTop: 4 }}>
-                Pick a page to search it and everything below it.
-              </div>
-            </>,
-          )}
-          {filterSection(
-            'Linked tickets',
             <div
               style={{
+                flex: 1,
+                minWidth: 0,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
-                padding: '4px 0',
-                fontSize: 13,
-                fontWeight: 500,
-                color: '#1E2A22',
+                padding: '10px 14px',
+                borderRadius: 10,
+                border: '1px solid #C7D2CB',
+                background: '#FFFFFF',
               }}
             >
-              <span style={{ flex: 1 }}>Only pages that link a ticket</span>
+              <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()}
+                placeholder={`Search ${projectName} docs…`}
+                aria-label="Search docs"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: '#1E2A22',
+                  fontFamily: 'inherit',
+                  background: 'transparent',
+                }}
+              />
+              {input && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setInput('');
+                    setQ('');
+                    inputRef.current?.focus();
+                  }}
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    background: '#E3E8E5',
+                    color: '#5B6B60',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  <Icon name="i08" size={11} strokeWidth={2.2} />
+                </button>
+              )}
+              <span className="dk-kbd">/</span>
+            </div>
+            <div style={{ width: 170, position: 'relative' }}>
+              <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'flex', color: '#2E6F40' }}>
+                  <Icon
+                    name={scope === 'all' ? 'i21' : scope === 'tickets' ? 'i13' : scope === 'page' ? 'i00' : 'i07'}
+                    size={15}
+                    strokeWidth={1.9}
+                  />
+                </span>
+                <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>
+                  {scope === 'all'
+                    ? 'All projects'
+                    : scope === 'tickets'
+                      ? 'Tickets'
+                      : scope === 'page'
+                        ? 'This page'
+                        : 'This space'}
+                </span>
+                <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
+              </div>
+              <select
+                aria-label="Search scope"
+                value={scope}
+                onChange={(e) => setScope(e.target.value as typeof scope)}
+                style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer' }}
+              >
+                {currentPage && <option value="page">This page</option>}
+                <option value="space">This space</option>
+                <option value="all">All projects</option>
+                <option value="tickets">Tickets</option>
+              </select>
+            </div>
+            <button type="button" className="st-btn st-btn-primary" style={{ padding: '11px 18px' }} onClick={submit}>
+              <Icon name="i09" size={14} strokeWidth={2} />
+              Search
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ flex: 1, fontSize: 13.5, color: '#5B6B60' }}>
+              {data && q ? (
+                <>
+                  <b style={{ color: '#1E2A22', fontWeight: 700 }}>
+                    {scope === 'tickets'
+                      ? `${data.tickets.length} tickets`
+                      : `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`}
+                  </b>
+                  {scope !== 'tickets' && (
+                    <>
+                      {' '}
+                      in{' '}
+                      <b style={{ color: '#1E2A22', fontWeight: 700 }}>
+                        {total} {total === 1 ? 'page' : 'pages'}
+                      </b>
+                    </>
+                  )}{' '}
+                  for “<b style={{ color: '#1E2A22', fontWeight: 700 }}>{q}</b>” ·{' '}
+                  <span style={{ color: '#9AA8A0' }}>{data.tookMs} ms</span>
+                </>
+              ) : (
+                <span>{q ? 'Searching…' : 'Type to search pages, headings and tickets'}</span>
+              )}
+            </div>
+            <div
+              style={{
+                width: 230,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid #E3E8E5',
+                background: '#FFFFFF',
+              }}
+            >
+              <Icon name="i09" size={13} strokeWidth={1.9} style={{ color: '#9AA8A0' }} />
+              <input
+                value={within}
+                onChange={(e) => setWithin(e.target.value)}
+                placeholder="Search within results…"
+                aria-label="Search within results"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: 12.5,
+                  color: '#1E2A22',
+                  fontFamily: 'inherit',
+                  background: 'transparent',
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#5B6B60' }}>Sort by</span>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  padding: 3,
+                  borderRadius: 8,
+                  background: '#EEF3EF',
+                }}
+              >
+                <button
+                  type="button"
+                  className={`mb-view-btn${sort === 'relevance' ? ' mb-view-btn-active' : ''}`}
+                  onClick={() => setSort('relevance')}
+                >
+                  Relevance
+                </button>
+                <button
+                  type="button"
+                  className={`mb-view-btn${sort === 'edited_at' ? ' mb-view-btn-active' : ''}`}
+                  onClick={() => setSort('edited_at')}
+                >
+                  Recently edited
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        {touch && filtersOpen && <div className="sr-scrim" aria-hidden="true" onClick={() => setFiltersOpen(false)} />}
+        <div
+          className={`fx-scroll${touch ? ' sr-sheet' : ''}`}
+          role={touch ? 'dialog' : undefined}
+          aria-label={touch ? 'Filters' : undefined}
+          style={
+            touch
+              ? { display: filtersOpen ? undefined : 'none' }
+              : {
+                  width: 236,
+                  flexShrink: 0,
+                  borderRight: '1px solid #E3E8E5',
+                  background: '#FBFCFB',
+                  padding: '18px 18px 12px',
+                  boxSizing: 'border-box',
+                  overflowY: 'auto',
+                }
+          }
+        >
+          {touch && (
+            <div className="sr-sheet-head">
               <button
                 type="button"
-                role="switch"
-                aria-checked={hasTickets}
-                aria-label="Only pages that link a ticket"
-                className="st-toggle-track"
-                onClick={() => setHasTickets((v) => !v)}
-                style={{ background: hasTickets ? '#2E6F40' : '#C7D2CB', border: 'none', padding: 0 }}
+                className="qo-back"
+                aria-label="Back to the results"
+                onClick={() => setFiltersOpen(false)}
               >
-                <span className="st-toggle-dot" style={{ left: hasTickets ? 17 : 2 }} />
+                <Icon name="chevronRight" size={20} strokeWidth={1.9} style={{ transform: 'rotate(180deg)' }} />
               </button>
-            </div>,
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="sr-sheet-title">Filters</div>
+                {data && q && <div className="sr-sheet-sub">{countWords}</div>}
+              </div>
+              <button type="button" className="sr-clear-all" onClick={clearAll}>
+                Clear all
+              </button>
+            </div>
           )}
-          {filterSection(
-            'Status',
-            <>
-              <Check
-                on={status.published}
-                onChange={() => setStatus((s) => ({ ...s, published: !s.published }))}
-                count={f?.status?.find((s) => s.name === 'published')?.count}
+          <div className={touch ? 'sr-sheet-body' : undefined}>
+            {touch && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  paddingBottom: 14,
+                  marginBottom: 14,
+                  borderBottom: '1px solid #EEF3EF',
+                }}
               >
-                Published
-              </Check>
-              <Check
-                on={status.draft}
-                onChange={() => setStatus((s) => ({ ...s, draft: !s.draft }))}
-                count={f?.status?.find((s) => s.name === 'draft')?.count}
+                <div style={{ ...sectionLabelStyle, paddingBottom: 4 }}>Sort by</div>
+                <Radio on={sort === 'relevance'} onChange={() => setSort('relevance')}>
+                  Relevance
+                </Radio>
+                <Radio on={sort === 'edited_at'} onChange={() => setSort('edited_at')}>
+                  Recently edited
+                </Radio>
+              </div>
+            )}
+            <div style={{ display: touch ? 'none' : 'flex', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Filters</span>
+              <button
+                type="button"
+                onClick={clearAll}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: '#2E6F40',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontFamily: 'inherit',
+                }}
               >
-                Draft
-              </Check>
-            </>,
-            true,
-          )}
+                Clear all
+              </button>
+            </div>
+            {scope !== 'tickets' &&
+              filterSection(
+                'Type',
+                TYPES.map((t) => {
+                  const n = f?.kinds?.find((k) => k.name === t.id)?.count;
+                  return (
+                    <Check
+                      key={t.id}
+                      on={types.includes(t.id)}
+                      onChange={() => setTypes((l) => (l.includes(t.id) ? l.filter((x) => x !== t.id) : [...l, t.id]))}
+                      count={n}
+                    >
+                      <TypeTile t={t} />
+                      <span data-testid={`type-filter-${t.id}`}>{t.label}</span>
+                    </Check>
+                  );
+                }),
+              )}
+            {filterSection(
+              'Author',
+              f?.authors?.length ? (
+                f.authors.map((a) => (
+                  <Check
+                    key={a.name}
+                    on={authors.includes(a.name)}
+                    onChange={() =>
+                      setAuthors((l) => (l.includes(a.name) ? l.filter((x) => x !== a.name) : [...l, a.name]))
+                    }
+                    count={a.count}
+                  >
+                    <Avatar name={a.name} />
+                    <span>{a.name}</span>
+                  </Check>
+                ))
+              ) : (
+                <span className="st-hint">No authors in these results.</span>
+              ),
+            )}
+            {filterSection(
+              'Edited',
+              <>
+                {EDITED.map((e) => (
+                  <Radio
+                    key={e.id}
+                    on={edited === e.id}
+                    onChange={() => setEdited(e.id)}
+                    count={e.id === 'custom' ? undefined : f?.edited?.[e.id as 'any']}
+                  >
+                    {e.label}
+                  </Radio>
+                ))}
+                {edited === 'custom' && (
+                  <input
+                    type="date"
+                    aria-label="Edited since"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    className="st-input"
+                    style={{ marginTop: 4 }}
+                  />
+                )}
+              </>,
+            )}
+            {filterSection(
+              'Page tree location',
+              <>
+                <div style={{ position: 'relative' }}>
+                  <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ display: 'flex', color: '#2E6F40' }}>
+                      <Icon name="i07" size={15} strokeWidth={1.9} />
+                    </span>
+                    <span
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {underNode?.title ?? 'Anywhere in space'}
+                    </span>
+                    <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
+                  </div>
+                  <select
+                    aria-label="Page tree location"
+                    value={under}
+                    onChange={(e) => setUnder(e.target.value)}
+                    style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer' }}
+                  >
+                    <option value="">Anywhere in space</option>
+                    {nodes.map((n) => (
+                      <option key={n.id} value={n.id}>
+                        {' '.repeat(depthOf(n.id))}
+                        {n.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', paddingTop: 4 }}>
+                  Pick a page to search it and everything below it.
+                </div>
+              </>,
+            )}
+            {filterSection(
+              'Linked tickets',
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '4px 0',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: '#1E2A22',
+                }}
+              >
+                <span style={{ flex: 1 }}>Only pages that link a ticket</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hasTickets}
+                  aria-label="Only pages that link a ticket"
+                  className="st-toggle-track"
+                  onClick={() => setHasTickets((v) => !v)}
+                  style={{ background: hasTickets ? '#2E6F40' : '#C7D2CB', border: 'none', padding: 0 }}
+                >
+                  <span className="st-toggle-dot" style={{ left: hasTickets ? 17 : 2 }} />
+                </button>
+              </div>,
+            )}
+            {filterSection(
+              'Status',
+              <>
+                <Check
+                  on={status.published}
+                  onChange={() => setStatus((s) => ({ ...s, published: !s.published }))}
+                  count={f?.status?.find((s) => s.name === 'published')?.count}
+                >
+                  Published
+                </Check>
+                <Check
+                  on={status.draft}
+                  onChange={() => setStatus((s) => ({ ...s, draft: !s.draft }))}
+                  count={f?.status?.find((s) => s.name === 'draft')?.count}
+                >
+                  Draft
+                </Check>
+                <Check
+                  on={status.outdated}
+                  onChange={() => setStatus((s) => ({ ...s, outdated: !s.outdated }))}
+                  count={f?.outdated}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      border: '2px solid #C98A1B',
+                      boxSizing: 'border-box',
+                      flex: 'none',
+                    }}
+                  />
+                  <span data-testid="search-filter-outdated">May be outdated</span>
+                </Check>
+              </>,
+              true,
+            )}
+          </div>
         </div>
-        <div className="fx-scroll" style={{ flex: 1, minWidth: 0, padding: '0 28px 12px', overflowY: 'auto' }}>
+        <div className="fx-scroll sr-list" style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
           {edited !== 'any' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
               <span
@@ -991,6 +1338,9 @@ export function SearchResults({
               ))}
             </div>
           )}
+          {scope === 'all' && (f?.projects?.length ?? 0) > 0 && (
+            <ProjectStrip projects={f?.projects ?? []} only={onlyProject} onPick={setOnlyProject} total={total} />
+          )}
           {!ticketMode || scope !== 'tickets' ? shown.map(card) : null}
           {scope !== 'tickets' && shown.length > 0 && data && (
             <div
@@ -1014,6 +1364,80 @@ export function SearchResults({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+const PILL: React.CSSProperties = {
+  height: 28,
+  boxSizing: 'border-box',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  padding: '0 11px',
+  borderRadius: 999,
+  fontSize: 12.5,
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+  flex: 'none',
+  cursor: 'pointer',
+  font: 'inherit',
+};
+
+/**
+ * All projects (RichDocsLinks B 12): one pill per project you belong to with its number of results; a pill shows
+ * that project's results only.
+ */
+function ProjectStrip({
+  projects,
+  only,
+  onPick,
+  total,
+}: {
+  projects: { projectId: string; name: string; count: number }[];
+  only: string | null;
+  onPick: (id: string | null) => void;
+  total: number;
+}) {
+  const pill = (on: boolean): React.CSSProperties =>
+    on
+      ? { ...PILL, background: '#1F5A31', color: '#fff', border: '1px solid #1F5A31' }
+      : { ...PILL, background: '#fff', color: '#3A4A3E', border: '1px solid #DCE3DE' };
+  return (
+    <div
+      data-testid="search-project-strip"
+      style={{ display: 'flex', gap: 8, padding: '12px 0', borderBottom: '1px solid #EEF3EF', flexWrap: 'wrap' }}
+    >
+      <button type="button" style={{ ...pill(!only), fontSize: 12.5, fontWeight: 600 }} onClick={() => onPick(null)}>
+        <svg
+          width={12}
+          height={12}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+        </svg>
+        All projects
+        <span style={{ fontSize: 11, fontWeight: 700, color: !only ? '#CFE6D6' : '#5B6B60' }}>{total}</span>
+      </button>
+      {projects.map((p) => (
+        <button
+          type="button"
+          key={p.projectId}
+          data-testid="search-project-pill"
+          style={{ ...pill(only === p.projectId), fontSize: 12.5, fontWeight: 600 }}
+          onClick={() => onPick(only === p.projectId ? null : p.projectId)}
+        >
+          {p.name}
+          <span style={{ fontSize: 11, fontWeight: 700, color: only === p.projectId ? '#CFE6D6' : '#5B6B60' }}>
+            {p.count}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }

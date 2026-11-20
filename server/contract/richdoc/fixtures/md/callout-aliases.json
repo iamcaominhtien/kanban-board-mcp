@@ -1,0 +1,135 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000001",
+        "kind": "success"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000002"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "A tip."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000003",
+        "kind": "warning"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000004"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Careful."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000005"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000006"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Important."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000007",
+        "kind": "success"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-000008"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Fine."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-000009",
+        "kind": "warning"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-00000a"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Warned."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "callout",
+      "attrs": {
+        "blockId": "b-00000b"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "attrs": {
+            "blockId": "b-00000c"
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Lower case kind."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00000d"
+      }
+    }
+  ]
+}

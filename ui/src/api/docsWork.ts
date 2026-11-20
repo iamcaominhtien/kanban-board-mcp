@@ -16,6 +16,8 @@ export interface PageWorkTicket {
     doing: string | null;
     startedAt: string | null;
     endedAt: string | null;
+    /** The blocks of this page a live run is changing now (its suggestions wait on them); empty once it ended. */
+    blocks?: string[];
   } | null;
 }
 

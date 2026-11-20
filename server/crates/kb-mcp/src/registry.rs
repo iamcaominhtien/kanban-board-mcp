@@ -82,16 +82,36 @@ fn find(name: &str, include_ideas: bool) -> Option<(Tool, &'static Value)> {
     Some((tool, entry))
 }
 
+/// How a tool's JSON answer is written as text.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum JsonText {
+    /// Indented, as FastMCP wrote it (`pydantic_core.to_json(result, indent=2)`).
+    Indented,
+    /// On one line, a list as one array: what every tool writes, so an answer spends no tokens on indentation.
+    Compact,
+}
+
 /// FastMCP's `_convert_to_content`: nothing for `None`, a block per item of a list, text as it is, anything else as
 /// indented JSON.
 pub fn convert_to_content(result: &Value) -> Vec<Value> {
+    convert_to_content_as(result, JsonText::Indented)
+}
+
+/// `convert_to_content` with the JSON written as `form` says.
+pub fn convert_to_content_as(result: &Value, form: JsonText) -> Vec<Value> {
     match result {
         Value::Null => Vec::new(),
-        Value::Array(items) => items.iter().flat_map(convert_to_content).collect(),
+        // FastMCP's block per item; a compact answer keeps a list as one JSON array
+        Value::Array(items) if form == JsonText::Indented => {
+            items.iter().flat_map(|item| convert_to_content_as(item, form)).collect()
+        }
         Value::String(text) => vec![json!({"type": "text", "text": text})],
-        // `pydantic_core.to_json(result, indent=2)`
         other => {
-            let text = serde_json::to_string_pretty(other).unwrap_or_else(|_| other.to_string());
+            let text = match form {
+                JsonText::Indented => serde_json::to_string_pretty(other),
+                JsonText::Compact => serde_json::to_string(other),
+            }
+            .unwrap_or_else(|_| other.to_string());
             vec![json!({"type": "text", "text": text})]
         }
     }
@@ -134,7 +154,7 @@ pub async fn call_tool_for(name: &str, arguments: Map<String, Value>, include_id
     match outcome {
         Ok(result) => {
             let mut reply = Map::new();
-            reply.insert("content".into(), Value::Array(convert_to_content(&result)));
+            reply.insert("content".into(), Value::Array(convert_to_content_as(&result, JsonText::Compact)));
             // every output schema of the snapshot is FastMCP's wrapper for a return type that is not an object
             // of known fields: `{"result": <the value>}`
             if entry.get("outputSchema").is_some() {

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { useDocsTree } from '../../../api/docs';
+import { useCreatePage, useDocsTree, useRestorePage } from '../../../api/docs';
+import { BrokenGroupsWithFixes } from '../links/BrokenGroups';
+import { OverlapBlocks } from '../links/OverlapBlocks';
 import { docsAiError } from '../../../api/docsAi';
 import {
   healthItemId,
@@ -9,6 +11,8 @@ import {
   useLinkTicketToPage,
   useRunHealth,
   type DocsHealth,
+  type HealthBroken,
+  type HealthOutOfDate,
 } from '../../../api/docsAiCare';
 import {
   checkedLabel,
@@ -21,59 +25,77 @@ import {
 } from '../../../utils/careRules';
 import { relativeTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
+import { typeName } from '../suggestions/describe';
 import '../docs.css';
 import { LineIcon } from '../../ui/LineIcon';
+import { useDocsLayout } from '../../../hooks/useDocsLayout';
+import '../links/links.css';
+import { PageIcon } from '../tree/treeParts';
+import type { DocsTreeNode } from '../../../types/docs';
 
 type Kind = 'out_of_date' | 'missing' | 'broken' | 'overlaps';
 
 const th: CSSProperties = {
   textAlign: 'left',
-  fontSize: 11,
+  fontSize: 10.5,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
   color: '#5B6B60',
   fontWeight: 700,
-  padding: '9px 16px',
-  background: '#FBFCFB',
+  padding: '9px 14px',
 };
 const td: CSSProperties = {
-  padding: '11px 16px',
+  padding: '11px 14px',
   fontSize: 12.5,
-  lineHeight: 1.5,
+  lineHeight: 1.45,
   color: '#1E2A22',
   verticalAlign: 'middle',
-  borderTop: '1px solid #EEF3EF',
+  borderTop: '1px solid #E3E8E5',
 };
+// the board's 26 px buttons (RichDocsAi2 frame 47): plain, and the purple Review
 const btn: CSSProperties = {
   font: 'inherit',
   fontSize: 12,
   fontWeight: 600,
-  padding: '5px 10px',
-  borderRadius: 8,
-  border: '1px solid #E3E8E5',
+  height: 26,
+  padding: '0 10px',
+  boxSizing: 'border-box',
+  borderRadius: 7,
+  border: '1px solid #D5DDD8',
   background: '#fff',
   color: '#1E2A22',
   cursor: 'pointer',
   whiteSpace: 'nowrap',
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 6,
+  justifyContent: 'center',
+  gap: 5,
 };
-const accent: CSSProperties = { ...btn, color: '#5B3AA6', borderColor: '#C9B6FF', background: '#FAF7FF' };
+const accent: CSSProperties = { ...btn, color: '#5B3AA6', borderColor: '#D9CCF7', background: '#EFE8FB' };
 
 function DismissMenu({
   onPick,
   disabled,
   label = 'Dismiss',
+  card = false,
 }: {
   onPick: (l: DismissLevel) => void;
   disabled: boolean;
   label?: string;
+  /** The touch card's look (RichDocsLinks J 60, 62): a 44 px button that shares the card's width. */
+  card?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <span style={{ position: 'relative', display: 'inline-block' }}>
-      <button type="button" style={btn} disabled={disabled} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+    <span style={{ position: 'relative', display: card ? 'flex' : 'inline-block', flex: card ? 1 : undefined }}>
+      <button
+        type="button"
+        className={card ? 'st-btn dh-card-btn' : undefined}
+        style={card ? undefined : btn}
+        disabled={disabled}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
         {label}
       </button>
       {open && (
@@ -110,7 +132,8 @@ function DismissMenu({
                 textAlign: 'left',
                 border: 'none',
                 background: 'none',
-                padding: '6px 10px',
+                padding: card ? '0 12px' : '6px 10px',
+                minHeight: card ? 44 : undefined,
                 cursor: 'pointer',
                 borderRadius: 6,
               }}
@@ -147,7 +170,7 @@ function TicketKey({ id, onOpen }: { id: string; onOpen: (id: string) => void })
 
 function Table({ head, children }: { head: ReactNode; children: ReactNode }) {
   return (
-    <div style={{ border: '1px solid #E3E8E5', borderRadius: 12, background: '#fff', overflow: 'hidden' }}>
+    <div style={{ border: '1px solid #E3E8E5', borderRadius: 10, background: '#fff', overflow: 'hidden' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         {head && (
           <thead>
@@ -208,12 +231,6 @@ function AddToPage({ ticketId, projectId }: { ticketId: string; projectId: strin
   );
 }
 
-const BROKEN_WHY: Record<string, string> = {
-  missing: 'No page with this title',
-  in_bin: 'The page is in the Recycle Bin',
-  section_missing: 'The section no longer exists',
-};
-
 function Lists({
   data,
   tab,
@@ -222,18 +239,40 @@ function Lists({
   onOpenTicket,
   onWritePage,
   dismiss,
+  touch,
 }: {
   data: DocsHealth;
   tab: HealthTab;
+  /** A tablet or a phone: Out of date is one card per page (RichDocsLinks J 60, 62), not a table. */
+  touch: boolean;
   projectId: string;
-  onOpenPage: (id: string) => void;
+  onOpenPage: (id: string, anchor?: string) => void;
   onOpenTicket: (id: string) => void;
   onWritePage?: (ticketId: string) => void;
   dismiss: (kind: Kind, item: unknown, level: DismissLevel) => void;
 }) {
   const busy = false;
+  const tree = useDocsTree(projectId);
+  const createPage = useCreatePage(projectId);
+  const restorePage = useRestorePage(projectId);
+  const run = useRunHealth(projectId);
   if (tab === 'outOfDate') {
     if (!data.outOfDate.length) return <Empty text="No page looks out of date." />;
+    if (touch) {
+      return (
+        <div className="dh-cards">
+          {data.outOfDate.map((r) => (
+            <OutOfDateCard
+              key={r.pageId}
+              row={r}
+              node={tree.data?.find((n) => n.id === r.pageId)}
+              onReview={(blockId) => onOpenPage(r.pageId, blockId)}
+              onDismiss={(l) => dismiss('out_of_date', r, l)}
+            />
+          ))}
+        </div>
+      );
+    }
     return (
       <Table
         head={
@@ -255,7 +294,20 @@ function Lists({
               {r.reasons.map((x) => (
                 <div key={x.key} style={{ marginBottom: 4 }}>
                   {x.text}
-                  <div style={{ fontSize: 11.5, color: '#9AA8A0' }}>Compared: {x.compared}</div>
+                  <div style={{ fontSize: 11.5, color: '#9AA8A0' }}>
+                    Compared: {x.compared ?? x.source ?? 'text in the page'}
+                    {(x.blockLabel || x.blockType) && (
+                      <>
+                        {' '}
+                        · on the page:{' '}
+                        <b style={{ color: '#5B6B60' }}>
+                          {[x.blockType ? typeName({ type: x.blockType }) : null, x.blockLabel]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </b>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </td>
@@ -264,7 +316,11 @@ function Lists({
             </td>
             <td style={{ ...td, whiteSpace: 'nowrap', textAlign: 'right' }}>
               <span style={{ display: 'inline-flex', gap: 6 }}>
-                <button type="button" style={accent} onClick={() => onOpenPage(r.pageId)}>
+                <button
+                  type="button"
+                  style={accent}
+                  onClick={() => onOpenPage(r.pageId, r.reasons.find((x) => x.blockId)?.blockId ?? undefined)}
+                >
                   Review
                 </button>
                 <DismissMenu disabled={busy} onPick={(l) => dismiss('out_of_date', r, l)} />
@@ -320,35 +376,60 @@ function Lists({
   }
   if (tab === 'broken') {
     if (!data.broken.length) return <Empty text="Every link and section resolves." />;
+    // links grouped by what they point at (RichDocsLinks G 40): one fix can mend them all; pictures, videos and
+    // files whose upload is gone are rows of their own (RichDocsAi2 H 47)
+    const links = data.broken.filter((r) => !isBrokenMedia(r));
+    const media = data.broken.filter(isBrokenMedia);
     return (
-      <Table
-        head={
-          <>
-            <th style={th}>PAGE</th>
-            <th style={th}>LINK</th>
-            <th style={th} />
-          </>
-        }
-      >
-        {data.broken.map((r) => (
-          <tr key={`${r.pageId}|${r.ref}`} data-testid="health-broken">
-            <td style={{ ...td, width: '28%' }}>
-              <b>{r.title}</b>
-            </td>
-            <td style={td}>
-              <code>{r.ref}</code> <span style={{ color: '#5B6B60' }}>· {BROKEN_WHY[r.status] ?? r.status}</span>
-            </td>
-            <td style={{ ...td, textAlign: 'right' }}>
-              <span style={{ display: 'inline-flex', gap: 6 }}>
-                <button type="button" style={accent} onClick={() => onOpenPage(r.pageId)}>
-                  Review
-                </button>
-                <DismissMenu disabled={busy} onPick={(l) => dismiss('broken', r, l)} />
-              </span>
-            </td>
-          </tr>
-        ))}
-      </Table>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {links.length > 0 && (
+          <BrokenGroupsWithFixes
+            projectId={projectId}
+            onFixed={() => run.mutate()}
+            items={links}
+            onOpenPage={onOpenPage}
+            onCreate={(title) => void createPage.mutateAsync({ title }).then(() => run.mutate())}
+            onRestore={(id) => void restorePage.mutateAsync(id).then(() => run.mutate())}
+            dismiss={(r) => <DismissMenu disabled={busy} onPick={(l) => dismiss('broken', r, l)} />}
+          />
+        )}
+        {media.length > 0 && (
+          <Table
+            head={
+              <>
+                <th style={th}>PAGE</th>
+                <th style={th}>WHAT IS BROKEN</th>
+                <th style={th}>IN</th>
+                <th style={th}>EDITED</th>
+                <th style={th} />
+              </>
+            }
+          >
+            {media.map((r) => (
+              <tr key={healthItemId('broken', r)} data-testid="health-broken-media" data-status={r.status}>
+                <td style={{ ...td, width: '24%' }}>
+                  <b style={{ fontSize: 13 }}>{r.title}</b>
+                </td>
+                <td style={td}>{brokenMediaText(r)}</td>
+                <td style={{ ...td, fontSize: 12, color: '#5B6B60', whiteSpace: 'nowrap' }}>
+                  {typeName({ type: r.blockType ?? 'image' })}
+                </td>
+                <td style={{ ...td, fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>
+                  {r.editedAt ? relativeTime(r.editedAt) : ''}
+                </td>
+                <td style={{ ...td, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                  <span style={{ display: 'inline-flex', gap: 6 }}>
+                    <button type="button" style={accent} onClick={() => onOpenPage(r.pageId, r.blockId ?? undefined)}>
+                      Review
+                    </button>
+                    <DismissMenu disabled={busy} onPick={(l) => dismiss('broken', r, l)} />
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </div>
     );
   }
   if (!data.overlaps.length) return <Empty text="No pages overlap." />;
@@ -385,7 +466,12 @@ function Lists({
               </div>
             ))}
           </td>
-          <td style={{ ...td, color: '#5B6B60' }}>{r.why}</td>
+          <td style={{ ...td, color: '#5B6B60' }}>
+            {r.why}
+            {r.blocks && r.blocks.length > 0 && (
+              <OverlapBlocks pages={r.pages} blocks={r.blocks} onOpenPage={onOpenPage} />
+            )}
+          </td>
           <td style={{ ...td, textAlign: 'right' }}>
             <DismissMenu disabled={busy} onPick={(l) => dismiss('overlaps', r, l)} />
           </td>
@@ -393,6 +479,77 @@ function Lists({
       ))}
     </Table>
   );
+}
+
+/**
+ * One page of Out of date on a tablet or a phone (RichDocsLinks J 60, 62): the page's tile, title and where it is,
+ * each reason with the block it compared as a chip, and Review block and Dismiss as 44 px buttons sharing the width.
+ * @param props.row - The page and its reasons.
+ * @param props.node - The page in the tree (its icon), when it is there.
+ * @param props.onReview - Opens the page, at the block of its first reason that names one.
+ * @param props.onDismiss - Dismisses the page's reasons for this time, 30 days or for good.
+ */
+function OutOfDateCard({
+  row,
+  node,
+  onReview,
+  onDismiss,
+}: {
+  row: HealthOutOfDate;
+  node?: DocsTreeNode;
+  onReview: (blockId?: string) => void;
+  onDismiss: (l: DismissLevel) => void;
+}) {
+  const blockId = row.reasons.find((x) => x.blockId)?.blockId ?? undefined;
+  const sub = [row.parent ?? 'Top level', row.editedAt ? relativeTime(row.editedAt) : null].filter(Boolean).join(' · ');
+  return (
+    <div className="dh-card" data-testid="health-out-of-date">
+      <div className="dh-card-head">
+        <span className="dh-card-tile" aria-hidden="true">
+          <PageIcon icon={node?.icon ?? null} kind={node?.kind} size={18} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="dh-card-title">{row.title}</div>
+          <div className="dh-card-sub">{sub}</div>
+        </div>
+      </div>
+      {row.reasons.map((x) => (
+        <div key={x.key}>
+          <div className="dh-card-why">{x.text}</div>
+          {x.blockType || x.blockLabel ? (
+            <div style={{ marginTop: 8 }}>
+              <span className="dh-card-block">
+                {x.blockType && <span className="dh-card-kind">{typeName({ type: x.blockType })}</span>}
+                {x.blockLabel}
+              </span>
+            </div>
+          ) : (
+            <div className="dh-card-compared">Compared: {x.compared ?? x.source ?? 'text in the page'}</div>
+          )}
+        </div>
+      ))}
+      <div className="dh-card-acts">
+        <button type="button" className="st-btn st-btn-primary dh-card-btn" onClick={() => onReview(blockId)}>
+          {blockId ? 'Review block' : 'Review'}
+        </button>
+        <DismissMenu card disabled={false} onPick={onDismiss} />
+      </div>
+    </div>
+  );
+}
+
+/** A broken picture, video or file (its upload is gone), not a link. */
+
+function isBrokenMedia(r: HealthBroken): boolean {
+  return r.status === 'image_missing' || r.status === 'video_missing' || r.status === 'file_missing';
+}
+
+/** What is broken, in words (H 47): "Video “Board tour.mp4” is not in Project files any more". */
+export function brokenMediaText(r: HealthBroken): string {
+  const name = r.name || r.ref;
+  if (r.status === 'video_missing') return `Video “${name}” is not in Project files any more`;
+  if (r.status === 'file_missing') return `File “${name}” is not in Project files any more`;
+  return `The image file was deleted: “${name}”`;
 }
 
 function Empty({ text }: { text: string }) {
@@ -424,13 +581,15 @@ export function DocsHealthView({
   onWritePage,
 }: {
   projectId: string;
-  onOpenPage: (id: string) => void;
+  onOpenPage: (id: string, anchor?: string) => void;
   onOpenTicket: (id: string) => void;
   onClose: () => void;
   /** "Write a page" on a Done ticket that no page mentions (opens the new-page dialog from that ticket). */
   onWritePage?: (ticketId: string) => void;
 }) {
   const q = useDocsHealth(projectId);
+  // RichDocsLinks J 41-42: on a tablet and a phone the tabs are 44 px pills and every button is 44 px
+  const layout = useDocsLayout(null);
   const run = useRunHealth(projectId);
   const dismiss = useDismissHealth(projectId);
   const [tab, setTab] = useState<HealthTab | null>(null);
@@ -447,7 +606,8 @@ export function DocsHealthView({
   return (
     <div
       data-testid="docs-health"
-      className="docs-root"
+      className="docs-root dh-root"
+      data-layout={layout}
       style={{ padding: '22px 32px', overflow: 'auto', height: '100%', boxSizing: 'border-box' }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
@@ -484,7 +644,14 @@ export function DocsHealthView({
         <>
           <div
             role="tablist"
-            style={{ display: 'flex', gap: 18, margin: '16px 0 14px', borderBottom: '1px solid #E3E8E5' }}
+            className="dh-tabs"
+            style={{
+              display: 'flex',
+              gap: 22,
+              margin: '16px 0 12px',
+              padding: '0 4px',
+              borderBottom: '1px solid #E3E8E5',
+            }}
           >
             {healthTabs(data.counts).map((t) => (
               <button
@@ -501,7 +668,7 @@ export function DocsHealthView({
                   background: 'none',
                   border: 'none',
                   borderBottom: `2px solid ${active === t.id ? '#2E6F40' : 'transparent'}`,
-                  padding: '9px 2px',
+                  padding: '9px 0 7px',
                   cursor: 'pointer',
                   marginBottom: -1,
                 }}
@@ -518,6 +685,7 @@ export function DocsHealthView({
             onOpenTicket={onOpenTicket}
             onWritePage={onWritePage}
             dismiss={(kind, item, level) => dismiss.mutate({ kind, id: healthItemId(kind, item), level })}
+            touch={layout !== 'desktop'}
           />
         </>
       )}

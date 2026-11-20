@@ -175,7 +175,8 @@ pub fn golden_path(name: &str) -> String {
 pub fn check_golden(name: &str, got: &Map<String, Value>) {
     let path = golden_path(name);
     if std::env::var("KANBAN_WRITE_GOLDEN").is_ok_and(|v| v == "1") {
-        assert_eq!(target(), Target::Python, "a golden file is what the Python server answers");
+        // Since 5.0 the Rust server is the contract (the Python one is gone): a deliberate change of an answer is
+        // recorded from it, and the diff of the golden file is reviewed like code.
         let text = serde_json::to_string_pretty(&json!(got)).expect("json") + "\n";
         std::fs::write(&path, text).expect("write the golden file");
     }
@@ -205,6 +206,12 @@ pub fn check_golden(name: &str, got: &Map<String, Value>) {
         }
     }
     assert!(wrong.is_empty(), "{} of {} cases differ from Python:\n{}", wrong.len(), golden.len(), wrong.join("\n"));
+}
+
+/// The annotated Markdown `docs_read(get)` gives a rich page, without its block markers (`<!-- #b-3f2a9c -->`): the
+/// page's text as plain Markdown reads it.
+pub fn without_markers(markdown: &str) -> String {
+    markdown.split('\n').filter(|l| !(l.starts_with("<!-- ") && l.ends_with(" -->"))).collect::<Vec<_>>().join("\n")
 }
 
 /// `call(tool, **args)` of the Python tests: call a tool the way a client does and return its payload (the

@@ -1,0 +1,1183 @@
+/* Links to headings and blocks (RichDocsLinks C-F): the arrival mark on a linked block, the block segment of a
+   chip, the count on a block others link to. */
+
+/* D 25: background #FFF3C4, radius 10, 8 px around the block, a 4 px amber bar on its left; it fades out */
+.dk-link-arrive {
+  border-radius: 10px;
+  background: #fff3c4;
+  box-shadow:
+    0 0 0 8px #fff3c4,
+    -4px 0 0 8px #e8b93a;
+  animation: dk-link-arrive 4s ease-out forwards;
+}
+@keyframes dk-link-arrive {
+  0%,
+  75% {
+    background: #fff3c4;
+    box-shadow:
+      0 0 0 8px #fff3c4,
+      -4px 0 0 8px #e8b93a;
+  }
+  100% {
+    background: transparent;
+    box-shadow:
+      0 0 0 8px rgba(255, 243, 196, 0),
+      -4px 0 0 8px rgba(232, 185, 58, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dk-link-arrive {
+    animation: none;
+  }
+}
+
+/* D 21: "Rate limiting › [table] Limits" — the › at 55 % */
+.dk-chip-sep {
+  opacity: 0.55;
+}
+.dk-chip-target {
+  font-weight: 600;
+}
+
+/* G 37: a link whose heading or block is gone keeps its words, amber and dashed */
+.dk-chip.dk-chip-block-missing {
+  background: #fdf3e3;
+  color: #8a5a00;
+  border: 1.5px dashed #c98a1b;
+}
+
+/* F 35: the count on a block that others link to, at its top right corner */
+.dk-block-refs {
+  position: absolute;
+  right: -12px;
+  top: -12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: #1f5a31;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* A 1-3: quick open rows — the chosen row #E6F2EA, its tile white; A 4-6: 54 px on a tablet, 58 on a phone */
+.qo-row {
+  min-height: 46px;
+}
+[data-layout='tablet'] .qo-row {
+  min-height: 54px;
+}
+[data-layout='phone'] .qo-row {
+  min-height: 58px;
+}
+[data-layout='tablet'] .qo-enter,
+[data-layout='phone'] .qo-enter {
+  display: none;
+}
+/* A 4: the tablet head is 54 px, 0 16, gap 10, the words 16 px */
+.qo-head[data-layout='tablet'] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #e3e8e5;
+  flex: none;
+}
+/* A 5-6: the phone head is 60 px: Back (44) and a 44 px grey field, r10, 0 12, gap 8, a 16 px search mark */
+.qo-head[data-layout='phone'] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 60px;
+  padding: 0 8px 0 4px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #e3e8e5;
+  flex: none;
+}
+.qo-head[data-layout='tablet'] .fx-qwrap,
+.qo-head[data-layout='phone'] .fx-qwrap {
+  height: 24px;
+  font-size: 16px;
+  line-height: 24px;
+}
+.qo-field-plain {
+  display: contents;
+}
+.qo-field {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border-radius: 10px;
+  background: #eef3ef;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+.qo-back,
+.qo-clear {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  cursor: pointer;
+}
+.qo-clear {
+  width: 32px;
+  margin-right: -8px;
+}
+.qo-row:hover {
+  background: #f6faf7;
+}
+.qo-row.fx-row-on,
+.qo-row.fx-row-on:hover {
+  background: #e6f2ea;
+}
+.qo-panel .fx-qwrap {
+  height: 24px;
+  font-size: 16px;
+}
+
+/* ── Heading link handle (RichDocsLinks D 22): 28 px in the left margin, on hover ── */
+.dk-rich :is(h1, h2, h3, h4, h5, h6)[data-block-id] {
+  position: relative;
+}
+.dk-hl-handle {
+  position: absolute;
+  left: -34px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #eaf0ec;
+  color: #2e6f40;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.dk-rich :is(h1, h2, h3, h4, h5, h6):hover > .dk-hl-handle {
+  opacity: 1;
+}
+.dk-hl-handle::after {
+  content: 'Copy link to this heading';
+  position: absolute;
+  left: -12px;
+  bottom: calc(100% + 10px);
+  display: none;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: #1e2a22;
+  color: #fff;
+  font:
+    600 11.5px/1.4 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.dk-hl-handle:hover::after {
+  display: block;
+}
+.dk-hl-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 2000;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #1e2a22;
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(30, 42, 34, 0.34);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.dk-hl-toast-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2e6f40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+@media (hover: none) {
+  .dk-rich :is(h1, h2, h3, h4, h5, h6):focus-within > .dk-hl-handle {
+    opacity: 1;
+  }
+}
+
+/* ── The search page (RichDocsLinks B 7-10, RichDocsStates4 I 66-67) ── */
+.sr-list {
+  padding: 0 28px 12px;
+}
+.sr-title {
+  font-size: 16px;
+}
+/* B 8: a tablet: the query 48 px, the scope 48 px and Search; the filters behind one 44 px button */
+.sr-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px 8px 8px;
+  border-bottom: 1px solid #e3e8e5;
+  flex: none;
+}
+.sr-head-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sr-q {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  box-sizing: border-box;
+  border: 1.5px solid #2e6f40;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 14px;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.12);
+  background: #ffffff;
+}
+.sr-q input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  color: #1e2a22;
+}
+.sr-scope {
+  position: relative;
+  height: 48px;
+  box-sizing: border-box;
+  border: 1px solid #dce3de;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  background: #ffffff;
+  cursor: pointer;
+  flex: none;
+}
+.sr-scope select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+.sr-head .sr-go {
+  min-height: 48px;
+}
+.sr-chips {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-left: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sr-filter-btn {
+  height: 44px;
+  box-sizing: border-box;
+  border: 1px solid #2e6f40;
+  background: #f1f8f3;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1f5a31;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+.sr-badge {
+  min-width: 17px;
+  height: 17px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: #1f5a31;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+.sr-count {
+  font-size: 12.5px;
+  color: #5b6b60;
+  padding: 0 0 0 10px;
+}
+.sr-count b {
+  color: #1e2a22;
+}
+.sr-root[data-layout='tablet'] .sr-list {
+  padding: 0 18px 12px;
+}
+.sr-root[data-layout='tablet'] .sr-card {
+  padding: 15px 0 !important;
+}
+.sr-root[data-layout='tablet'] .sr-title {
+  font-size: 15px;
+}
+/* B 9: a phone: one column; the query 44 px with a 44 px filter button beside it; scopes as 44 px pills */
+.sr-root[data-layout='phone'] .sr-head {
+  padding: 10px 12px 6px 4px;
+  gap: 8px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.sr-root[data-layout='phone'] .sr-head-row {
+  gap: 8px;
+}
+.sr-root[data-layout='phone'] .sr-q {
+  height: 44px;
+  padding: 0 12px;
+  gap: 8px;
+  box-shadow: none;
+}
+.sr-root[data-layout='phone'] .sr-chips {
+  gap: 7px;
+  padding: 2px 0 2px 8px;
+}
+.sr-root[data-layout='phone'] .sr-count {
+  padding: 0 0 0 10px;
+}
+.sr-root[data-layout='phone'] .sr-list {
+  padding: 0 14px 12px;
+}
+.sr-root[data-layout='phone'] .sr-card {
+  padding: 12px 0 !important;
+}
+.sr-root[data-layout='phone'] .sr-title {
+  font-size: 14.5px;
+}
+.sr-filter-wrap {
+  position: relative;
+  flex: none;
+}
+.sr-filter-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  border: none;
+  background: #eaf0ec;
+  color: #1e2a22;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.sr-badge-corner {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+}
+.sr-pill {
+  height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #3a4a3e;
+  border: 1px solid #dce3de;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+.sr-pill.is-on {
+  background: #1f5a31;
+  border-color: #1f5a31;
+  color: #ffffff;
+}
+/* B 10: the filters, a full sheet on a phone (a 400 px side sheet on a tablet); rows 44 px */
+.sr-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.25);
+  z-index: 29;
+}
+.sr-sheet {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 100%;
+  background: #ffffff;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  box-shadow: -12px 0 32px rgba(30, 42, 34, 0.14);
+}
+.sr-root[data-layout='phone'] .sr-sheet {
+  left: 0;
+  width: auto;
+  box-shadow: none;
+}
+.sr-sheet-head {
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 4px;
+  border-bottom: 1px solid #e3e8e5;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+.sr-sheet-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.sr-sheet-sub {
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.sr-clear-all {
+  height: 44px;
+  border: none;
+  background: none;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.sr-sheet-body {
+  padding: 18px 20px 20px;
+}
+.sr-sheet .sr-opt {
+  min-height: 44px;
+}
+.sr-sheet .sr-opt > span:first-child {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 5px;
+}
+.sr-sheet .sr-opt[role='radio'] > span:first-child {
+  width: 17px !important;
+  height: 17px !important;
+  border-radius: 50%;
+}
+
+/* ── K 67-68: a tapped chip. Tablet: the card at the chip, 420 wide, 44 px buttons; phone: a bottom sheet ── */
+.ref-tap > div {
+  border-color: #dce3de !important;
+  box-shadow: 0 16px 40px rgba(30, 42, 34, 0.2) !important;
+}
+.ref-tap .st-btn {
+  min-height: 44px;
+  font-size: 13.5px;
+}
+.ref-sheet-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+}
+.ref-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.42);
+}
+.ref-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(30, 42, 34, 0.22);
+  padding-bottom: 24px;
+}
+.ref-sheet-grab {
+  width: 40px;
+  height: 4.5px;
+  border-radius: 3px;
+  background: #cbd5ce;
+  margin: 9px auto 8px;
+}
+.ref-sheet > div:not(.ref-sheet-grab) {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.ref-sheet .st-btn {
+  min-height: 48px;
+  flex: 1;
+  justify-content: center;
+  font-size: 14.5px;
+}
+.ref-sheet > div > div:last-child {
+  background: #ffffff !important;
+  border-top: none !important;
+  gap: 10px !important;
+  padding: 14px 18px 0 !important;
+}
+
+/* ── F 32-33: Referenced by on a tablet (full width at the end of the page) and a phone ── */
+.rb-panel[data-layout='tablet'],
+.rb-panel[data-layout='phone'] {
+  border-radius: 14px !important;
+  padding: 16px 22px 12px !important;
+  box-shadow: none !important;
+  gap: 10px !important;
+}
+.rb-panel[data-layout='phone'] {
+  padding: 16px 0 12px !important;
+}
+.rb-panel[data-layout='phone'] > .rb-head {
+  padding: 0 16px;
+}
+.rb-panel:is([data-layout='tablet'], [data-layout='phone']) .rb-head {
+  font-size: 16px !important;
+  gap: 10px !important;
+}
+.rb-panel:is([data-layout='tablet'], [data-layout='phone']) .rb-sum {
+  font-size: 13px !important;
+  color: #5b6b60 !important;
+}
+.rb-panel[data-layout='phone'] .rb-sum {
+  font-size: 12.5px !important;
+}
+.rb-panel:is([data-layout='tablet'], [data-layout='phone']) .rb-row {
+  padding: 11px 0 !important;
+  border-top: 1px solid #eef3ef;
+  border-radius: 0 !important;
+}
+.rb-panel[data-layout='phone'] .rb-row {
+  padding: 11px 16px !important;
+  border-top: none;
+  border-bottom: 1px solid #eef3ef;
+}
+.rb-panel:is([data-layout='tablet'], [data-layout='phone']) .rb-row-head {
+  font-size: 13.5px !important;
+  flex-wrap: wrap;
+}
+.rb-panel[data-layout='phone'] .rb-row-head {
+  font-size: 14.5px !important;
+}
+.rb-panel:is([data-layout='tablet'], [data-layout='phone']) .rb-go {
+  min-height: 44px;
+  padding: 0 14px !important;
+  border: 1px solid #e3e8e5 !important;
+  border-radius: 8px;
+  background: #ffffff !important;
+  color: #1e2a22 !important;
+  font-size: 13.5px !important;
+}
+/* the "6 references" button: 44 px on a tablet and a phone (F 32) */
+.refs-btn:is([data-layout='tablet'], [data-layout='phone']) {
+  height: 44px !important;
+  padding: 0 12px !important;
+  border-color: #cfe6d6 !important;
+  background: #f1f8f3 !important;
+}
+/* F 33: on a phone its list is a tall bottom sheet */
+.refs-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.42);
+  z-index: 1490;
+}
+.refs-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(30, 42, 34, 0.22);
+  z-index: 1500;
+  padding-bottom: 24px;
+  text-align: left;
+}
+.refs-sheet-grab {
+  width: 40px;
+  height: 4.5px;
+  border-radius: 3px;
+  background: #cbd5ce;
+  margin: 9px auto 8px;
+}
+.refs-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 20px 10px;
+}
+.refs-sheet-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.refs-sheet-sub {
+  font-size: 12.5px;
+  color: #5b6b60;
+  margin-top: 1px;
+}
+.refs-sheet .refs-row {
+  gap: 11px !important;
+  padding: 11px 16px !important;
+  min-height: 52px;
+  border-bottom: 1px solid #eef3ef !important;
+  font-size: 14.5px !important;
+}
+.refs-sheet .refs-row > span:first-child {
+  width: 30px !important;
+  height: 30px !important;
+}
+
+/* ── G 29-30: the peek panel on a tablet (560 side sheet, 44 px buttons) and a phone (a sheet from 46 px down) ── */
+.pk-root[data-layout='tablet'] .pk-panel {
+  border: none !important;
+  box-shadow: -12px 0 40px rgba(30, 42, 34, 0.22) !important;
+}
+.pk-root[data-layout='phone'] .pk-panel {
+  top: 46px !important;
+  left: 0 !important;
+  width: auto !important;
+  border: none !important;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(30, 42, 34, 0.22) !important;
+}
+.pk-root:is([data-layout='tablet'], [data-layout='phone']) .pk-panel .st-btn {
+  min-height: 44px;
+}
+.pk-root:is([data-layout='tablet'], [data-layout='phone']) .pk-panel .dk-icobtn {
+  width: 44px;
+  height: 44px;
+}
+
+/* ── J 41-43: Docs health and the link fixes on a tablet and a phone ── */
+.dh-root:is([data-layout='tablet'], [data-layout='phone']) {
+  padding: 14px 18px !important;
+}
+.dh-root:is([data-layout='tablet'], [data-layout='phone']) h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+.dh-root:is([data-layout='tablet'], [data-layout='phone']) .dh-tabs {
+  gap: 8px !important;
+  margin: 10px 0 12px !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dh-root:is([data-layout='tablet'], [data-layout='phone']) .dh-tabs > button {
+  height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 13px !important;
+  margin: 0 !important;
+  border-radius: 999px;
+  border: 1px solid #dce3de !important;
+  background: #ffffff !important;
+  color: #3a4a3e !important;
+  font-size: 12.5px !important;
+  white-space: nowrap;
+  flex: none;
+}
+.dh-root:is([data-layout='tablet'], [data-layout='phone']) .dh-tabs > button[aria-selected='true'] {
+  background: #1f5a31 !important;
+  border-color: #1f5a31 !important;
+  color: #ffffff !important;
+}
+.dh-root:is([data-layout='tablet'], [data-layout='phone']) .dh-tabs > button b {
+  font-size: 11px;
+}
+.dh-root:is([data-layout='tablet'], [data-layout='phone']) :is(.st-btn, button[data-testid='health-run']) {
+  min-height: 44px;
+}
+
+/* ── C 19-20: the [[ list on a tablet (56 px rows under the line) and docked above the keyboard on a phone ── */
+:is(.rs-tablet, .rs-phone) .dk-mi[role='option'] {
+  min-height: 56px !important;
+}
+.rs-phone .dk-menu {
+  border-radius: 0 !important;
+  border: none !important;
+  border-top: 1px solid #e3e8e5 !important;
+  box-shadow: 0 -8px 24px rgba(30, 42, 34, 0.12) !important;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+.rs-phone .dk-kbd {
+  display: none;
+}
+
+/* D 22 on touch: a tap on the heading shows the handle (data-hl-on, set by HeadingLinkHandle); its tap area is 44 px;
+   on a phone the left margin is too narrow, so it sits at the heading's right end */
+.dk-rich :is(h1, h2, h3, h4, h5, h6)[data-hl-on] > .dk-hl-handle {
+  opacity: 1;
+}
+@media (hover: none) {
+  .dk-hl-handle::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+}
+@media (max-width: 599px) {
+  .dk-hl-handle {
+    left: auto;
+    right: -4px;
+  }
+}
+
+/* J 41-42: the broken-link groups on touch: 44 px buttons; on a phone one card per target, its buttons sharing the
+   card's width under the rows, and each row's Go to link a 44 px target */
+.dh-root:is([data-layout='tablet'], [data-layout='phone']) .bg-acts .st-btn {
+  min-height: 44px;
+}
+.dh-root[data-layout='phone'] .bg-head {
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 5px !important;
+  padding: 12px 14px !important;
+}
+.dh-root[data-layout='phone'] .bg-why {
+  min-width: 0 !important;
+}
+.dh-root[data-layout='phone'] .bg-acts {
+  width: 100%;
+  gap: 8px !important;
+  margin-top: 7px;
+}
+.dh-root[data-layout='phone'] .bg-acts .st-btn {
+  flex: 1;
+  justify-content: center;
+}
+.dh-root[data-layout='phone'] .bg-row {
+  flex-wrap: wrap;
+}
+.dh-root:is([data-layout='tablet'], [data-layout='phone']) .bg-open {
+  min-height: 44px;
+}
+
+/* H 45: rename on a phone is a full screen: a 56 px head (title 15.5, where 11.5), the groups one after the other, and
+   Cancel and Rename as 48 px full-width buttons */
+@media (max-width: 599px) {
+  .docs-root:has(> [role='dialog'][aria-label='Rename page']) {
+    padding: 0 !important;
+  }
+  [role='dialog'][aria-label='Rename page'] {
+    width: 100% !important;
+    height: 100%;
+    max-height: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  [role='dialog'][aria-label='Rename page'] > div:first-child {
+    height: 56px;
+    box-sizing: border-box;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 0 6px 0 16px !important;
+  }
+  [role='dialog'][aria-label='Rename page'] > div:first-child > div > div:first-child {
+    font-size: 15.5px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  [role='dialog'][aria-label='Rename page'] > div:first-child > div > div + div {
+    font-size: 11.5px !important;
+    margin-top: 0 !important;
+  }
+  [role='dialog'][aria-label='Rename page'] > div:first-child > button {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  [role='dialog'][aria-label='Rename page'] > div:nth-child(2) {
+    flex: 1;
+    padding: 14px 16px !important;
+  }
+  [role='dialog'][aria-label='Rename page'] > div:last-child {
+    flex-wrap: wrap;
+    padding: 10px 16px 16px !important;
+    background: #ffffff !important;
+  }
+  [role='dialog'][aria-label='Rename page'] > div:last-child .st-btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+  [role='dialog'][aria-label='Rename page'] #rename-title {
+    height: 44px;
+  }
+}
+
+/* ── Linked docs on a ticket (RichDocsLinks I 51-52): a tablet has 293 px cards whose actions stay visible with 44 px
+   buttons; a phone has rows (a 48 px tile, the title 14.5) where the whole row opens the page and × is 44 px ── */
+@media (hover: none) and (min-width: 600px) {
+  .tdoc {
+    width: 293px !important;
+  }
+  .tdoc-acts {
+    display: flex !important;
+  }
+  .tdoc-acts button {
+    height: 44px !important;
+  }
+  .tdoc-acts .tdoc-remove {
+    width: 44px !important;
+  }
+}
+@media (max-width: 599px) {
+  .tdoc {
+    width: 100% !important;
+    display: flex;
+    align-items: center;
+  }
+  .tdoc-main {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 6px 10px 12px !important;
+    min-width: 0;
+    flex: 1;
+  }
+  .tdoc-cover {
+    width: 48px;
+    height: 48px !important;
+    border-radius: 11px;
+    flex: none;
+    font-size: 24px !important;
+  }
+  .tdoc-body {
+    padding: 0 !important;
+    min-width: 0;
+  }
+  .tdoc-body [data-testid='tdoc-title'] {
+    font-size: 14.5px !important;
+  }
+  .tdoc-excerpt {
+    display: none !important;
+  }
+  .tdoc-acts {
+    position: static !important;
+    display: flex !important;
+    padding-right: 6px;
+  }
+  .tdoc-side {
+    display: none !important;
+  }
+  .tdoc-acts .tdoc-remove {
+    width: 44px !important;
+    height: 44px !important;
+    border: none !important;
+    background: transparent !important;
+  }
+}
+
+/* ── G 43: Relink on a phone: a sheet from the bottom (r20 20 0 0, 0 -12 40 .22, scrim .42), grab 40 x 4.5, head
+   4 20 10 with the title 16/700 and the count 12.5; a 44 px field, 54 px rows and two 48 px buttons ── */
+.rl-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+}
+.rl-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.42);
+}
+.rl-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(30, 42, 34, 0.22);
+  color: #1e2a22;
+}
+.rl-grab {
+  flex: none;
+  width: 40px;
+  height: 4.5px;
+  border-radius: 3px;
+  background: #cbd5ce;
+  margin: 9px auto 8px;
+}
+.rl-head {
+  flex: none;
+  padding: 4px 20px 10px;
+}
+.rl-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.rl-sub {
+  font-size: 12.5px;
+  color: #5b6b60;
+  margin-top: 1px;
+}
+.rl-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+.rl-field {
+  padding: 0 14px;
+}
+.rl-sheet .rl-find {
+  width: 100%;
+  height: 44px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  padding: 0 11px;
+  font-size: 13.5px;
+}
+.rl-sheet .rl-list {
+  margin-top: 8px;
+}
+.rl-sheet .rl-note {
+  margin: 8px 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+.rl-foot {
+  display: flex;
+  gap: 10px;
+  padding: 6px 14px 0;
+}
+.rl-overlay .rl-sheet .rl-foot .st-btn {
+  width: 100%;
+  min-height: 48px;
+  justify-content: center;
+}
+
+/* ── J 60, 62: Out of date on a tablet and a phone: one card per page (1px #E3E8E5, r12, 14 16; 14 on a phone), a
+   30 px tile, the title 14.5/700, the reason 13/1.55, the compared block as a 24 px chip, and Review block and
+   Dismiss as 44 px buttons sharing the width; 14 px between cards (12 on a phone, whose page has 14 px sides) ── */
+.dh-root[data-layout='phone'] {
+  padding: 12px 14px !important;
+}
+/* the phone frame has no lead line under the title (62) */
+.dh-root[data-layout='phone'] h1 + p {
+  display: none;
+}
+.dh-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dh-root[data-layout='phone'] .dh-cards {
+  gap: 12px;
+}
+.dh-card {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px 16px;
+  color: #1e2a22;
+}
+.dh-root[data-layout='phone'] .dh-card {
+  padding: 14px;
+}
+.dh-card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.dh-card-tile {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: #f1f6f2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.dh-card-title {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.dh-card-sub {
+  font-size: 12px;
+  color: #5b6b60;
+}
+.dh-card-why {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #3a4a3e;
+  margin-top: 8px;
+}
+.dh-card-compared {
+  font-size: 12px;
+  color: #5b6b60;
+  margin-top: 4px;
+}
+.dh-card-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: #f1f6f2;
+  border: 1px solid #dce6df;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dh-card-kind {
+  color: #5b6b60;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.dh-card-acts {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dh-card-btn {
+  flex: 1;
+  min-height: 44px;
+  justify-content: center;
+}
+.dh-card-acts .st-btn-primary {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #ffffff;
+}
+
+/* ── I 53: the page from a ticket on a phone is a full screen: an 8 10 8 8 bar with the back arrow, the path 13/600
+   and two 44 px buttons over a rule; the title 24/700 and the status line 12 px in 22 px sides ── */
+.pk-root[data-layout='phone'][data-from='ticket'] .pk-panel {
+  top: 0 !important;
+  border-radius: 0;
+  box-shadow: none !important;
+}
+.pk-root[data-from='ticket'] .pkv-head {
+  padding: 0 0 4px !important;
+  gap: 0 !important;
+  border-bottom: none !important;
+}
+.pk-root[data-from='ticket'] .pkv-bar {
+  gap: 4px !important;
+  padding: 8px 10px 8px 8px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.pk-root[data-from='ticket'] .pkv-bar > div:last-child {
+  gap: 0 !important;
+}
+.pk-root[data-from='ticket'] .pkv-crumbs > svg {
+  display: none;
+}
+.pk-root[data-from='ticket'] .pkv-crumbs span {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+.pk-root[data-from='ticket'] .pkv-crumbs > span:last-child > span:first-child {
+  color: #2e6f40 !important;
+}
+.pk-root[data-from='ticket'] [data-testid='peek-open-docs'] {
+  width: 44px;
+  padding: 0;
+  justify-content: center;
+  background: transparent;
+  border-color: transparent;
+  color: #5b6b60;
+}
+.pk-root[data-from='ticket'] .pkv-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.pk-root[data-from='ticket'] .pkv-title-row {
+  padding: 12px 22px 6px;
+  order: 2;
+}
+.pk-root[data-from='ticket'] .pkv-title {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+}
+.pk-root[data-from='ticket'] .pkv-meta {
+  padding: 14px 22px 0;
+  order: 1;
+}
+.pk-root[data-from='ticket'] [data-testid='peek-body'] {
+  padding: 10px 22px 24px !important;
+}

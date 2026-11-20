@@ -12,6 +12,12 @@ interface MoveToDialogProps {
   nodes: DocsTreeNode[];
   onClose: () => void;
   onMoved?: (page: DocsPage) => void;
+  /**
+   * Choose a place only: called with it instead of moving the page (several selected pages are moved by the caller).
+   */
+  onChoose?: (target: { parentId: string | null; afterId: string | null; beforeId: string | null }) => void;
+  /** The title for several pages ("Move 3 pages"); the page's own title otherwise. */
+  heading?: string;
 }
 
 /** Where the page will land: under `parentId`, between `afterId` and `beforeId`. */
@@ -60,8 +66,10 @@ function highlight(text: string, query: string): ReactNode {
  * @param props.nodes - Page tree, used to pick the new parent.
  * @param props.onClose - Called to dismiss the dialog.
  * @param props.onMoved - Called with the page after it moved.
+ * @param props.onChoose - Picks the place only and hands it back (no move here).
+ * @param props.heading - The dialog's title in place of "Move “page”".
  */
-export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveToDialogProps) {
+export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoose, heading }: MoveToDialogProps) {
   const toast = useToast();
   const move = useMovePage(projectId);
   const [query, setQuery] = useState('');
@@ -231,6 +239,15 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
   async function confirm() {
     if (!target) return;
     setError(null);
+    if (onChoose) {
+      onChoose({
+        parentId: target.parentId,
+        afterId: target.afterId,
+        beforeId: target.afterId ? null : target.beforeId,
+      });
+      onClose();
+      return;
+    }
     const prevSibs = childrenOf(page.parentId).filter((n) => n.id !== page.id);
     const idx = childrenOf(page.parentId).findIndex((n) => n.id === page.id);
     const oldAfter = idx > 0 ? (childrenOf(page.parentId)[idx - 1]?.id ?? null) : null;
@@ -254,7 +271,7 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
           ]
             .filter(Boolean)
             .join(' ') || undefined,
-        duration: 8000,
+        duration: 10000,
         action: {
           label: 'Undo',
           onClick: () => {
@@ -277,10 +294,10 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
   const rowBase: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: 7,
-    height: 32,
+    gap: 6,
+    minHeight: 32,
     flexShrink: 0,
-    padding: '0 10px 0 8px',
+    padding: '2px 8px 2px 6px',
     borderRadius: 7,
     fontSize: 13,
     fontWeight: 500,
@@ -338,11 +355,10 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
         }}
         style={{
           ...rowBase,
-          padding: `0 10px 0 ${8 + r.depth * 18}px`,
-          ...(disabled ? { color: '#9AA8A0', cursor: 'not-allowed' } : {}),
-          ...(selected
-            ? { background: '#DCEEE1', boxShadow: '0 0 0 1.5px #2E6F40 inset', color: '#1E2A22', fontWeight: 700 }
-            : {}),
+          // Tree board, frame 33: 18 px per level, a page that cannot be chosen at half opacity, the choice on #DCEEE1
+          padding: `2px 8px 2px ${6 + r.depth * 18}px`,
+          ...(disabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+          ...(selected ? { background: '#DCEEE1', color: '#1E2A22', fontWeight: 700 } : {}),
         }}
       >
         {r.hasKids ? (
@@ -369,14 +385,15 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
           {r.title}
         </span>
         {selected && (
-          <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: '#2E6F40' }}>Move here</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: '#1F5A31' }}>Move here</span>
         )}
         {disabled && (
           <span
             style={{
               marginLeft: 'auto',
               fontSize: 11.5,
-              color: '#9AA8A0',
+              fontWeight: 400,
+              color: '#5B6B60',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -419,9 +436,9 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
               position: 'absolute',
               left: 0,
               right: 0,
-              top: 1,
-              height: 2,
-              borderRadius: 1,
+              top: 0.5,
+              height: 3,
+              borderRadius: 2,
               background: '#2E6F40',
               opacity: on ? 1 : 0,
             }}
@@ -430,13 +447,13 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
             <div
               style={{
                 position: 'absolute',
-                left: -3,
-                top: -2,
-                width: 8,
-                height: 8,
+                left: -6,
+                top: -2.5,
+                width: 9,
+                height: 9,
                 borderRadius: '50%',
                 background: '#FFFFFF',
-                border: '2px solid #2E6F40',
+                border: '2.5px solid #2E6F40',
                 boxSizing: 'border-box',
               }}
             />
@@ -475,10 +492,11 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
 
   return (
     <ModalShell
+      boardFrame
       width={560}
-      ariaLabel={`Move “${page.title}”`}
+      ariaLabel={heading ?? `Move “${page.title}”`}
       icon="i35"
-      title={<>Move “{page.title}”</>}
+      title={heading ?? <>Move “{page.title}”</>}
       subtitle={
         <>
           {currentParent ? `Currently under ${currentParent.title}` : 'Currently at the top level'}
@@ -486,7 +504,7 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
         </>
       }
       onClose={onClose}
-      bodyStyle={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}
+      bodyStyle={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}
       footer={
         <>
           <FooterNote>Links to this page keep working.</FooterNote>
@@ -502,18 +520,50 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
             onClick={() => void confirm()}
           >
             <Icon name="i35" size={14} />
-            {move.isPending ? 'Moving…' : 'Move'}
+            {move.isPending ? 'Moving…' : error ? 'Try again' : 'Move'}
           </button>
         </>
       }
     >
       <style>{`.mv-gap:hover .mv-line{opacity:1!important}`}</style>
+      {error && (
+        // Tree5 G 64: what went wrong first, in a red box; nothing was moved and Move becomes Try again
+        <div
+          role="alert"
+          data-testid="move-error"
+          style={{
+            display: 'flex',
+            gap: 8,
+            alignItems: 'flex-start',
+            padding: '8px 11px',
+            borderRadius: 8,
+            background: '#FDF1EE',
+            color: '#C4432A',
+            border: '1px solid #F0C4B8',
+            fontSize: 12.5,
+            lineHeight: 1.5,
+          }}
+        >
+          <span style={{ display: 'flex', marginTop: 2 }}>
+            <Icon name="i14" size={14} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <b>Couldn’t move “{page.title}”.</b> {error.replace(/\.?$/, '.')} Nothing was moved.
+          </div>
+        </div>
+      )}
       <div
         className="st-input"
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
+          gap: 7,
+          height: 36,
+          boxSizing: 'border-box',
+          padding: '0 11px',
+          borderColor: '#C7D2CB',
+          borderRadius: 8,
+          fontSize: 13.5,
           ...(focused && searching ? { borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)' } : {}),
         }}
       >
@@ -637,14 +687,14 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
           role="listbox"
           aria-label="Pages"
           style={{
-            border: '1px solid #E3E8E5',
+            border: '1px solid #E3EAE5',
             borderRadius: 10,
-            padding: 5,
+            padding: '4px 6px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 1,
+            gap: 2,
             background: '#FFFFFF',
-            maxHeight: 360,
+            maxHeight: 'min(470px, 46vh)',
             overflowY: 'auto',
           }}
         >
@@ -664,12 +714,12 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 9,
-          padding: '10px 12px',
-          borderRadius: 8,
+          gap: 8,
+          padding: '9px 12px',
+          borderRadius: 9,
           background: '#F1F8F3',
-          border: '1px solid #D7E8DC',
-          fontSize: 13,
+          border: '1px solid #CFE6D6',
+          fontSize: 12.5,
           color: '#1E2A22',
           lineHeight: 1.45,
         }}
@@ -683,11 +733,6 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
         Click a page to move under it, or a gap between pages to choose the exact position. Grayed pages can't be
         chosen: a page can't go inside itself.
       </div>
-      {error && (
-        <div role="alert" style={{ fontSize: 12.5, color: '#A5321E' }}>
-          {error}
-        </div>
-      )}
     </ModalShell>
   );
 }
