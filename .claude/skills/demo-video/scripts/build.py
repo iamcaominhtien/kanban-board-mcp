@@ -56,7 +56,19 @@ async def main(a):
         app = lambda: next(f for f in pg.frames if f != pg.main_frame)
         js = lambda code: pg.evaluate(code)
 
+        def inner(spec):
+            """`in:<css of an iframe in the app> >> <target>`: the frame and the target inside it (an HTML embed's page)."""
+            frame_css, _, target = spec[3:].partition(" >> ")
+            return frame_css, target
         def loc(spec):
+            if spec.startswith("in:"):
+                frame_css, target = inner(spec)
+                sub = fl.frame_locator(frame_css).first
+                kind, _, val = target.partition(":")
+                if kind == "text": return sub.get_by_text(val).first
+                if kind == "exact": return sub.get_by_text(val, exact=True).first
+                if kind == "css": return sub.locator(val).first
+                raise SystemExit(f"unknown target inside a frame {target!r}: use text:, exact: or css:")
             kind, _, val = spec.partition(":")
             if kind == "testid": return fl.get_by_test_id(val).first
             if kind == "text": return fl.get_by_text(val).first
@@ -64,9 +76,18 @@ async def main(a):
             if kind == "re": return fl.get_by_text(re.compile(val, re.I)).first
             if kind == "css": return fl.locator(val).first
             raise SystemExit(f"unknown target {spec!r}: use testid:, text:, exact:, re: or css:")
-        async def rect(spec): return await loc(spec).evaluate("e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height]}")
+        RECT = "e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height]}"
+        async def rect(spec):
+            if spec.startswith("in:"):
+                # a target inside an embed's frame: its box in the frame, moved by where the frame sits in the app
+                frame_css, _ = inner(spec)
+                f = await fl.locator(frame_css).first.evaluate(RECT)
+                r = await loc(spec).evaluate(RECT)
+                return [f[0] + r[0], f[1] + r[1], r[2], r[3]]
+            return await loc(spec).evaluate(RECT)
         async def vis(spec):
             """Scroll the target into view (at once, and only when it is not fully visible) before the step acts on it."""
+            if spec.startswith("in:"): spec = "css:" + inner(spec)[0]
             moved = await loc(spec).evaluate("e=>{const r=e.getBoundingClientRect(); if(r.top>=0&&r.bottom<=innerHeight) return false; e.scrollIntoView({block: r.height>innerHeight*0.8?'start':'center', behavior:'instant'}); return true}")
             if moved: await pg.wait_for_timeout(400)
         async def stage(x, y): return await pg.evaluate("([x,y])=>__toStage(x,y)", [x, y])
@@ -106,6 +127,20 @@ async def main(a):
                 sfx_ev.append(("typing", t, now() - t)); await pg.wait_for_timeout(500)
             elif do == "scroll":
                 await app().evaluate(SCROLL_JS, [st["to"], st.get("ms", 1200)]); await pg.wait_for_timeout(st.get("ms", 1200) + 100)
+            elif do == "drag":
+                # press on the target and move by dx, dy (px) over `ms`: turns a 3D view, moves a slider
+                await vis(st["target"]); r = await rect(st["target"])
+                sx, sy = await stage(r[0] + r[2] / 2, r[1] + r[3] / 2)
+                await js(f"__cursor({sx - 13},{sy - 3})"); await pg.wait_for_timeout(850)
+                await pg.mouse.move(sx, sy); await pg.mouse.down(); sfx_ev.append(("click", now()))
+                n = max(8, st.get("ms", 1200) // 30); dx, dy = st.get("dx", 240), st.get("dy", 0)
+                for k in range(1, n + 1):
+                    x, y = sx + dx * k / n, sy + dy * k / n
+                    await pg.mouse.move(x, y); await js(f"__cursor({x - 13},{y - 3})"); await pg.wait_for_timeout(30)
+                await pg.mouse.up(); await pg.wait_for_timeout(400)
+            elif do == "select":
+                await vis(st["target"]); await move(await rect(st["target"]))
+                await loc(st["target"]).select_option(st["value"]); await pg.wait_for_timeout(int(st.get("settle", 0.8) * 1000))
             elif do == "key": await pg.keyboard.press(st["key"])
             elif do == "wait": await pg.wait_for_timeout(int(st["seconds"] * 1000))
             elif do == "until": await until(t_scene + 0.25 + d_scene * st["frac"])

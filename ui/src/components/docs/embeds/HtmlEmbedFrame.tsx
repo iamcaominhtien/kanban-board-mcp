@@ -208,7 +208,8 @@ export function HtmlEmbedFrame({
         className="dk-emb-frame"
         title={title || 'HTML embed'}
         sandbox={embedSandbox(scripts)}
-        {...(site ? { src: site } : { srcDoc })}
+        // a site waits for the project's choice before it loads, so it is not loaded once without its scripts first
+        {...(site ? (policy === 'loading' ? {} : { src: site }) : { srcDoc })}
         referrerPolicy="no-referrer"
         allow="fullscreen; autoplay; clipboard-read; clipboard-write; camera; microphone; geolocation; xr-spatial-tracking; accelerometer; gyroscope"
         allowFullScreen

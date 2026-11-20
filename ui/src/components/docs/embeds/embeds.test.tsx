@@ -162,10 +162,14 @@ describe('HtmlEmbedFrame with a site (src)', () => {
   };
 
   it('opens the address in a frame with no sandbox and no srcdoc, whatever runScripts says', async () => {
-    api.get.mockResolvedValue({ data: {} });
+    let answer: (v: unknown) => void = () => undefined;
+    api.get.mockReturnValue(new Promise((r) => (answer = r)));
     const { container } = wrap(
       <HtmlEmbedFrame html="" src={src} title="Globe" height={480} runScripts={false} projectId="p1" />,
     );
+    // until the project's choice is known the page is not loaded (it would load once without its scripts)
+    expect(container.querySelector('iframe')!.hasAttribute('src')).toBe(false);
+    act(() => answer({ data: {} }));
     await vi.waitFor(() => expect(container.querySelector('iframe')!.getAttribute('data-scripts')).toBe('on'));
     const frame = container.querySelector('iframe')!;
     expect(frame.getAttribute('src')).toBe(src);
