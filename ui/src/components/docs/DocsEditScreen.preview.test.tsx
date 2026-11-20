@@ -98,7 +98,7 @@ describe('DocsEditScreen', () => {
     const { onOpenSettings } = show('desktop');
     const scroll = screen.getByTestId('editor-scroll');
     expect(scroll.className).toContain('dk-paged');
-    expect(scroll.style.getPropertyValue('--dp-col')).toBe('560px');
+    expect(scroll.style.getPropertyValue('--dp-col')).toBe('clamp(560px, 50vw, 880px)');
     expect(scroll.style.getPropertyValue('--dp-body-font')).toContain('Lora');
     expect(screen.getByTestId('page-eyebrow').textContent).toBe('Chapter three');
     expect((screen.getByLabelText('Page title') as HTMLInputElement).value).toBe('The Salt Road');
@@ -111,7 +111,7 @@ describe('DocsEditScreen', () => {
     const preview = screen.getByTestId('editor-preview');
     expect(preview.textContent).toContain('The Salt Road');
     expect(preview.textContent).toContain('Nobody remembered who had first called it the salt road.');
-    expect(preview.style.getPropertyValue('--dp-col')).toBe('560px');
+    expect(preview.style.getPropertyValue('--dp-col')).toBe('clamp(560px, 50vw, 880px)');
     // the editor stays (hidden), with its text and undo history
     expect(screen.getByTestId('editor-scroll')).toBeTruthy();
     fireEvent.click(screen.getByTestId('preview-toggle'));

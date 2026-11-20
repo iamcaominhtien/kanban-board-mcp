@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [5.1.1] - 2026-11-20
+
+### Fixed
+- **A Docs page used only a narrow strip of a wide screen.** Since 5.1.0 the column was the set width exactly (Normal 680 px), leaving two wide empty margins on a large desktop. On a desktop the column now grows with the window again, as it did before 5.1.0: Narrow from 560 px up to 880, Normal from 680 up to 1,120 (62% of the window), Wide from 880 up to 1,440. The set width is the least; a tablet keeps it, a phone and Full use the whole width.
+
 ## [5.1.0] - (release date)
 
 **Docs become rich documents.** A page is no longer a Markdown text: it is stored as blocks (headings, tables with merged and coloured cells, columns, callouts, pull quotes, equations, code, pictures, videos, HTML embeds, drawings, page and ticket cards), each with its own id. People write it in a new editor drawn to the design boards, and AI teams read and change it block by block over MCP. A page exports to PDF, Word, HTML and Markdown that look like the page, up to a printed book. The MCP tools answer in far fewer tokens. The format's contract: `server/contract/richdoc/`.

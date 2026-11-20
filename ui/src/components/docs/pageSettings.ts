@@ -113,8 +113,19 @@ export const LOOK_KEYS = [
 export type LookKey = (typeof LOOK_KEYS)[number];
 
 export const WIDTHS: readonly PageWidth[] = ['narrow', 'normal', 'wide', 'full'];
-/** Column width of each page width in CSS pixels; `full` fills the pane. */
+/** Column width of each page width in CSS pixels (on a desktop its least: see WIDTH_GROWTH); `full` fills the pane. */
 export const WIDTH_PX: Record<PageWidth, number | null> = { narrow: 560, normal: 680, wide: 880, full: null };
+
+/**
+ * How a column grows on a large desktop screen: share of the window width and the most it takes, in px. WIDTH_PX
+ * stays its least, so the column is never narrower than the setting says; a wide window fills with text instead of
+ * two empty margins, as the page did before 5.1.0 (`clamp(640px, 62vw, 1120px)`).
+ */
+const WIDTH_GROWTH: Record<Exclude<PageWidth, 'full'>, { vw: number; maxPx: number }> = {
+  narrow: { vw: 50, maxPx: 880 },
+  normal: { vw: 62, maxPx: 1120 },
+  wide: { vw: 78, maxPx: 1440 },
+};
 export const WIDTH_LABEL: Record<PageWidth, string> = {
   narrow: 'Narrow',
   normal: 'Normal',
@@ -456,6 +467,19 @@ export function mergeSettings(
   return out;
 }
 
+/**
+ * The column width of a page: the screen on a phone or for Full, the set width on a tablet, and on a desktop the set
+ * width growing with the window up to its most (WIDTH_GROWTH), less or more by the page's margins.
+ */
+function columnWidth(look: PageLook, px: number | null, layout: DocsLayout): string {
+  if (layout === 'phone' || px === null || look.width === 'full') return '100%';
+  const margin = MARGIN_COL_PX[look.margins];
+  if (layout === 'tablet') return `${px + margin}px`;
+  const grow = WIDTH_GROWTH[look.width];
+  const growing = margin === 0 ? `${grow.vw}vw` : `calc(${grow.vw}vw ${margin < 0 ? '-' : '+'} ${Math.abs(margin)}px)`;
+  return `clamp(${px + margin}px, ${growing}, ${grow.maxPx + margin}px)`;
+}
+
 /** The page's width folds the tree to its rail and "On this page" to a button (Wide and Full). */
 export function isWidePage(look: PageLook): boolean {
   return look.width === 'wide' || look.width === 'full';
@@ -475,7 +499,7 @@ export function lookVars(look: PageLook, layout: DocsLayout = 'desktop'): CSSPro
   const sur = SURFACE[look.background];
   const px = WIDTH_PX[look.width];
   const vars: Record<string, string> = {
-    '--dp-col': layout === 'phone' || px === null ? '100%' : `${px + MARGIN_COL_PX[look.margins]}px`,
+    '--dp-col': columnWidth(look, px, layout),
     // a tablet keeps 60 px each side (Reader 2, Shell 22 at 820): room for the 44 px block handles beside the text
     '--dp-gutter': layout === 'phone' ? '32px' : layout === 'tablet' ? '120px' : `${MARGIN_GUTTER_PX[look.margins]}px`,
     '--dp-page': pal.page,
