@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { actorName } from '../../utils/relativeTime';
 import { Icon } from './Icon';
-import { longDateTime, outdatedText, shortDate, type Outdated } from './pageStatus';
+import { longDateTime, outdatedText, shortDate, type Outdated } from './pageStatusRules';
 
 /**
  * The green "Published · vN" badge; a click opens the version, when and by whom, with Page history and Compare.
