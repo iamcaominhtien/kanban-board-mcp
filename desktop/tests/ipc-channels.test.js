@@ -67,15 +67,18 @@ test('a link opened in a new window goes to the browser, never to a second app w
   assert.match(handler[1], /return \{ action: 'deny' \}/);
 });
 
-// Settings › Diagrams offers the public draw.io editor; the window's policy blocked its frame, so "public" never opened.
-test('the window may frame the public draw.io editor, and nothing else on the internet', () => {
-  const frameSrc = read('main.js').match(/frame-src ([^;]*);/);
-  assert.ok(frameSrc, 'the policy has a frame-src');
+// Settings › Diagrams offers the public draw.io editor, and an HTML embed or a site in a Docs page is a web page of its
+// own; the window's policy must let them load and run (inline scripts, CDN libraries, the server's /docs/sites pages).
+test('the window may frame web pages and run the scripts of HTML embeds', () => {
+  const main = read('main.js');
+  const directive = (name) => {
+    const m = main.match(new RegExp(`"${name} ([^"]*)"`));
+    assert.ok(m, `the policy has a ${name}`);
+    return m[1].trim().split(/\s+/);
+  };
   // the exact list of sources, compared whole (not as substrings)
-  assert.deepEqual(frameSrc[1].trim().split(/\s+/), [
-    "'self'",
-    'http://127.0.0.1:*',
-    'http://localhost:*',
-    'https://embed.diagrams.net',
-  ]);
+  assert.deepEqual(directive('frame-src'), ["'self'", 'http://127.0.0.1:*', 'http://localhost:*', 'https:']);
+  // an embed's inline script and the library it loads from a CDN
+  const scripts = directive('script-src');
+  assert.ok(scripts.includes("'unsafe-inline'") && scripts.includes('https:'), scripts.join(' '));
 });

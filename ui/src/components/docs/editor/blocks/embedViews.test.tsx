@@ -22,6 +22,7 @@ vi.mock('../../../../api/client', async (orig) => {
 import type { RichDoc } from '../../../../types/docs';
 import { ToastProvider } from '../../../Toast';
 import { reportSavedEmbeds } from '../../embeds/cleanedHtml';
+import { siteUrl } from '../../embeds/htmlSandbox';
 import { DocsEditor, type DocsEditorHandle } from '../DocsEditor';
 import { filterSlash } from '../slashItems';
 import { askBlockUi } from './bus';
@@ -323,7 +324,7 @@ describe('HTML embed of a site (a folder, a .zip or an .html page)', () => {
     // a site has no Code tab; the frame opens its address
     expect(screen.queryByRole('tab', { name: 'Code' })).toBeNull();
     const frame = document.querySelector('.dk-html-embed iframe')!;
-    expect(frame.getAttribute('src')).toBe(SITE.url);
+    expect(frame.getAttribute('src')).toBe(siteUrl(SITE.url));
     expect(screen.getByTestId('html-embed-site').textContent).toBe('Site · index.html');
   });
 
