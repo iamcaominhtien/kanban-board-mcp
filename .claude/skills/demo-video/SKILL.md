@@ -61,7 +61,7 @@ The same scenario always gives the same video, so changing a sentence or a step 
 and the scene waits for the voice to finish.
 
 **Targets** (what a step acts on, inside the app): `testid:comments`, `text:Fix add()` (contains), `exact:Detailed`,
-`re:^\s*assignee\s*$` (regex, any case), `css:[data-testid^="tl-bar-"]`. The first match is used.
+`re:^\s*assignee\s*$` (regex, any case), `css:[data-testid^="tl-bar-"]`. The first match is used. Inside an HTML embed's or a canvas frame's page: `in:<css of the iframe> >> <text:|exact:|css: target>` (e.g. `in:iframe[src*="/docs/sites/"] >> text:Save view`); scaled frames are handled.
 
 **Steps** (`do`):
 
@@ -76,6 +76,8 @@ and the scene waits for the voice to finish.
 | `until` | `frac` | waits until that fraction of the narration has played |
 | `wait` | `seconds` | pauses |
 | `key` | `key` | presses a key (`Escape` closes a ticket) |
+| `drag` | `target`, `dx`, `dy` (px), `ms` | presses on the target and moves by dx, dy (turns a 3D view) |
+| `select` | `target`, `value` | picks an option of a `<select>` |
 
 Order matters for zoom and spotlight: **zoom first, then spotlight**, and reset the camera (`cam` with no target) before a click
 somewhere else. Keep a sentence of narration to one idea, and keep the caption shorter than the sentence.

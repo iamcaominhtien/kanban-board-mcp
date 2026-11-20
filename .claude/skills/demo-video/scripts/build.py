@@ -81,9 +81,10 @@ async def main(a):
             if spec.startswith("in:"):
                 # a target inside an embed's frame: its box in the frame, moved by where the frame sits in the app
                 frame_css, _ = inner(spec)
-                f = await fl.locator(frame_css).first.evaluate(RECT)
+                # a frame drawn smaller or larger (a canvas board is scaled with a CSS transform): its page's boxes scale too
+                f = await fl.locator(frame_css).first.evaluate("e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width/(e.offsetWidth||r.width),r.height/(e.offsetHeight||r.height)]}")
                 r = await loc(spec).evaluate(RECT)
-                return [f[0] + r[0], f[1] + r[1], r[2], r[3]]
+                return [f[0] + r[0] * f[2], f[1] + r[1] * f[3], r[2] * f[2], r[3] * f[3]]
             return await loc(spec).evaluate(RECT)
         async def vis(spec):
             """Scroll the target into view (at once, and only when it is not fully visible) before the step acts on it."""

@@ -1,0 +1,95 @@
+{
+  "name": "docs-html-sites", "voice": "vi-VN-HoaiMyNeural", "tempo": 1.06, "bpm": 76,
+  "ready": "css:iframe[src*=\"/docs/sites/\"]",
+  "intro": {
+    "title": "HTML nhúng chạy như trang web thật",
+    "subtitle": "Kanban 5.2 · Docs và Canvas",
+    "chips": ["Cả thư mục HTML", "Script chạy ngay", "AI ghi qua MCP", "Xuất 1 file hoặc thư mục"],
+    "say": "Bản 5.2: khối HTML nhúng trong Docs giờ chạy như một trang web thật, và có thể là cả một thư mục."
+  },
+  "scenes": [
+    {"kind": "app", "cap": "Trang này do AI tạo qua MCP",
+     "say": "Trang này do AI tạo qua MCP. Nó tải cả thư mục Orbit viewer lên một lần, rồi viết trang từ một file Markdown, nên nội dung lớn không còn bị giới hạn.",
+     "steps": [
+       {"do": "click", "target": "exact:Got it", "settle": 0.6},
+       {"do": "cam", "target": "text:Edited by", "scale": 1.6},
+       {"do": "until", "frac": 0.35},
+       {"do": "cam"},
+       {"do": "spot", "target": "css:.dk-html-embed", "pad": 6}
+     ]},
+    {"kind": "app", "cap": "Kéo chuột để xoay mô hình 3D",
+     "say": "Đây là một trang 3D gồm nhiều file, có module JavaScript. Script chạy ngay, không phải bấm gì, và kéo chuột là mô hình xoay theo.",
+     "steps": [
+       {"do": "spot"},
+       {"do": "cam", "target": "css:iframe[src*=\"/docs/sites/\"]", "scale": 1.15},
+       {"do": "drag", "target": "in:iframe[src*=\"/docs/sites/\"] >> css:canvas", "dx": 260, "dy": 60, "ms": 1500},
+       {"do": "drag", "target": "in:iframe[src*=\"/docs/sites/\"] >> css:canvas", "dx": -200, "dy": -40, "ms": 1300}
+     ]},
+    {"kind": "app", "cap": "Trang tự lưu góc nhìn vào bộ nhớ của nó",
+     "say": "Dừng xoay, đổi sang hình chóp, rồi bấm Save view. Trang lưu góc nhìn vào bộ nhớ riêng của nó, điều trước đây bị chặn.",
+     "steps": [
+       {"do": "click", "target": "in:iframe[src*=\"/docs/sites/\"] >> text:Pause spin", "settle": 0.6},
+       {"do": "select", "target": "in:iframe[src*=\"/docs/sites/\"] >> css:#shape", "value": "pyramid"},
+       {"do": "click", "target": "in:iframe[src*=\"/docs/sites/\"] >> text:Save view", "settle": 0.8},
+       {"do": "spot", "target": "in:iframe[src*=\"/docs/sites/\"] >> css:header p", "pad": 8}
+     ]},
+    {"kind": "app", "cap": "Sơ đồ draw.io hiện đúng kích thước",
+     "say": "Sơ đồ draw.io dạng dọc giờ hiện đúng kích thước thật, không bị thu nhỏ theo chiều cao, chữ đọc rõ.",
+     "steps": [
+       {"do": "spot"},
+       {"do": "cam"},
+       {"do": "hover", "target": "css:[data-testid=\"diagram-embed\"]"},
+       {"do": "spot", "target": "css:[data-testid=\"diagram-embed\"]", "pad": 6}
+     ]},
+    {"kind": "app", "cap": "Khung Canvas bấm được ngay trong trang",
+     "say": "Khung Canvas nhúng trong trang cũng chạy thật: bấm Yearly là giá đổi ngay, không phải mở trình xem riêng.",
+     "steps": [
+       {"do": "spot"},
+       {"do": "hover", "target": "css:[data-testid=\"canvas-embed\"]"},
+       {"do": "click", "target": "in:iframe[title=\"Plan picker\"] >> text:Yearly", "settle": 1.0},
+       {"do": "spot", "target": "css:[data-testid=\"canvas-embed\"]", "pad": 6},
+       {"do": "until", "frac": 0.7},
+       {"do": "click", "target": "in:iframe[title=\"Plan picker\"] >> exact:Monthly", "settle": 0.6}
+     ]},
+    {"kind": "app", "cap": "Đổi khối code HTML thành khối nhúng",
+     "say": "Ở chế độ sửa, một khối code HTML đổi được thành khối nhúng chỉ bằng một lệnh trong menu của khối.",
+     "steps": [
+       {"do": "spot"},
+       {"do": "click", "target": "testid:edit-page", "settle": 2.0},
+       {"do": "hover", "target": "css:.dk-code-wrap"},
+       {"do": "click", "target": "css:button.dk-grip", "settle": 0.8},
+       {"do": "spot", "target": "text:Turn into HTML embed", "pad": 6},
+       {"do": "until", "frac": 0.75},
+       {"do": "spot"},
+       {"do": "click", "target": "text:Turn into HTML embed", "settle": 1.5}
+     ]},
+    {"kind": "app", "cap": "Script chạy luôn, không còn nút Run it",
+     "say": "Khối nhúng chạy luôn, không còn nút Run it. Bấm cộng một là bộ đếm tăng.",
+     "steps": [
+       {"do": "cam", "target": "css:.dk-html-embed iframe[srcdoc]", "scale": 1.3},
+       {"do": "click", "target": "in:.dk-html-embed iframe[srcdoc] >> text:+1", "settle": 0.5},
+       {"do": "click", "target": "in:.dk-html-embed iframe[srcdoc] >> text:+1", "settle": 0.5},
+       {"do": "click", "target": "in:.dk-html-embed iframe[srcdoc] >> text:+1", "settle": 0.8},
+       {"do": "cam"}
+     ]},
+    {"kind": "app", "cap": "Xuất HTML: một file, hoặc cả thư mục",
+     "say": "Khi xuất HTML, bạn chọn một file duy nhất, mọi thứ nhúng bên trong và vẫn chạy, hoặc một thư mục kèm các file.",
+     "steps": [
+       {"do": "click", "target": "exact:Discard", "settle": 1.0},
+       {"do": "click", "target": "exact:Discard draft", "settle": 2.0},
+       {"do": "click", "target": "testid:page-menu", "settle": 0.8},
+       {"do": "click", "target": "exact:Export…", "settle": 1.2},
+       {"do": "click", "target": "exact:A web page", "settle": 1.0},
+       {"do": "spot", "target": "exact:One file", "grow": {"right": 330, "top": 26, "bottom": 40}, "pad": 8},
+       {"do": "until", "frac": 0.6},
+       {"do": "click", "target": "exact:A folder with assets", "settle": 0.8}
+     ]}
+  ],
+  "outro": {
+    "title": "Kanban 5.2",
+    "tagline": "HTML nhúng chạy như trang web thật",
+    "say": "Không còn lớp chặn thừa: trang của bạn chạy y như khi mở bằng trình duyệt.",
+    "caption": "Cảm ơn bạn đã xem",
+    "steps": [{"do": "spot"}, {"do": "key", "key": "Escape"}]
+  }
+}
