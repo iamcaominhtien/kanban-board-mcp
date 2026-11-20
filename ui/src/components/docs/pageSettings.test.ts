@@ -97,7 +97,7 @@ describe('readPageLook', () => {
     expect(look).toMatchObject({ sizePx: 17, margins: 'roomy', titleAlign: 'right', outlineDepth: 2 });
     expect(look.cover).toMatchObject({ src: '', color: '#2E6F40', height: 'full' });
     expect(lookVars(look)['--dp-size' as never]).toBe('17px');
-    expect(lookVars(look)['--dp-col' as never]).toBe('584px');
+    expect(lookVars(look)['--dp-col' as never]).toBe('clamp(584px, calc(62vw - 96px), 1024px)');
     expect(lookClass(look)).toContain('dk-sp-tight');
     expect(lookClass(look)).toContain('dk-para-indent');
     expect(lookClass(look)).toContain('dk-ta-justify');
@@ -109,10 +109,13 @@ describe('readPageLook', () => {
 describe('lookVars', () => {
   it('sets the column from the width, always the screen on a phone', () => {
     const wide = readPageLook({ width: 'wide' });
-    expect(lookVars(wide)['--dp-col' as never]).toBe('880px');
-    expect(lookVars(readPageLook({ width: 'narrow' }))['--dp-col' as never]).toBe('560px');
+    expect(lookVars(wide)['--dp-col' as never]).toBe('clamp(880px, 78vw, 1440px)');
+    expect(lookVars(readPageLook({ width: 'narrow' }))['--dp-col' as never]).toBe('clamp(560px, 50vw, 880px)');
     expect(lookVars(readPageLook({ width: 'full' }))['--dp-col' as never]).toBe('100%');
     expect(lookVars(wide, 'phone')['--dp-col' as never]).toBe('100%');
+    // a tablet keeps the set width; a desktop column grows with a wide window, never below it (the bug of 5.1.0)
+    expect(lookVars(wide, 'tablet')['--dp-col' as never]).toBe('880px');
+    expect(lookVars(readPageLook({}))['--dp-col' as never]).toBe('clamp(680px, 62vw, 1120px)');
     expect(isWidePage(wide)).toBe(true);
     expect(isWidePage(readPageLook({}))).toBe(false);
   });

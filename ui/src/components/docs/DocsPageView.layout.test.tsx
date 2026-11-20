@@ -107,7 +107,7 @@ describe('DocsPageView on a desktop', () => {
     expect(scroll.dataset.pageWidth).toBe('narrow');
     expect(scroll.dataset.pageBg).toBe('sepia');
     expect(scroll.className).toContain('dk-bg-sepia');
-    expect(scroll.style.getPropertyValue('--dp-col')).toBe('560px');
+    expect(scroll.style.getPropertyValue('--dp-col')).toBe('clamp(560px, 50vw, 880px)');
     expect(scroll.style.getPropertyValue('--dp-page')).toBe('#F4ECD8');
     expect(scroll.style.getPropertyValue('--rd-c-green')).toBe('#2A6A3C');
     expect(scroll.style.getPropertyValue('--dp-body-font')).toContain('Lora');
