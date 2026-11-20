@@ -321,9 +321,9 @@ export default {
       await panel.waitFor({ state: 'detached' });
     });
     await s.step('the chip of a gone section explains it in its card', async () => {
-      await p.mouse.move(5, 500); // leave the chip first: a card opens on the pointer entering it
-      await p.getByTestId('ref-section-missing').hover();
-      await p.waitForTimeout(1500); console.log('DBG', await p.evaluate(() => { const c = document.querySelector('[data-testid="ref-section-missing"]'); const r = c.getBoundingClientRect(); const e = document.elementFromPoint(r.x + r.width/2, r.y + r.height/2); return [JSON.stringify(r), e && e.outerHTML.slice(0,200), c.matches(':hover'), document.body.children.length, [...document.body.children].map(x=>x.className)]; }));
+      // the page keeps shifting under the pointer while it settles after the side panel closed, so a pointer hover is
+      // unreliable here: the chip opens the same card when it gets the keyboard focus
+      await p.getByTestId('ref-section-missing').focus();
       await p.locator('[aria-label^="Preview of"]').getByText(/Gone/).first().waitFor();
     });
     await s.step('Referenced by lists the pages that link here; the button collapses and expands it', async () => {
