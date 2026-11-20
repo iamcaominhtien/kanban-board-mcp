@@ -91,12 +91,15 @@ export const Video = leafBlock(
   (a) => embedLine('video', str(a.title) || str(a.caption) || str(a.src)),
 );
 
-/** Sanitised HTML shown in a frame: `[embed: HTML embed · title]` in Markdown. */
+/**
+ * HTML shown in a frame: inline (`html`), or a site uploaded as a folder (`src`, `/docs/sites/<id>/<entry>`, which
+ * wins over `html`). `[embed: HTML embed · title]` in Markdown.
+ */
 export const HtmlEmbed = leafBlock(
   'htmlEmbed',
   {
     html: dataAttr('html', ''),
-    ...nullable('title'),
+    ...nullable('src', 'title'),
     height: dataAttr('height', null, 'json'),
     runScripts: dataAttr('runScripts', false, 'json'),
   },

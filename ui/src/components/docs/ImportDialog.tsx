@@ -15,7 +15,7 @@ import { ImportSourceTiles } from './start/ImportSources';
 import { sourceForFiles, sourceOfFile, type ImportSource } from './start/importConvert';
 
 export const IMPORT_MAX_FILES = 200;
-export const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+export const IMPORT_MAX_BYTES = 20 * 1024 * 1024;
 
 const isMd = (name: string) => /\.(md|markdown)$/i.test(name);
 
@@ -459,7 +459,7 @@ function MarkdownImport({
           status: 'error',
           linksResolved: 0,
           linksUnresolved: [],
-          message: 'File is larger than 2 MB',
+          message: 'File is larger than 20 MB',
         } satisfies DocsImportDryFile;
       }
       return (
@@ -949,7 +949,7 @@ function MarkdownImport({
                   <span className="st-code">[[links]]</span> are resolved by title.
                 </>
               ) : (
-                `.md and .markdown, up to ${IMPORT_MAX_FILES} files, 2 MB each`
+                `.md and .markdown, up to ${IMPORT_MAX_FILES} files, 20 MB each`
               )}
             </div>
           </div>

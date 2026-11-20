@@ -100,3 +100,14 @@ fn a_pool_with_a_vertical_header_turns_its_label() {
     assert!(svg.contains("width=\"40.0\" height=\"200.0\""), "{svg}");
     assert!(svg.contains("rotate(-90 40.0 120.0)"), "{svg}");
 }
+
+/// A preview the editor wrote for both themes is served in its light colours (it showed dark on a dark-mode computer).
+#[test]
+fn a_preview_for_both_themes_is_shown_light() {
+    let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" style="background: transparent; color-scheme: light dark;"><rect style="fill: light-dark(#ffffff, #121212)"/></svg>"##;
+    let out = kb_draw::diagrams::light_only(svg);
+    assert!(out.contains("color-scheme: light;") && !out.contains("light dark"), "{out}");
+    assert!(out.contains("light-dark(#ffffff, #121212)"), "the colours stay; the scheme picks the light one");
+    let plain = r##"<svg xmlns="http://www.w3.org/2000/svg"><rect fill="#fff"/></svg>"##;
+    assert_eq!(kb_draw::diagrams::light_only(plain), plain);
+}

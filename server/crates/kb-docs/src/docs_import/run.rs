@@ -61,7 +61,7 @@ pub async fn run_import(
         draft.page_id = Set(page.id.clone());
         draft.author = Set(actor.clone());
         draft.title = Set(title.clone());
-        let rich = crate::docs::PageBody::from_markdown(&body, &mut kb_richdoc::RandomIds);
+        let rich = imported_body(&body);
         crate::docs::versions::set_draft_body(&mut draft, &rich);
         draft.base_version = Set(0);
         let draft = draft.insert(session).await?;
@@ -148,4 +148,49 @@ pub async fn resolve_pages(session: &Session, project_id: &str, page_ids: &[Stri
     out.insert("links_resolved".into(), json!(resolved));
     out.insert("links_unresolved".into(), json!(unresolved));
     Ok(out)
+}
+
+/// The page of an imported Markdown file: a file written in the annotated flavour (the MCP view of a page, with
+/// `<!-- #b-… -->` or `<!-- htmlEmbed -->` markers) is read with its markers, so an HTML embed written as its marker
+/// and an ```html code block comes back as an embed; plain Markdown, or annotated Markdown that cannot be read, is
+/// read as plain Markdown.
+pub(crate) fn imported_body(markdown: &str) -> crate::docs::PageBody {
+    if kb_richdoc::has_markers(markdown) {
+        if let Ok(doc) = kb_richdoc::annotated_to_doc(markdown, None, &mut kb_richdoc::RandomIds) {
+            return crate::docs::PageBody::from_doc(doc);
+        }
+    }
+    crate::docs::PageBody::from_markdown(markdown, &mut kb_richdoc::RandomIds)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::imported_body;
+
+    #[test]
+    fn annotated_files_keep_their_embeds() {
+        let md = "# Globe\n\n<!-- htmlEmbed title=Globe height=600 -->\n```html\n<canvas></canvas>\n```\n\n\
+                  <!-- htmlEmbed src=/docs/sites/ab12cd34ef56/index.html -->\n\nAfter.";
+        let body = imported_body(md);
+        let doc = body.content.expect("a rich page");
+        let c = doc["content"].as_array().expect("blocks");
+        assert_eq!(c[1]["type"], "htmlEmbed");
+        assert_eq!(c[1]["attrs"]["html"], "<canvas></canvas>");
+        assert_eq!(c[1]["attrs"]["height"], 600);
+        assert_eq!(c[2]["attrs"]["src"], "/docs/sites/ab12cd34ef56/index.html");
+        assert_eq!(c[3]["type"], "paragraph");
+    }
+
+    #[test]
+    fn plain_and_broken_files_read_as_plain_markdown() {
+        // a prose comment is not a marker
+        let doc = imported_body("<!-- a note -->\n\n```html\n<b>x</b>\n```").content.expect("a rich page");
+        assert!(doc["content"].as_array().expect("blocks").iter().any(|b| b["type"] == "codeBlock"));
+        // a broken marker: the file is read as plain Markdown
+        let doc = imported_body("<!-- #b-12 htmlEmbed -->\n```html\n<b>x</b>\n```").content.expect("a rich page");
+        assert!(doc["content"].as_array().expect("blocks").iter().all(|b| b["type"] != "htmlEmbed"));
+        // markers inside fenced code do not count
+        assert!(!kb_richdoc::has_markers("```\n<!-- #b-000001 -->\n```"));
+        assert!(kb_richdoc::has_markers("<!-- #b-000001 -->\nx"));
+    }
 }

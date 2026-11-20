@@ -845,7 +845,12 @@
         "html": {
           "default": "",
           "type": "string",
-          "note": "sanitised on save, max 512 KB"
+          "note": "the page itself, not sanitised, max 10 MB; ignored when src is set"
+        },
+        "src": {
+          "default": null,
+          "type": "string|null",
+          "note": "the address of a site's entry page (/docs/sites/<id>/<entry>), shown instead of html"
         },
         "title": {
           "default": null,

@@ -21,6 +21,7 @@ mod math;
 pub use math::equation_page;
 mod model;
 mod pdf;
+mod site;
 mod size;
 
 pub use assets::{Asset, AssetSource, DrawingKind, NoAssets};
@@ -32,6 +33,7 @@ pub use model::{
     PageSize, TableOfContents,
 };
 pub use pdf::{PdfOptions, find_browser, render_pdf};
+pub use site::SiteFile;
 pub use size::{SIZE_LIMIT, estimate_size, estimate_size_with};
 
 /// An export that could not be produced.

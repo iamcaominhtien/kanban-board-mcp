@@ -46,7 +46,7 @@ The backend served a React UI and AI agents from one Python process until 4.0.x.
 
 ```
 server/
-  Cargo.toml          workspace, version 5.1.1
+  Cargo.toml          workspace, version 5.2.0
   crates/kb-*         one crate per area (list below)
   crates/testkit      test harness: starts the built server on temporary folders
   crates/fake-claude  stand-in for the Claude Code command line, for tests

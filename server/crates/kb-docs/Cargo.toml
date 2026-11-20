@@ -30,8 +30,6 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 tempfile = { workspace = true }
 calamine = { workspace = true }
-html5ever = { workspace = true }
-markup5ever_rcdom = { workspace = true }
 quick-xml = { workspace = true }
 reqwest = { workspace = true }
 url = { workspace = true }

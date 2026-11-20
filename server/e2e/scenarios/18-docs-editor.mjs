@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { ensureProject, openDocs, newDocPage, publishDoc, setMarkdown, getMarkdown } from '../lib/ui.mjs';
 import { makeFixtures, cleanFixtures } from '../lib/fixtures.mjs';
 
@@ -709,16 +711,16 @@ export default {
       cleanFixtures(fx);
     });
 
-    // Rich Docs phase 5: embeds and attachments (HTML in a sandbox, code options, files, video, links, references)
+    // Rich Docs phase 5: embeds and attachments (HTML in its own frame, code options, files, video, links, references)
     const fx5 = makeFixtures();
-    /** Every frame of an HTML embed: never the board's origin, top navigation or pop-ups. */
+    /** Every frame of an HTML embed whose scripts run has no sandbox (a local app: the page works as in a browser). */
     const checkSandbox = async (root) => {
-      for (const f of await root.locator('.dk-html-embed iframe').all()) {
+      for (const f of await root.locator('.dk-html-embed iframe[data-scripts="on"]').all()) {
         const sb = await f.getAttribute('sandbox');
-        if (sb === null || /allow-same-origin|allow-top-navigation|allow-popups/.test(sb)) throw new Error(`unsafe sandbox: ${sb}`);
+        if (sb !== null) throw new Error(`a frame with scripts is still sandboxed: ${sb}`);
       }
     };
-    await s.step('embeds: a new page Embeds tour; an HTML embed opens on its Code tab and previews in a sandbox', async () => {
+    await s.step('embeds: a new page Embeds tour; an HTML embed opens on its Code tab and previews in its frame', async () => {
       await newDocPage(s, 'Embeds tour');
       await content().click();
       await insert('html');
@@ -726,18 +728,13 @@ export default {
       await code.waitFor();
       await code.fill('<div class="plans"><h3>Team</h3><p>$8 /user</p></div>');
       const embed = content().locator('.dk-html-embed').first();
-      await embed.getByText('Runs in a sandbox: no access to this board.').waitFor();
       await p.waitForFunction(() => document.querySelector('.dk-html-embed iframe')?.getAttribute('srcdoc')?.includes('$8 /user'));
       if ((await embed.locator('iframe').getAttribute('sandbox')) !== '') throw new Error('a frame without scripts must allow nothing');
       await checkSandbox(content());
-      await embed.getByRole('button', { name: 'What is blocked?' }).click();
-      const sheet = p.getByTestId('sandbox-sheet');
-      await sheet.getByText('Network requests from scripts').waitFor();
-      await sheet.getByRole('button', { name: 'Close' }).click();
-      await sheet.waitFor({ state: 'detached' });
+      if ((await embed.getByRole('button', { name: 'What is blocked?' }).count()) !== 0) throw new Error('the sandbox note is still shown');
       await saved();
     });
-    await s.step('HTML embed: scripts run only after Run it, and saving says what was cleaned out', async () => {
+    await s.step('HTML embed: scripts run at once (the project default), and saving keeps the HTML as written', async () => {
       const embed = content().locator('.dk-html-embed').first();
       // Run scripts sits in the Embed size popover, opened from the block's header
       await embed.getByRole('button', { name: 'Embed size' }).click();
@@ -746,18 +743,96 @@ export default {
       await size.getByRole('button', { name: 'Done' }).click();
       await size.waitFor({ state: 'detached' });
       await p.getByRole('textbox', { name: 'HTML code' }).fill('<div onclick="track()" id="t">Team</div>\n<script>document.getElementById("t").textContent = "Ran"</script>');
-      const run = embed.getByRole('button', { name: 'Run it' });
-      await run.waitFor();
-      if ((await embed.locator('iframe').getAttribute('sandbox')) !== '') throw new Error('scripts ran before Run it');
-      await run.click();
-      await p.waitForFunction(() => document.querySelector('.dk-html-embed iframe')?.getAttribute('sandbox') === 'allow-scripts');
+      // no "Run it" to press: the frame gets scripts as soon as the code is taken
+      await p.waitForFunction(() => document.querySelector('.dk-html-embed iframe')?.getAttribute('data-scripts') === 'on');
+      if ((await embed.getByRole('button', { name: 'Run it' }).count()) !== 0) throw new Error('Run it is asked for although the project runs scripts');
+      if ((await embed.locator('iframe').getAttribute('sandbox')) !== null) throw new Error('a frame with scripts is still sandboxed');
+      await p.frameLocator('.dk-html-embed iframe').first().getByText('Ran').waitFor();
       await checkSandbox(content());
       await saved();
-      // the server removes the onclick attribute on save; the author is told, and the line is crossed out
-      const note = embed.getByTestId('html-embed-removed');
-      await note.getByText(/Saved\. 1 thing was removed/).waitFor();
-      await note.getByText(/an onclick attribute/).waitFor();
-      await embed.locator('.dk-ca-gutter .dk-ca-x').first().waitFor();
+      // the server keeps the onclick attribute: nothing is said to be removed
+      if ((await embed.getByTestId('html-embed-removed').count()) !== 0) throw new Error('saving still removes parts of the HTML');
+      await p.keyboard.press('Control+End');
+    });
+    await s.step('HTML embed of a folder: Upload folder… sends its files, the frame opens the site with no sandbox and runs it', async () => {
+      // a small site: a page with its own stylesheet and script in sub-folders
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kb-e2e-site-'));
+      const site = path.join(dir, 'globe-demo');
+      fs.mkdirSync(path.join(site, 'css'), { recursive: true });
+      fs.mkdirSync(path.join(site, 'js'), { recursive: true });
+      fs.writeFileSync(path.join(site, 'index.html'), '<!doctype html><html><head><link rel="stylesheet" href="css/style.css"></head><body><h1 id="t">Waiting</h1><script src="js/app.js"></script></body></html>');
+      fs.writeFileSync(path.join(site, 'css', 'style.css'), 'h1 { color: rgb(46, 111, 64); }');
+      fs.writeFileSync(path.join(site, 'js', 'app.js'), 'document.getElementById("t").textContent = "Site ran";');
+      try {
+        await atEnd();
+        await p.keyboard.press('Enter');
+        await insert('html');
+        const embed = content().locator('.dk-html-embed').last();
+        await embed.getByRole('button', { name: 'More' }).click();
+        await p.getByRole('menuitem', { name: 'Upload folder…' }).waitFor();
+        await p.keyboard.press('Escape');
+        // the folder picker takes a directory (webkitdirectory): each file goes with its path inside the folder
+        await embed.getByTestId('html-embed-folder-input').setInputFiles(site);
+        const frame = embed.locator('iframe[src^="/docs/sites/"]');
+        await frame.waitFor();
+        if (!/^\/docs\/sites\/[0-9a-f]{12}\/index\.html$/.test((await frame.getAttribute('src')) ?? '')) throw new Error('the frame does not open the site entry');
+        if ((await frame.getAttribute('sandbox')) !== null) throw new Error('a site frame is sandboxed');
+        if ((await embed.getByRole('textbox', { name: 'Embed title' }).inputValue()) !== 'globe-demo') throw new Error('the embed did not take the folder name');
+        // the page loads its stylesheet and script from the site, as in a browser tab
+        const inner = embed.frameLocator('iframe');
+        await inner.getByText('Site ran').waitFor();
+        const color = await inner.locator('#t').evaluate((el) => getComputedStyle(el).color);
+        if (color !== 'rgb(46, 111, 64)') throw new Error(`the site stylesheet did not load: ${color}`);
+        await embed.getByTestId('html-embed-site').getByText('Site · index.html').waitFor();
+        if ((await embed.getByRole('tab', { name: 'Code' }).count()) !== 0) throw new Error('a site embed still has a Code tab');
+        await checkSandbox(content());
+        await saved();
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+    await s.step('export with a folder embed: one HTML file holds the site, its script inlined and running', async () => {
+      // an export is of the published page: publish the tour so far, export it, then go on editing
+      await publishDoc(s, 'Embeds tour');
+      const { name, file } = await exportAs('html');
+      const text = file.toString('utf8');
+      if (!name.endsWith('.html')) throw new Error('not an .html file: ' + name);
+      // the site's own script is inside the file, and nothing points back at the board
+      if (!text.includes('Site ran')) throw new Error('the site is not in the export');
+      if (text.includes('/docs/sites/')) throw new Error('the export points back at the board');
+      // opened on its own, the page runs the site in its frame
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kb-e2e-export-'));
+      const out = path.join(dir, 'export.html');
+      fs.writeFileSync(out, file);
+      const page = await p.context().newPage();
+      try {
+        await page.goto('file://' + out);
+        await page.frameLocator('iframe[title="globe-demo"]').getByText('Site ran').waitFor();
+      } finally {
+        await page.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+      await p.getByTestId('edit-page').click();
+      await content().locator('.dk-html-embed').first().waitFor();
+    });
+    await s.step('code block of HTML: Turn into HTML embed in its block menu runs the code at once', async () => {
+      await atEnd();
+      await p.keyboard.press('Enter');
+      await insert('code');
+      await p.keyboard.type('<b id="c">0</b><button id="b">+1</button><script>let n=0;document.getElementById("b").onclick=()=>document.getElementById("c").textContent=++n</script>');
+      const block = content().locator('.dk-code-wrap').last();
+      await block.hover();
+      await p.locator('button.dk-grip').first().click();
+      await p.getByRole('menuitem', { name: 'Turn into HTML embed' }).click();
+      const embed = content().locator('.dk-html-embed').last();
+      const frame = embed.locator('iframe[srcdoc]');
+      await frame.waitFor();
+      if ((await frame.getAttribute('data-scripts')) !== 'on') throw new Error('the new embed does not run its script');
+      const inner = embed.frameLocator('iframe');
+      await inner.getByRole('button', { name: '+1' }).click();
+      await inner.getByRole('button', { name: '+1' }).click();
+      await inner.getByText('2', { exact: true }).waitFor();
+      await saved();
       await p.keyboard.press('Control+End');
     });
     await s.step('code block: file name, line numbers, a highlighted line and the light theme from its settings', async () => {
@@ -854,14 +929,17 @@ export default {
       await card.waitFor({ state: 'detached' });
       await saved();
     });
-    await s.step('Preview: the embeds read as readers will see them (sandboxed frame, poster, card, preview)', async () => {
+    await s.step('Preview: the embeds read as readers will see them (the frame, poster, card, preview)', async () => {
       const toggle = p.getByTestId('preview-toggle');
       await toggle.click();
       const preview = p.getByTestId('editor-preview');
       await preview.waitFor();
-      await preview.getByTestId('html-embed').getByRole('button', { name: 'View source' }).waitFor();
+      await preview.getByTestId('html-embed').first().getByRole('button', { name: 'View source' }).waitFor();
+      // the folder embed reads as a site frame too: its page runs from /docs/sites
+      await preview.locator('.dk-html-embed iframe[src*="/docs/sites/"]').waitFor();
       await checkSandbox(preview);
-      await preview.getByRole('button', { name: 'Run it' }).waitFor();
+      // a reader's embed runs its scripts without a click too
+      await preview.locator('.dk-html-embed iframe[data-scripts="on"]').first().waitFor();
       await preview.locator('[data-testid="code-view"].dk-cv-light').getByText('tokens.py').waitFor();
       await preview.getByTestId('video-poster').or(preview.getByText('This video could not be played')).first().waitFor();
       const started = await preview.locator('video').evaluateAll((vs) => vs.some((v) => !v.paused || v.autoplay || v.controls));
@@ -1003,7 +1081,7 @@ export default {
     await s.step(
       "phone: the HTML embed has no footer; Edit code and View source are 44 px under the card",
       async () => {
-        const embed = content().getByTestId("html-embed");
+        const embed = content().getByTestId("html-embed").first();
         const under = embed.locator(".dk-emb-under");
         await under.scrollIntoViewIfNeeded();
         const card = await bbox(embed.locator(".dk-emb").first());

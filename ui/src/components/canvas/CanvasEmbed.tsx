@@ -141,6 +141,7 @@ export function CanvasEmbed({ id, label, boardId, pageId, small, readOnly, onRep
   };
 
   const shownCount = board ? 1 : doc.boards.length;
+  const oneFrame = shownCount === 1 && (board ?? doc.boards[0])?.kind === 'html';
   return (
     <figure
       ref={wrap}
@@ -153,8 +154,10 @@ export function CanvasEmbed({ id, label, boardId, pageId, small, readOnly, onRep
       <span
         ref={ref}
         className={styles.embedStage}
-        onClick={view}
+        // one frame is a working page: it takes the clicks itself (View full size is in the toolbar)
+        onClick={oneFrame ? undefined : view}
         data-testid="canvas-embed-stage"
+        data-interactive={oneFrame ? 'true' : undefined}
         style={{ display: 'block' }}
       >
         {missingBoard ? null : (
@@ -167,6 +170,7 @@ export function CanvasEmbed({ id, label, boardId, pageId, small, readOnly, onRep
             maxHeight={small ? 300 : 460}
             bare={!!board}
             live
+            interactive={oneFrame}
           />
         )}
         {missingBoard && (

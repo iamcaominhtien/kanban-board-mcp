@@ -31,7 +31,7 @@ use yaml::{Failure, Yaml};
 /// Most files in one import.
 pub const MAX_FILES: usize = 200;
 /// Largest file, in bytes.
-pub const MAX_FILE_BYTES: usize = 2 * 1024 * 1024;
+pub const MAX_FILE_BYTES: usize = 20 * 1024 * 1024;
 /// The extensions that are imported (lower case).
 pub const EXTENSIONS: [&str; 2] = [".md", ".markdown"];
 const INDEX_NAMES: [&str; 2] = ["index", "readme"];
@@ -176,7 +176,7 @@ pub fn parse_file(index: usize, path: &str, data: &[u8]) -> Result<Entry> {
         return Ok(e);
     }
     if data.len() > MAX_FILE_BYTES {
-        e.error = Some("File is larger than 2 MB".into());
+        e.error = Some("File is larger than 20 MB".into());
         return Ok(e);
     }
     // `data.decode("utf-8-sig")`

@@ -7,6 +7,7 @@
  * everything is dimmed.
  */
 
+import { HTML_EMBED_LIMIT, kbOrMb } from '../embeds/htmlSandbox';
 import { useState, type ReactNode } from 'react';
 import { docsErrorDetail, useDocsTree } from '../../../api/docs';
 import { useDocsAccess } from '../../../api/docsAccess';
@@ -56,10 +57,13 @@ export const SPACE_DEFAULTS: Settings = {
   publicLinkExpiry: 'never',
   highlights: 'on',
   uploads: { imageMb: 10, videoMb: 200, fileMb: 100 },
-  scriptsInEmbeds: 'ask',
+  scriptsInEmbeds: 'on',
   embedSites: [],
   aiApply: {},
 };
+
+/** How each choice of "Scripts in HTML embeds" reads in the undo toast. */
+const SCRIPT_WORDS: Record<Settings['scriptsInEmbeds'], string> = { on: 'Run', ask: 'Ask before running', off: 'Off' };
 
 const EXPIRY: readonly (readonly [Settings['publicLinkExpiry'], string])[] = [
   ['never', 'Never'],
@@ -659,15 +663,15 @@ function UploadsCard({ s, locked, status, error, save }: CardProps & { s: Settin
           max={MAX_UPLOAD_MB.fileMb}
           onSave={limit('fileMb', 'File size')}
         />
-        <SettingRow title="HTML embed size" hint="Fixed. Embeds run in a sandbox.">
-          <span className="ds-fixed ds-fixed-mono">512 KB</span>
+        <SettingRow title="HTML embed size" hint="Fixed. A bigger page goes in as a folder (Upload folder).">
+          <span className="ds-fixed ds-fixed-mono">{kbOrMb(HTML_EMBED_LIMIT)}</span>
         </SettingRow>
       </fieldset>
       <div className="ds-rule" />
       <fieldset disabled={locked} className="ds-fields ds-rows">
         <SettingRow
           title="Scripts in HTML embeds"
-          hint="An embed that needs scripts runs only after someone presses “Run it”."
+          hint="Embeds run in their own sandbox, away from this board. “Ask” waits for someone to press “Run it”."
         >
           <select
             className="st-input ds-select"
@@ -676,14 +680,10 @@ function UploadsCard({ s, locked, status, error, save }: CardProps & { s: Settin
             value={s.scriptsInEmbeds}
             onChange={(e) => {
               const v = e.target.value as Settings['scriptsInEmbeds'];
-              save(
-                'up',
-                { scriptsInEmbeds: v },
-                `Scripts: ${v === 'ask' ? 'Ask before running' : 'Off'}`,
-                s.scriptsInEmbeds === 'ask' ? 'Ask before running' : 'Off',
-              );
+              save('up', { scriptsInEmbeds: v }, `Scripts: ${SCRIPT_WORDS[v]}`, SCRIPT_WORDS[s.scriptsInEmbeds]);
             }}
           >
+            <option value="on">Run</option>
             <option value="ask">Ask before running</option>
             <option value="off">Off</option>
           </select>

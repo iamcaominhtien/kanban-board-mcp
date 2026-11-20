@@ -1,29 +1,24 @@
 /**
- * How an HTML embed is put in its frame (design "Embeds", section A): a `srcdoc` with a Content Security Policy that
- * allows no network requests from scripts, forms or frames, in an `<iframe sandbox>` that may run scripts only when
- * they are allowed and never gets `allow-same-origin`, top navigation or pop-ups. When scripts run, a tiny script is
- * added that reports the content's height (Height: Auto) and what the sandbox blocked. Also what the server removed
- * when the page was saved, found by comparing the HTML sent with the HTML it kept.
+ * How an HTML embed is put in its frame (design "Embeds", section A): a `srcdoc` iframe that runs the page as it would
+ * run opened in a browser. The board is a local app, so the frame is not sandboxed: scripts, CDN libraries, network
+ * requests, storage, forms, pop-ups and full screen all work. Only when the project turned scripts off is the frame
+ * sandboxed with nothing allowed. When scripts run, a tiny script is added that reports the content's height
+ * (Height: Auto).
  */
 
-/** The largest HTML an embed may hold (bytes). */
-export const HTML_EMBED_LIMIT = 512 * 1024;
+/** The largest HTML an embed may hold (bytes), as the server checks it. */
+export const HTML_EMBED_LIMIT = 10 * 1024 * 1024;
 
 /** The height of a frame whose content cannot report its own (no scripts), in px. */
 export const DEFAULT_EMBED_HEIGHT = 320;
 
-/** The Content Security Policy every embed's document carries. */
-export const EMBED_CSP =
-  "default-src 'none'; img-src * data: blob:; style-src 'unsafe-inline' *; font-src * data:; " +
-  "script-src 'unsafe-inline'; connect-src 'none'; form-action 'none'";
-
 /**
- * The `sandbox` attribute of an embed's frame: `allow-scripts` only while scripts may run, else nothing allowed.
- * Never `allow-same-origin` (the document would share the board's origin), `allow-top-navigation` or pop-ups.
+ * The `sandbox` attribute of an embed's frame: none at all while scripts may run (the page works as in a browser),
+ * an empty one (nothing allowed) when they may not.
  * @param scripts - Scripts may run in this view.
  */
-export function embedSandbox(scripts: boolean): string {
-  return scripts ? 'allow-scripts' : '';
+export function embedSandbox(scripts: boolean): string | undefined {
+  return scripts ? undefined : '';
 }
 
 /** Bytes of a text in UTF-8. */
@@ -45,7 +40,7 @@ export function hasScripts(html: string): boolean {
 /** The message type the frame's script sends. */
 export const FRAME_MESSAGE = 'kb-embed';
 
-/** The script added to a frame whose scripts run: reports the height and what the sandbox blocked. */
+/** The script added to a frame whose scripts run: reports the height. */
 function reporterScript(frameId: string): string {
   const id = JSON.stringify(frameId);
   return (
@@ -57,8 +52,6 @@ function reporterScript(frameId: string): string {
     'function h(){send({height:Math.ceil(Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0))})}' +
     "addEventListener('load',h);" +
     'if(window.ResizeObserver){new ResizeObserver(h).observe(document.documentElement)}else{setInterval(h,500)}' +
-    "document.addEventListener('securitypolicyviolation',function(e){send({blocked:(e.effectiveDirective||e.violatedDirective||'')+' '+(e.blockedURI||'')})});" +
-    "window.open=function(){send({blocked:'popup'});return null};" +
     'h();})();</script>'
   );
 }
@@ -84,15 +77,13 @@ export function withoutScripts(html: string): string {
 }
 
 /**
- * The document an embed's frame shows: the CSP, base styles and the author's HTML (and the reporter when scripts
- * run).
- * @param html - The embed's HTML as stored (cleaned by the server).
+ * The document an embed's frame shows: base styles and the author's HTML (and the reporter when scripts run).
+ * @param html - The embed's HTML as stored.
  * @param opts - Whether scripts run, and the frame id the reporter answers with.
  */
 export function buildSrcdoc(html: string, opts: SrcdocOptions): string {
   return (
     '<!doctype html><html><head><meta charset="utf-8">' +
-    `<meta http-equiv="Content-Security-Policy" content="${EMBED_CSP}">` +
     '<meta name="viewport" content="width=device-width, initial-scale=1">' +
     '<style>html,body{margin:0}body{padding:8px;font-family:system-ui,sans-serif;font-size:14px;color:#1e2a22}' +
     'img,video{max-width:100%}</style>' +

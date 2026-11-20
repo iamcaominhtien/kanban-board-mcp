@@ -13,6 +13,7 @@ import {
   UPDATE, installUpdateFeed, setUpdateFeed, updateState, clickMenu,
 } from './lib/app.mjs';
 
+const APP_VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 const REPORT = path.join(path.dirname(new URL(import.meta.url).pathname), 'report'); // screenshots of a failed run (git-ignored)
 const RATE_MS = 20000; // notifier.js RATE_MS: the notifier has no hook to shorten it, so the check waits it out
 
@@ -319,7 +320,7 @@ try {
     await app.page.getByRole('button', { name: 'Settings', exact: true }).first().click();
     await app.page.getByRole('button', { name: 'Updates', exact: true }).last().click();
     await updates().waitFor();
-    await updates().getByText('5.0.0', { exact: true }).waitFor(); // the installed version, from app.getVersion()
+    await updates().getByText(APP_VERSION, { exact: true }).waitFor(); // the installed version, from app.getVersion() = desktop/package.json
     await setUpdateFeed(app, 'error');
     await checkNow();
     await updates().getByText("Couldn't check for updates: GitHub responded 500").waitFor({ timeout: 10000 });

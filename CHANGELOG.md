@@ -8,6 +8,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [5.2.0] - 2026-11-20
+
+**HTML embeds work like real web pages, and a whole folder can be one.** The board is a local app, so the extra guards around embeds are gone: an interactive page (a 3D view from a CDN library, a page that saves to `localStorage`) runs in Docs exactly as it does opened in a browser.
+
+### Added
+- **HTML embeds from a folder.** An HTML embed can show a whole site: a folder of files (`index.html` with its scripts, styles, pictures and models), a `.zip` or an `.html` file. Upload it from the embed's menu, or drop or paste the file into the page. The files are served at `/docs/sites/<id>/…`, so relative paths, ES modules and `fetch` of local files work. "Back to inline code" returns to a code embed.
+- **Turn into HTML embed** on an html code block.
+- **MCP:** `docs_write(upload)` with a folder, a `.zip` or an `.html` file makes a site and returns the marker to put on the page (`<!-- htmlEmbed src=… -->`); `create`, `update` and `edit` take `markdown_file` (a page of any size from a file); `attrs={"type": "htmlEmbed"}` turns a code block into an embed.
+- **Export of a site embed:** one HTML file inlines its files (styles, scripts with their module imports, pictures); the folder export copies them to `assets/sites/<id>/`.
+- **Scripts in HTML embeds** has a new choice, **Run** (the default): no "Run it" to press. "Ask before running" and "Off" stay.
+
+### Changed
+- **HTML embeds run without a sandbox or a Content-Security-Policy**: CDN scripts, network requests, storage, forms, pop-ups, camera, microphone and full screen work. The server keeps the HTML as written (it no longer removes `onclick`, frames or forms). An embed can be 10 MB (was 512 KB).
+- **Bigger pages:** a page can hold 20 million characters (was 1 million), the page routes accept bodies up to 128 MB (they refused anything over 2 MB), and Markdown import takes files up to 20 MB (was 2 MB).
+- **Markdown import keeps the block markers**, so `<!-- htmlEmbed -->` before an html code block stays an embed.
+- **Canvas:** the source editor locks a frame only at the first edit, so just looking no longer blocks an AI from updating it; JavaScript, SVG, XML and CSV files of a frame are shown and edited; the live preview runs multi-file frames (relative paths and modules); a single frame embedded in a page takes clicks itself (its 3D view turns, its buttons work).
+
+### Fixed
+- **draw.io diagrams were shrunk to a maximum height**, leaving wide empty margins and small text on tall or square diagrams. They fill the column width now; a very tall one scrolls.
+- **Diagrams showed dark on a computer in dark mode** (draw.io's light/dark SVG colours); they show in their light colours.
+
 ## [5.1.1] - 2026-11-20
 
 ### Fixed

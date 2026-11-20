@@ -314,9 +314,9 @@ async fn test_importing_under_a_parent_page() {
 #[tokio::test]
 async fn test_wrong_extension_size_utf8_and_unsafe_paths_are_errors_not_crashes() {
     let (_s, c, pid) = setup!("test_wrong_extension_size_utf8_and_unsafe_paths_are_errors_not_crashes");
-    let big = vec![b'x'; 2 * 1024 * 1024 + 1];
-    let exact = vec![b'x'; 1_000_000];
-    let two_mb = vec![b'x'; 2 * 1024 * 1024];
+    let big = vec![b'x'; 20 * 1024 * 1024 + 1];
+    let exact = vec![b'x'; 2 * 1024 * 1024];
+    let two_mb = vec![b'x'; 20_000_001];
     let files: Vec<(&str, &[u8])> = vec![
         ("notes.txt", b"x"),
         ("big.md", &big),
@@ -340,14 +340,14 @@ async fn test_wrong_extension_size_utf8_and_unsafe_paths_are_errors_not_crashes(
         .map(|f| (f["path"].as_str().unwrap(), (f["status"].as_str().unwrap(), f["message"].as_str())))
         .collect();
     assert_eq!(msgs["notes.txt"], ("error", Some("Only .md and .markdown files can be imported")));
-    assert_eq!(msgs["big.md"], ("error", Some("File is larger than 2 MB")));
+    assert_eq!(msgs["big.md"], ("error", Some("File is larger than 20 MB")));
     assert_eq!(msgs["latin.md"], ("error", Some("File is not valid UTF-8 text")));
     for p in ["../evil.md", "a/../../evil.md", "/abs/evil.md", "C:/win/evil.md", "back\\..\\evil.md"] {
         assert!(msgs[p].0 == "error" && msgs[p].1.unwrap().starts_with("Unsafe path"), "{p}");
     }
     assert_eq!(msgs["ok.md"], ("ok", None));
     assert_eq!(msgs["exact.md"].0, "ok");
-    // a page holds at most 1,000,000 characters
+    // a page holds at most 20,000,000 characters (a file under 20 MB can still be more)
     assert_eq!(msgs["two-mb.md"], ("error", Some("File is too large for a page")));
     assert!(out["errors"] == 9 && out["pages"] == 2);
     let real = import(&c, &pid, &files, &[]).await.json();
@@ -434,6 +434,32 @@ async fn test_import_with_publish_creates_versions_and_links() {
     let found = c.get_query(&format!("/projects/{pid}/docs/search"), &[("q", "content")]).await.json();
     let titles: Vec<&str> = found["pages"].as_array().unwrap().iter().map(|p| p["title"].as_str().unwrap()).collect();
     assert_eq!(titles, ["B"]);
+}
+
+/// A file written in the MCP view of a page (annotated Markdown) keeps its HTML embeds: the marker and its ```html
+/// block are one embed, a marker with `src` an embed showing a site; a plain file's code block stays code.
+#[tokio::test]
+async fn test_import_reads_annotated_markers_as_embeds() {
+    let (_s, c, pid) = setup!("test_import_reads_annotated_markers_as_embeds");
+    let annotated = "# Scene\n\n<!-- #b-00a001 htmlEmbed title=\"Orbit\" height=480 scripts=true -->\n```html\n<canvas id=c></canvas>\n```\n\n<!-- htmlEmbed src=\"/docs/sites/ab12cd34ef56/index.html\" title=\"Globe\" -->\n\nAfter.";
+    let plain = "# Plain\n\n```html\n<b>code</b>\n```";
+    let out = do_import(&c, &pid, &[("scene.md", annotated), ("plain.md", plain)], &[("publish", "true")]).await;
+    let page_of = |t: &str| {
+        out["created"].as_array().unwrap().iter().find(|x| x["title"] == t).unwrap()["page_id"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let scene = c.get(&format!("/docs/pages/{}", page_of("Scene"))).await.json();
+    let blocks = scene["content"]["content"].as_array().unwrap();
+    let embeds: Vec<&Value> = blocks.iter().filter(|b| b["type"] == "htmlEmbed").collect();
+    assert_eq!(embeds.len(), 2, "{blocks:?}");
+    assert_eq!(embeds[0]["attrs"]["html"], "<canvas id=c></canvas>");
+    assert_eq!(embeds[0]["attrs"]["height"], 480);
+    assert_eq!(embeds[0]["attrs"]["runScripts"], true);
+    assert_eq!(embeds[1]["attrs"]["src"], "/docs/sites/ab12cd34ef56/index.html");
+    let plain = c.get(&format!("/docs/pages/{}", page_of("Plain"))).await.json();
+    assert!(plain["content"]["content"].as_array().unwrap().iter().any(|b| b["type"] == "codeBlock"));
 }
 
 #[tokio::test]

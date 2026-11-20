@@ -307,3 +307,45 @@ fn annotated_keeps_placeholders_and_unchanged_blocks() {
     assert_eq!(doc["content"][1]["content"][1]["text"], " later");
     assert_eq!(doc["content"][0], page["content"][0]);
 }
+
+/// An HTML embed showing a site (`src`) is its marker alone, read and written; what follows it is the next block.
+#[test]
+fn annotated_html_embed_with_src() {
+    let md = "<!-- htmlEmbed src=\"/docs/sites/ab12cd34ef56/index.html\" title=\"Globe\" height=600 -->\nText right under it.\n\n<!-- htmlEmbed src=/docs/sites/ab12cd34ef56/b.html -->\n```html\n<p>a code block, not the embed's page</p>\n```\n\n<!-- htmlEmbed -->\n```html\n<p>inline</p>\n```";
+    let doc = annotated_to_doc(md, None, &mut SeqIds(1)).unwrap();
+    validate(&doc).unwrap();
+    let c = doc["content"].as_array().unwrap();
+    assert_eq!(c.len(), 5, "{doc:#}");
+    assert_eq!(
+        c[0]["attrs"],
+        json!({"blockId": "b-000001", "height": 600, "src": "/docs/sites/ab12cd34ef56/index.html", "title": "Globe"})
+    );
+    assert_eq!(c[1]["type"], "paragraph");
+    assert_eq!(c[2]["attrs"]["src"], "/docs/sites/ab12cd34ef56/b.html");
+    assert!(c[2]["attrs"].get("html").is_none());
+    assert_eq!(c[3]["type"], "codeBlock");
+    assert_eq!(c[4]["attrs"]["html"], "<p>inline</p>");
+    assert!(c[4]["attrs"].get("src").is_none());
+    // written: the marker line only for a site, the placeholder for inline HTML; plain Markdown has placeholders
+    let written = doc_to_annotated(&doc);
+    assert!(
+        written.starts_with(
+            "<!-- #b-000001 htmlEmbed height=600 src=/docs/sites/ab12cd34ef56/index.html title=Globe -->\n\n<!-- #b-"
+        ),
+        "{written}"
+    );
+    assert!(written.contains("htmlEmbed -->\n[embed: HTML embed]"), "{written}");
+    assert!(doc_to_markdown(&doc).starts_with("[embed: HTML embed · Globe]\n\nText right under it."));
+    assert_eq!(annotated_to_doc(&written, Some(&doc), &mut SeqIds(0xe00000)).unwrap(), doc);
+    // a page's inline embed given a site keeps its inline HTML; `src=null` takes the site off again
+    let site = "<!-- #b-000005 htmlEmbed src=/docs/sites/ab12cd34ef56/index.html -->";
+    let moved = annotated_to_doc(site, Some(&doc), &mut SeqIds(9)).unwrap();
+    assert_eq!(
+        moved["content"][0]["attrs"],
+        json!({"blockId": "b-000005", "html": "<p>inline</p>", "src": "/docs/sites/ab12cd34ef56/index.html"})
+    );
+    let back =
+        annotated_to_doc("<!-- #b-000005 htmlEmbed src=null -->\n[embed: HTML embed]", Some(&moved), &mut SeqIds(9))
+            .unwrap();
+    assert_eq!(back["content"][0]["attrs"], json!({"blockId": "b-000005", "html": "<p>inline</p>"}));
+}

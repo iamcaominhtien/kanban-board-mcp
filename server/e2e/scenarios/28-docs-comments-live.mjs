@@ -35,6 +35,26 @@ export default {
       await q.getByTestId('selection-comment').click();
       return q.getByRole('dialog', { name: 'New comment' });
     };
+    // Types at the end of the last paragraph in the rich editor of a page (real typing keeps the blocks' ids, so the
+    // editor can join two people's edits of different blocks; edits of the same paragraph are a real conflict)
+    const typeEnd = async (q, text, { saved = true } = {}) => {
+      await q.getByTestId('docs-editor-surface').click();
+      await q.keyboard.press('Control+End');
+      await q.keyboard.type(' ' + text);
+      await q.waitForTimeout(400);
+      if (saved) await q.getByText(/^Saved/).waitFor();
+    };
+    // Sets the page text in the rich editor (it has no Markdown pane), as setMarkdown does for s.page
+    const setMd = async (q, md) => {
+      const surface = q.getByTestId('docs-editor-surface');
+      await surface.waitFor();
+      await surface.evaluate((el, text) => {
+        el.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText' }));
+        el.editor.commands.setContent(text, { contentType: 'markdown', emitUpdate: true });
+      }, md);
+      await q.waitForTimeout(400);
+      await q.getByText(/^Saved/).waitFor();
+    };
     const thread = (q, text) => cards(q).filter({ hasText: text }).first();
     // Writes into the reply box of a thread (it is a one-line field until it is clicked)
     const writeReply = async (card, text) => {
@@ -172,7 +192,8 @@ export default {
       await panel().getByRole('button', { name: 'Show resolved' }).click();
       const r = thread(a, 'deploy checklist now');
       await r.getByTestId('resolved-by').waitFor();
-      await r.getByText('Resolved', { exact: true }).first().waitFor();
+      await r.getByTestId('resolved-by').getByText(/Resolved by You/).waitFor();
+      await r.getByRole('button', { name: 'Reopen' }).waitFor();
     });
 
     await s.step('Reopen puts the thread back among the open ones', async () => {
@@ -262,21 +283,15 @@ export default {
       await a.getByTestId('comments-tab-open').getByText(/Open · 1/).waitFor();
     });
 
-    await s.step('Edit opens the editor; Editor mode switches between Visual and Markdown', async () => {
+    await s.step('Edit opens the rich editor: the page is edited in place, there is no Markdown source pane', async () => {
       await a.getByRole('button', { name: 'Edit', exact: true }).click();
       await a.getByRole('textbox', { name: 'Page title' }).waitFor();
-      const mode = a.getByRole('group', { name: 'Editor mode' });
-      await mode.getByRole('button', { name: 'Markdown' }).click();
-      await a.getByRole('textbox', { name: 'Markdown source' }).waitFor();
-      await mode.getByRole('button', { name: 'Visual' }).click();
-      await a.getByRole('textbox', { name: 'Page content' }).waitFor();
+      await a.getByTestId('docs-editor-surface').waitFor();
       await a.getByRole('textbox', { name: 'Markdown source' }).waitFor({ state: 'detached' });
     });
 
     await s.step('removing the commented text and publishing warns about the orphaned comment', async () => {
-      await a.getByRole('button', { name: 'Markdown', exact: true }).click();
-      await a.getByRole('textbox', { name: 'Markdown source' }).fill(`# ${PAGE}\n\nFresh opening line.\n\n${SECOND}\n\n${THIRD}\n`);
-      await a.getByText(/^Saved/).waitFor();
+      await setMd(a, `# ${PAGE}\n\nFresh opening line.\n\n${SECOND}\n\n${THIRD}\n`);
       await a.getByTestId('publish').click();
       const w = a.getByRole('alertdialog', { name: 'Publish with orphaned comments' });
       await w.waitFor();
@@ -305,7 +320,7 @@ export default {
     await s.step('the thread now says its text was removed; Re-attach to selection waits for a selection', async () => {
       await openPanel();
       const c = thread(a, 'deploy checklist now');
-      await c.getByText('Text removed').waitFor();
+      await c.getByText(/Text removed|Block deleted/).waitFor(); // comments follow blocks now: a replaced paragraph is a deleted block
       await c.getByTestId('orphan-notice').waitFor();
       await c.getByTestId('thread-reattach').click();
       await c.getByTestId('reattach-hint').waitFor();
@@ -326,10 +341,7 @@ export default {
     const publishFromB = async (markdown) => {
       await b.getByRole('button', { name: /^(Edit|Continue editing)$/ }).click();
       await b.getByRole('textbox', { name: 'Page title' }).waitFor();
-      const src = b.getByRole('textbox', { name: 'Markdown source' });
-      if (!(await src.count())) await b.getByRole('button', { name: 'Markdown', exact: true }).click();
-      await src.fill(markdown);
-      await b.getByText(/^Saved/).waitFor();
+      await typeEnd(b, markdown);
       await b.getByTestId('publish').click();
       const d = b.getByRole('dialog', { name: 'Publish page' });
       await d.getByRole('button', { name: /^Publish v\d+/ }).click();
@@ -339,12 +351,10 @@ export default {
     const editInA = async (markdown) => {
       await a.getByRole('button', { name: /^(Edit|Continue editing)$/ }).click();
       await a.getByRole('textbox', { name: 'Page title' }).waitFor();
-      const src = a.getByRole('textbox', { name: 'Markdown source' });
-      if (!(await src.count())) await a.getByRole('button', { name: 'Markdown', exact: true }).click();
-      await src.fill(markdown);
-      await a.getByText(/^Saved/).waitFor();
+      await typeEnd(a, markdown);
     };
-    const body = (extra) => `# ${PAGE}\n\nFresh opening line.\n\n${SECOND}\n\n${THIRD}\n\n${extra}\n`;
+    // both people type into the same last paragraph, the one thing the rich editor cannot join by itself
+    const body = (extra) => extra;
     const banner = () => a.getByTestId('conflict-banner');
 
     await s.step('A edits the page while B publishes a newer version: A\'s Publish ends in the conflict banner', async () => {
@@ -368,7 +378,9 @@ export default {
     });
 
     await s.step('Keep mine publishes A\'s text over B\'s version and leaves the editor', async () => {
-      await Promise.all([posted(a, 'POST', /\/publish$/), banner().getByRole('button', { name: 'Keep mine' }).click()]);
+      await banner().getByRole('button', { name: 'Keep mine' }).click();
+      // the editor asks once before it overwrites the other version
+      await Promise.all([posted(a, 'POST', /\/publish$/), a.getByTestId('keep-mine-yes').click()]);
       await banner().waitFor({ state: 'detached' });
       await a.getByRole('button', { name: 'Edit', exact: true }).waitFor();
       await a.getByText('Edit made in A.').waitFor();
@@ -398,7 +410,7 @@ export default {
     }, { expectConsole: true });
 
     await s.step('Retry now with a pending edit waits; the edit is saved and Back online shows when the network returns', async () => {
-      await a.getByRole('textbox', { name: 'Markdown source' }).fill(body('Edit typed offline.'));
+      await typeEnd(a, body('Edit typed offline.'), { saved: false }); // offline: nothing can be saved yet
       await a.getByTestId('offline-banner').getByRole('button', { name: 'Retry now' }).click();
       await a.context().setOffline(false);
       const on = a.getByTestId('online-banner');

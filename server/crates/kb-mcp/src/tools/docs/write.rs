@@ -426,6 +426,21 @@ pub async fn run_write(action: String, given: Map<String, Value>) -> ToolResult 
 pub async fn docs_write(args: Map<String, Value>) -> ToolResult {
     let action = arg_text(&args, "action");
     let mut given = params_of(args);
+    // a big page is given as a file: its text becomes `markdown`
+    if let Some(file) = given.shift_remove("markdown_file").filter(|v| !v.is_null()) {
+        if !["create", "update", "edit"].contains(&action.as_str()) {
+            return Err(ToolError::Value(format!("docs_write(action='{action}') does not use: markdown_file.")));
+        }
+        if given.get("markdown").is_some_and(|v| !v.is_null()) {
+            return Err(ToolError::value("Give markdown or markdown_file, not both."));
+        }
+        let path = match &file {
+            Value::String(s) => s.clone(),
+            other => other.to_string(),
+        };
+        let text = ops::docs_sites::read_markdown_file(&path).await?;
+        given.insert("markdown".into(), Value::String(text));
+    }
     match action.as_str() {
         "edit" => return composite::edit(given).await,
         "upload" => return composite::upload(given).await,

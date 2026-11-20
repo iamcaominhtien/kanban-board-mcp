@@ -774,3 +774,158 @@ fn an_html_export_carries_its_video_and_files() {
     // a scrolling box on paper makes Chromium add an empty last page when a kept group holds a table
     assert!(pdf.contains(".table-wrap { overflow: visible; }"), "tables do not scroll on paper");
 }
+
+#[test]
+fn an_html_embed_with_scripts_is_not_sandboxed_in_the_export() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"htmlEmbed","attrs":{"html":"<canvas id=c></canvas><script>spin()</script>","title":"3D","runScripts":true}},
+        {"type":"htmlEmbed","attrs":{"html":"<p>plain</p>","title":"Card"}}]});
+    let pages = [page("Embeds", doc)];
+    let html = render_html(&pages, &TestAssets, &HtmlOptions::default()).index_html().to_string();
+    let frames: Vec<&str> = html.match_indices("<iframe").map(|(i, _)| &html[i..i + 40]).collect();
+    assert_eq!(frames.len(), 2, "{html}");
+    // with scripts: no sandbox at all, the page runs as in a browser; without: a sandbox that allows nothing
+    assert!(frames[0].starts_with("<iframe srcdoc="), "{}", frames[0]);
+    assert!(frames[1].starts_with("<iframe sandbox=\"\" srcdoc="), "{}", frames[1]);
+}
+
+/// A site of three files plus an image: `index.html` links `style.css` and `js/app.js`, shows `img/dot.png`.
+struct SiteAssets;
+
+impl AssetSource for SiteAssets {
+    fn fetch(&self, _src: &str) -> Option<Asset> {
+        None
+    }
+
+    fn drawing_png(&self, _kind: DrawingKind, _id: &str) -> Option<Vec<u8>> {
+        None
+    }
+
+    fn site_files(&self, id: &str) -> Option<Vec<kb_docexport::SiteFile>> {
+        let f = |p: &str, b: &[u8]| kb_docexport::SiteFile { path: p.into(), bytes: b.to_vec() };
+        (id == "ab12cd34ef56").then(|| {
+            vec![
+                f(
+                    "index.html",
+                    b"<!doctype html><html><head><link rel=\"stylesheet\" href=\"style.css\"></head><body>\
+                      <img src=\"img/dot.png\"><script type=\"module\" src=\"./js/app.js\"></script>\
+                      <script src=\"https://cdn.example/x.js\"></script></body></html>",
+                ),
+                f("style.css", b"body{background:url('img/dot.png')}"),
+                f("js/app.js", b"console.log('site-app </script>');"),
+                f("img/dot.png", &tiny_png()),
+            ]
+        })
+    }
+}
+
+fn site_doc() -> Value {
+    json!({"type":"doc","content":[{"type":"htmlEmbed","attrs":{"src":"/docs/sites/ab12cd34ef56/index.html","html":"","title":"Globe","height":600,"runScripts":false}}]})
+}
+
+#[test]
+fn a_site_embed_is_inlined_in_one_file() {
+    let out = render_html(&[page("Site", site_doc())], &SiteAssets, &HtmlOptions::default());
+    let html = out.index_html();
+    assert!(html.contains("<iframe srcdoc=\""), "{html}");
+    assert!(!html.contains("sandbox"));
+    assert!(html.contains("allowfullscreen"));
+    assert!(html.contains("height:600px"));
+    assert!(html.contains("&lt;style&gt;body{background:url(&quot;data:image/png;base64,"), "{html}");
+    assert!(html.contains("&lt;img src=&quot;data:image/png;base64,"));
+    assert!(
+        html.contains(
+            "&lt;script type=&quot;module&quot; &gt;console.log(&#39;site-app &lt;\\/script&gt;&#39;);&lt;/script&gt;"
+        ),
+        "{html}"
+    );
+    assert!(html.contains("https://cdn.example/x.js"));
+    assert!(!html.contains("style.css"));
+}
+
+#[test]
+fn a_site_embed_is_copied_in_a_folder() {
+    let opts = HtmlOptions { layout: kb_docexport::HtmlLayout::Folder, ..HtmlOptions::default() };
+    let HtmlOutput::Folder(files) = render_html(&[page("Site", site_doc())], &SiteAssets, &opts) else {
+        panic!("folder expected")
+    };
+    let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+    for p in [
+        "assets/sites/ab12cd34ef56/index.html",
+        "assets/sites/ab12cd34ef56/style.css",
+        "assets/sites/ab12cd34ef56/js/app.js",
+        "assets/sites/ab12cd34ef56/img/dot.png",
+    ] {
+        assert!(paths.contains(&p), "{p} in {paths:?}");
+    }
+    let index = std::str::from_utf8(&files[0].bytes).unwrap();
+    assert!(index.contains("<iframe src=\"assets/sites/ab12cd34ef56/index.html\""), "{index}");
+    assert!(!index.contains("sandbox"));
+}
+
+#[test]
+fn a_missing_site_falls_back_to_a_note() {
+    let doc = json!({"type":"doc","content":[{"type":"htmlEmbed","attrs":{"src":"/docs/sites/zzzzzzzzzzzz/index.html","html":"","title":"Gone"}}]});
+    let html = html_of(doc);
+    assert!(html.contains("HTML embed: Gone"), "{html}");
+}
+
+struct ModuleSite;
+
+impl AssetSource for ModuleSite {
+    fn fetch(&self, _src: &str) -> Option<Asset> {
+        None
+    }
+
+    fn drawing_png(&self, _kind: DrawingKind, _id: &str) -> Option<Vec<u8>> {
+        None
+    }
+
+    fn site_files(&self, _id: &str) -> Option<Vec<kb_docexport::SiteFile>> {
+        let f = |p: &str, b: &str| kb_docexport::SiteFile { path: p.into(), bytes: b.as_bytes().to_vec() };
+        Some(vec![
+            f("index.html", "<script type=module src=js/main.js></script>"),
+            f(
+                "js/main.js",
+                "import { Box } from './shapes.js';\n// import 'ignored.js'\nimport('https://cdn.example/x.js'); import 'lib';\nconsole.log(Box);",
+            ),
+            f("js/shapes.js", "import { u } from \"../lib/util.js\";\nimport './main.js';\nexport const Box = u;"),
+            f("lib/util.js", "export const u = 1;"),
+        ])
+    }
+}
+
+#[test]
+fn site_modules_are_rewritten_to_data_uris() {
+    use base64::Engine;
+    let doc =
+        json!({"type":"doc","content":[{"type":"htmlEmbed","attrs":{"src":"/docs/sites/m1/index.html","html":""}}]});
+    let html = render_html(&[page("M", doc)], &ModuleSite, &HtmlOptions::default()).index_html().to_string();
+    let decode = |s: &str| {
+        let b64 = s.split("data:text/javascript;base64,").nth(1).unwrap().split(['\'', '"', '&', ';']).next().unwrap();
+        String::from_utf8(base64::engine::general_purpose::STANDARD.decode(b64).unwrap()).unwrap()
+    };
+    assert!(!html.contains("./shapes.js") && !html.contains("util.js"), "{html}");
+    assert!(html.contains("https://cdn.example/x.js") && html.contains("import &#39;lib&#39;"), "{html}");
+    let shapes = decode(&html);
+    assert!(shapes.contains("export const Box = u;"), "{shapes}");
+    let util = decode(&shapes);
+    assert_eq!(util, "export const u = 1;");
+    // the cycle (shapes imports main) keeps its relative specifier
+    assert!(shapes.contains("import './main.js';"), "{shapes}");
+}
+
+#[test]
+fn an_embed_without_a_height_grows_to_its_page_in_the_export() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"htmlEmbed","attrs":{"html":"<p>tall</p><script>1</script>","title":"Auto","runScripts":true}},
+        {"type":"htmlEmbed","attrs":{"html":"<p>fixed</p><script>1</script>","title":"Fixed","runScripts":true,"height":300}},
+        {"type":"htmlEmbed","attrs":{"html":"<p>plain</p>","title":"Plain"}}]});
+    let html = render_html(&[page("Embeds", doc)], &TestAssets, &HtmlOptions::default()).index_html().to_string();
+    let frames: Vec<&str> = html.split("<iframe").skip(1).map(|f| f.split("></iframe>").next().unwrap_or("")).collect();
+    assert_eq!(frames.len(), 3, "{html}");
+    // Height: Auto reads the page's height once loaded; a set height and a frame with no scripts stay as they are
+    assert!(frames[0].contains("onload=") && frames[0].contains("scrollHeight"), "{}", frames[0]);
+    assert!(!frames[1].contains("onload=") && frames[1].contains("height:300px"), "{}", frames[1]);
+    assert!(!frames[2].contains("onload="), "{}", frames[2]);
+}

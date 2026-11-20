@@ -239,6 +239,34 @@ async fn test_html_board_is_a_folder_with_its_own_css_and_images() {
 }
 
 #[tokio::test]
+async fn test_scripts_and_svg_of_a_frame_are_source_text() {
+    let (srv, c, pid) = start!("test_scripts_and_svg_of_a_frame_are_source_text");
+    let cv = make_in(&c, &pid, json!({"start": "none"})).await;
+    let cid = s(&cv["id"]);
+    let r = form(
+        &srv,
+        "POST",
+        &format!("/canvases/{cid}/boards"),
+        &[("kind", "html"), ("name", "App")],
+        vec![
+            part("files", "index.html", "text/html", b"<script type=module src=\"app.js\"></script>"),
+            part("files", "app.js", "text/javascript", b"import './lib.mjs';"),
+            part("files", "lib.mjs", "text/javascript", b"export {};"),
+            part("files", "logo.svg", "image/svg+xml", b"<svg/>"),
+            part("files", "img/a.png", "image/png", &png(8, 6, 0)),
+        ],
+        &[],
+    )
+    .await;
+    assert_eq!(r.status, 201, "{}", r.text());
+    let bid = s(&r.json()["board"]["id"]);
+    let src = get_json(&c, &format!("/canvases/{cid}/boards/{bid}/source")).await;
+    let mut paths: Vec<String> = src["files"].as_array().expect("files").iter().map(|x| s(&x["path"])).collect();
+    paths.sort();
+    assert_eq!(paths, vec!["app.js", "index.html", "lib.mjs", "logo.svg"]);
+}
+
+#[tokio::test]
 async fn test_new_boards_are_placed_to_the_right_never_on_top() {
     let (srv, c, pid) = start!("test_new_boards_are_placed_to_the_right_never_on_top");
     let cv = make_in(&c, &pid, json!({})).await;

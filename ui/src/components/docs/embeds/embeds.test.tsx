@@ -11,11 +11,22 @@ vi.mock('../../../api/client', async (orig) => {
 });
 
 import { CodeView, copyText, parseLineRanges } from './CodeView';
-import { limitSentence, siteAllowed, uploadDocsFile, uploadProblem } from './embedApi';
+import {
+  isSiteFile,
+  knownSite,
+  limitSentence,
+  siteAllowed,
+  siteProblem,
+  siteTitle,
+  uploadDocsFile,
+  uploadDocsSite,
+  uploadProblem,
+} from './embedApi';
+import { HtmlEmbedBlock, siteEntry } from './HtmlEmbedBlock';
 import { HtmlEmbedFrame } from './HtmlEmbedFrame';
 import {
-  EMBED_CSP,
   FRAME_MESSAGE,
+  HTML_EMBED_LIMIT,
   buildSrcdoc,
   embedSandbox,
   linesWith,
@@ -36,30 +47,15 @@ function wrap(ui: ReactNode) {
   return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
 }
 
-/** Every frame on the screen must keep the embed off the board's origin. */
-function expectNoSameOrigin(container: HTMLElement) {
-  for (const f of Array.from(container.querySelectorAll('iframe'))) {
-    const sb = f.getAttribute('sandbox');
-    expect(sb).not.toBeNull();
-    expect(sb).not.toContain('allow-same-origin');
-    expect(sb).not.toContain('allow-top-navigation');
-    expect(sb).not.toContain('allow-popups');
-  }
-}
-
 describe('HTML embed: the sandbox', () => {
-  it('allows scripts only when they may run, and never the same origin', () => {
+  it('runs a page with scripts with no sandbox at all, and allows nothing when scripts may not run', () => {
+    expect(embedSandbox(true)).toBeUndefined();
     expect(embedSandbox(false)).toBe('');
-    expect(embedSandbox(true)).toBe('allow-scripts');
-    expect(embedSandbox(true)).not.toContain('allow-same-origin');
   });
 
-  it('puts the Content Security Policy in every document, and the reporter only when scripts run', () => {
+  it('puts no Content Security Policy in the document (CDN scripts and requests work), and the reporter only when scripts run', () => {
     const quiet = buildSrcdoc('<p>Hi</p>', { scripts: false, frameId: 'f1' });
-    expect(quiet).toContain(`<meta http-equiv="Content-Security-Policy" content="${EMBED_CSP}">`);
-    expect(EMBED_CSP).toContain("default-src 'none'");
-    expect(EMBED_CSP).toContain("connect-src 'none'");
-    expect(EMBED_CSP).toContain("form-action 'none'");
+    expect(quiet).not.toContain('Content-Security-Policy');
     expect(quiet).toContain('<p>Hi</p>');
     expect(quiet).not.toContain('<script>');
     const loud = buildSrcdoc('<p>Hi</p>', { scripts: true, frameId: 'f1' });
@@ -95,10 +91,8 @@ describe('HtmlEmbedFrame', () => {
     );
     const frame = container.querySelector('iframe')!;
     expect(frame.getAttribute('sandbox')).toBe('');
-    expect(frame.getAttribute('srcdoc')).toContain('Content-Security-Policy');
     expect(frame.style.height).toBe('320px');
     expect(screen.queryByRole('button', { name: 'Run it' })).toBeNull();
-    expectNoSameOrigin(container);
   });
 
   it('asks before running scripts, then runs them in this view only', async () => {
@@ -109,9 +103,8 @@ describe('HtmlEmbedFrame', () => {
     expect(before.getAttribute('data-scripts')).toBe('off');
     fireEvent.click(await screen.findByRole('button', { name: 'Run it' }));
     const after = container.querySelector('iframe')!;
-    expect(after.getAttribute('sandbox')).toBe('allow-scripts');
+    expect(after.hasAttribute('sandbox')).toBe(false);
     expect(after.getAttribute('srcdoc')).toContain(FRAME_MESSAGE);
-    expectNoSameOrigin(container);
     // the height reported by the frame's own script is taken (Height: Auto)
     act(() => {
       window.dispatchEvent(
@@ -128,6 +121,17 @@ describe('HtmlEmbedFrame', () => {
     expect(container.querySelector('iframe')!.style.height).toBe('512px');
   });
 
+  it('runs scripts as soon as it is shown when the project lets them run (the default)', async () => {
+    api.get.mockResolvedValue({ data: {} });
+    const { container } = wrap(<HtmlEmbedFrame html={html} title="Widget" height={null} runScripts projectId="p1" />);
+    // the settings arrive, and with no choice made the scripts run without a click
+    await vi.waitFor(() => expect(container.querySelector('iframe')!.getAttribute('data-scripts')).toBe('on'));
+    expect(screen.queryByRole('button', { name: 'Run it' })).toBeNull();
+    const frame = container.querySelector('iframe')!;
+    expect(frame.hasAttribute('sandbox')).toBe(false);
+    expect(frame.hasAttribute('allowfullscreen')).toBe(true);
+  });
+
   it('never runs scripts when the project turned them off', async () => {
     api.get.mockResolvedValue({ data: { scriptsInEmbeds: 'off' } });
     const { container } = wrap(<HtmlEmbedFrame html={html} title="Widget" height={200} runScripts projectId="p1" />);
@@ -136,16 +140,133 @@ describe('HtmlEmbedFrame', () => {
     const frame = container.querySelector('iframe')!;
     expect(frame.getAttribute('sandbox')).toBe('');
     expect(frame.style.height).toBe('200px');
-    expectNoSameOrigin(container);
   });
 
-  it('shows "Too large to embed" in place of a frame over 512 KB', () => {
+  it('shows "Too large to embed" in place of a frame over the limit', () => {
     api.get.mockResolvedValue({ data: {} });
-    const big = `<p>${'x'.repeat(600 * 1024)}</p>`;
+    const big = `<p>${'x'.repeat(HTML_EMBED_LIMIT)}</p>`;
     const { container } = wrap(<HtmlEmbedFrame html={big} title="Export" height={null} runScripts={false} />);
     expect(screen.getByText('Too large to embed')).toBeTruthy();
-    expect(screen.getByText(/An embed can be 512 KB at most/)).toBeTruthy();
+    expect(screen.getByText(/An embed can be 10\.0 MB at most/)).toBeTruthy();
     expect(container.querySelector('iframe')).toBeNull();
+  });
+});
+
+describe('HtmlEmbedFrame with a site (src)', () => {
+  const src = '/docs/sites/ab12cd34ef56/index.html';
+  // jsdom loads no frames: the frame gets a document of this origin whose content is `height` px tall
+  const pageOf = (frame: HTMLIFrameElement, height: number) => {
+    const doc = document.implementation.createHTMLDocument('Globe');
+    Object.defineProperty(doc.documentElement, 'scrollHeight', { value: height, configurable: true });
+    Object.defineProperty(frame, 'contentDocument', { value: doc, configurable: true });
+  };
+
+  it('opens the address in a frame with no sandbox and no srcdoc, whatever runScripts says', async () => {
+    let answer: (v: unknown) => void = () => undefined;
+    api.get.mockReturnValue(new Promise((r) => (answer = r)));
+    const { container } = wrap(
+      <HtmlEmbedFrame html="" src={src} title="Globe" height={480} runScripts={false} projectId="p1" />,
+    );
+    // until the project's choice is known the page is not loaded (it would load once without its scripts)
+    expect(container.querySelector('iframe')!.hasAttribute('src')).toBe(false);
+    act(() => answer({ data: {} }));
+    await vi.waitFor(() => expect(container.querySelector('iframe')!.getAttribute('data-scripts')).toBe('on'));
+    const frame = container.querySelector('iframe')!;
+    expect(frame.getAttribute('src')).toBe(src);
+    expect(frame.hasAttribute('srcdoc')).toBe(false);
+    expect(frame.hasAttribute('sandbox')).toBe(false);
+    expect(frame.hasAttribute('allowfullscreen')).toBe(true);
+    expect(frame.getAttribute('allow')).toContain('xr-spatial-tracking');
+    expect(frame.style.height).toBe('480px');
+  });
+
+  it('gets sandbox="" when the project turned scripts off', async () => {
+    api.get.mockResolvedValue({ data: { scriptsInEmbeds: 'off' } });
+    const { container } = wrap(
+      <HtmlEmbedFrame html="" src={src} title="Globe" height={null} runScripts projectId="p1" />,
+    );
+    expect(await screen.findByText(/Scripts are turned off for this project/)).toBeTruthy();
+    const frame = container.querySelector('iframe')!;
+    expect(frame.getAttribute('sandbox')).toBe('');
+    expect(frame.getAttribute('src')).toBe(src);
+  });
+
+  it("follows the page's own height (Height: Auto) by reading its document", async () => {
+    api.get.mockResolvedValue({ data: {} });
+    const { container } = wrap(
+      <HtmlEmbedFrame html="" src={src} title="Globe" height={null} runScripts projectId="p1" />,
+    );
+    await vi.waitFor(() => expect(container.querySelector('iframe')!.getAttribute('data-scripts')).toBe('on'));
+    const frame = container.querySelector('iframe')!;
+    // until the page has loaded, the default height
+    expect(frame.style.height).toBe('320px');
+    pageOf(frame, 912);
+    act(() => {
+      fireEvent.load(frame);
+    });
+    expect(frame.style.height).toBe('912px');
+    // a fixed height wins over the page's
+    cleanup();
+    const fixed = wrap(<HtmlEmbedFrame html="" src={src} title="Globe" height={300} runScripts projectId="p1" />);
+    const f2 = fixed.container.querySelector('iframe')!;
+    pageOf(f2, 912);
+    act(() => {
+      fireEvent.load(f2);
+    });
+    expect(f2.style.height).toBe('300px');
+  });
+
+  it("the reader's View source names the page it opens and links to it", async () => {
+    api.get.mockResolvedValue({ data: {} });
+    wrap(<HtmlEmbedBlock attrs={{ html: '', src, title: 'Globe' }} projectId="p1" />);
+    fireEvent.click(screen.getByRole('button', { name: 'View source' }));
+    const view = screen.getByTestId('html-embed-site-source');
+    expect(view.textContent).toContain('Site · opens index.html');
+    expect(screen.getByRole('link', { name: /Open in a new tab/ }).getAttribute('href')).toBe(src);
+    expect(siteEntry('/docs/sites/ab12cd34ef56/demo/page%20one.html')).toBe('demo/page one.html');
+  });
+});
+
+describe('sites: uploading a folder, a .zip or an .html', () => {
+  it('sends each file under its path inside the folder, and remembers the answer', async () => {
+    const site = {
+      id: 'ab12cd34ef56',
+      url: '/docs/sites/ab12cd34ef56/index.html',
+      entry: 'index.html',
+      files: [
+        { path: 'index.html', bytes: 12 },
+        { path: 'js/app.js', bytes: 3 },
+      ],
+      bytes: 15,
+    };
+    api.post.mockResolvedValue({ data: site });
+    const page = new File(['<h1>Hi</h1>'], 'index.html', { type: 'text/html' });
+    const script = new File(['x()'], 'app.js');
+    Object.defineProperty(page, 'webkitRelativePath', { value: 'globe/index.html' });
+    Object.defineProperty(script, 'webkitRelativePath', { value: 'globe/js/app.js' });
+    const res = await uploadDocsSite('p1', [page, script]);
+    expect(res).toEqual(site);
+    const [url, form] = api.post.mock.lastCall as [string, FormData];
+    expect(url).toBe('/projects/p1/docs/sites');
+    const sent = form.getAll('files') as File[];
+    expect(sent.map((f) => f.name)).toEqual(['globe/index.html', 'globe/js/app.js']);
+    expect(knownSite(site.url)).toEqual(site);
+    expect(siteTitle([page, script])).toBe('globe');
+    expect(siteTitle([new File(['PK'], 'Solar system.zip')])).toBe('Solar system');
+  });
+
+  it('knows which files are sites, and says why the server refused one', () => {
+    expect(isSiteFile(new File([''], 'globe.HTML'))).toBe(true);
+    expect(isSiteFile(new File([''], 'site.zip'))).toBe(true);
+    expect(isSiteFile(new File([''], 'notes.pdf'))).toBe(false);
+    const refused = (status: number, detail: unknown) => siteProblem({ response: { status, data: { detail } } });
+    expect(refused(422, 'no_html_page').text).toBe(
+      'There is no HTML page in it. Add an index.html and upload it again.',
+    );
+    expect(refused(422, { code: 'unsafe_path' }).code).toBe('unsafe_path');
+    expect(refused(413, 'too_large').text).toBe('Too large. A site can be 500 MB at most.');
+    expect(refused(422, 'too_many_files').text).toBe('Too many files. A site can have 5000 files at most.');
+    expect(siteProblem(new Error('offline')).code).toBe('failed');
   });
 });
 

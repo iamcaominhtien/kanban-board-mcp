@@ -22,7 +22,7 @@ use axum::extract::DefaultBodyLimit;
 use axum::extract::RawQuery;
 use axum::extract::multipart::{Multipart, MultipartRejection};
 use axum::http::{HeaderMap, StatusCode};
-use axum::routing::post;
+use axum::routing::{post, put};
 use kb_base::error::{Body, Path};
 use kb_base::{ApiError, ApiResult, Routes, events, pyjson};
 use kb_db::entities::project as project_table;
@@ -43,12 +43,18 @@ use crate::{docs, docs_comments, docs_import, docs_work};
 static NEEDS_INPUT: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\[Needs input[^\]]*\]").expect("the needs-input pattern is valid"));
 
+/// The body limit of the routes that take a whole page: above the page's own limits (a 20 million character page,
+/// 50 MB of content), so a big page gets the page's own "Page is too large" and not the extractor's 2 MB default.
+fn page_body_limit() -> DefaultBodyLimit {
+    DefaultBodyLimit::max(128 * 1024 * 1024)
+}
+
 /// The routes of this file.
 pub fn routes() -> Routes {
     Routes::new()
         .get("/docs/templates", get_templates)
         .get("/projects/{project_id}/docs/tree", get_tree)
-        .post("/projects/{project_id}/docs/pages", post_page)
+        .add("POST", "/projects/{project_id}/docs/pages", post(post_page).layer(page_body_limit()))
         .get("/projects/{project_id}/docs/by-path", get_by_path)
         .get("/projects/{project_id}/docs/by-slug/{slug}", get_by_slug)
         .get("/projects/{project_id}/docs/similar", get_similar)
@@ -101,13 +107,13 @@ pub fn routes() -> Routes {
         .post("/docs/pages/{page_id}/duplicate", post_duplicate)
         .post("/docs/pages/{page_id}/restore", post_restore)
         .delete("/docs/pages/{page_id}/purge", purge)
-        .put("/docs/pages/{page_id}/draft", put_draft)
+        .add("PUT", "/docs/pages/{page_id}/draft", put(put_draft).layer(page_body_limit()))
         .get("/projects/{project_id}/docs/followers", get_followers)
         .put("/projects/{project_id}/docs/follow", put_follow)
         .get("/docs/pages/{page_id}/seen", get_seen)
         .put("/docs/pages/{page_id}/seen", put_seen)
         .delete("/docs/pages/{page_id}/draft", del_draft)
-        .post("/docs/pages/{page_id}/publish", post_publish)
+        .add("POST", "/docs/pages/{page_id}/publish", post(post_publish).layer(page_body_limit()))
         .get("/docs/pages/{page_id}/versions", get_versions)
         .get("/docs/pages/{page_id}/versions/{version}", get_version)
         .patch("/docs/pages/{page_id}/versions/{version}", patch_version_note)

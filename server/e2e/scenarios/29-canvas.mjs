@@ -536,7 +536,9 @@ export default {
         await boardLabel('landing').click();
         await plane().locator('[data-tools-for]').getByRole('button', { name: 'Edit' }).click();
         const src = p.getByRole('dialog', { name: 'Edit landing' });
-        await src.getByTestId('canvas-locked-for-you').waitFor();
+        // opening the editor only reads the source: the board is locked at the first edit, so an AI can still
+        // change it while someone just looks
+        await src.getByTestId('canvas-not-locked').waitFor();
         await src.getByText('Live preview').waitFor();
         await src.getByText(/^1 line|^\d+ lines? ·/).waitFor();
         const text = src.getByRole('textbox', { name: /^Source of / });
@@ -556,6 +558,7 @@ export default {
         await text.click();
         await p.keyboard.press('Control+End');
         await p.keyboard.type('\n<p>Edited in the source editor</p>');
+        await src.getByTestId('canvas-locked-for-you').waitFor();
         await src.frameLocator('iframe[title="Live preview"]').getByText('Edited in the source editor').waitFor();
         // a file that is not text is refused with a message; Back to editor closes it
         p.once('dialog', (d) => void d.accept('photo.png'));
@@ -601,8 +604,12 @@ export default {
         await plane().focus();
         await p.keyboard.press('Delete');
         await p.getByText('A board is being edited').first().waitFor();
-        // the key still tries: the source editor says who has it
+        // the key still opens the source to read; the first edit says who has it
         await p.keyboard.press('e');
+        const look = p.getByRole('dialog', { name: 'Edit landing' });
+        await look.getByTestId('canvas-not-locked').waitFor();
+        await look.getByRole('textbox', { name: /^Source of / }).click();
+        await p.keyboard.type(' ');
         const blocked = p.getByRole('alertdialog', { name: 'Someone else is editing' });
         await blocked.getByText('Ada is editing landing').waitFor();
         await blocked.getByText(/You can still look, comment and move the board/).waitFor();
@@ -615,6 +622,10 @@ export default {
         const board = await boardOf('landing');
         await plane().locator('[data-tools-for]').getByRole('button', { name: 'Edit' }).click();
         const src = p.getByRole('dialog', { name: 'Edit landing' });
+        // the lock is taken by the first edit
+        await src.getByRole('textbox', { name: /^Source of / }).click();
+        await p.keyboard.press('Control+End');
+        await p.keyboard.type(' ');
         await src.getByTestId('canvas-locked-for-you').waitFor();
         // the lock ends under the editor (a restart, or the idle time) and Ada takes the board
         await api('DELETE', `/canvases/${canvasId}/boards/${board.id}/lock`, 'user');
@@ -642,6 +653,10 @@ export default {
         await boardLabel('landing').click();
         await plane().locator('[data-tools-for]').getByRole('button', { name: 'Edit' }).click();
         const src = p.getByRole('dialog', { name: 'Edit landing' });
+        // the lock is taken by the first edit
+        await src.getByRole('textbox', { name: /^Source of / }).click();
+        await p.keyboard.press('Control+End');
+        await p.keyboard.type(' ');
         await src.getByTestId('canvas-locked-for-you').waitFor();
         const fresh = await (await api('GET', `/canvases/${canvasId}/boards/${board.id}/source`, 'Ada')).json();
         await api('DELETE', `/canvases/${canvasId}/boards/${board.id}/lock`, 'user');

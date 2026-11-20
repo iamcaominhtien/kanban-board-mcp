@@ -711,6 +711,11 @@ input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type
   color: #2e6f40;
   font-family: var(--font-body, inherit);
 }
+/* a run of changed blocks has one label, on its first block: the label of the next one sat over the block above
+   when that block's own margin is smaller (a heading before a diagram); the green bar still runs along them all */
+.dk-md .dk-changed + .dk-changed::after {
+  content: none;
+}
 /* a callout or table is marked as a whole (on its own box or wrapper), never on the blocks inside it */
 .dk-md .dk-callout .dk-changed {
   margin-top: 0;

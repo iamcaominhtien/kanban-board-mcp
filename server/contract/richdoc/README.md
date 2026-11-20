@@ -115,6 +115,12 @@ type (`<!-- #b-… paragraph -->` + `[embed: paragraph · first words]`). Readin
 `[embed: …]` line takes the block of that id from the page as it is (its marker's attributes applied); a `video`,
 `htmlEmbed` or `linkEmbed` marker followed by anything else is refused.
 
+**HTML embeds showing a site.** An `htmlEmbed` whose `src` is set (a site's page, `/docs/sites/<id>/<entry>`) is its
+marker line alone, with no placeholder or code block under it: `<!-- #b-… htmlEmbed height=600
+src=/docs/sites/ab12cd34ef56/index.html title=Globe -->`. Reading, a marker with `src=…` is the whole block (what
+follows it, a code block included, is the next block); its `html` is kept from the page's block of the same id. Plain
+Markdown writes the same placeholder line as for inline HTML.
+
 **Escapes added to plain text** so it reads back as written: `\$` where `$` would open math or makes `$$`, `\=\=`
 for `==`, `KAN\-12` for text that only looks like a ticket key, `http\://`, `www\.`, `a\@b` for bare URLs and
 e-mails that are not links, `\<` before a tag-like `<`, `\&` before an entity-like `&` (no `&amp;` encoding),

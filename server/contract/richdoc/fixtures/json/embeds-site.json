@@ -1,0 +1,47 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "htmlEmbed",
+      "attrs": {
+        "blockId": "b-000001",
+        "height": 600,
+        "src": "/docs/sites/ab12cd34ef56/index.html",
+        "title": "Globe"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Between the sites."
+        }
+      ]
+    },
+    {
+      "type": "htmlEmbed",
+      "attrs": {
+        "blockId": "b-000003",
+        "html": "<p>The inline page before the site</p>",
+        "runScripts": true,
+        "src": "/docs/sites/0123456789ab/my%20page.html"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000004"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "After the sites."
+        }
+      ]
+    }
+  ]
+}

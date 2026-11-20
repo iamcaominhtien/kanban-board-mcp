@@ -30,6 +30,8 @@ interface Props {
   bare?: boolean;
   /** Draw each page live in its frame (a few boards, a card in a text); false uses the pictures. */
   live?: boolean;
+  /** Let the live pages take clicks and keys (a single frame in a text: its 3D view turns, its buttons work). */
+  interactive?: boolean;
 }
 
 /**
@@ -44,8 +46,20 @@ interface Props {
  * @param props.names - Show the board names.
  * @param props.bare - No plane background.
  * @param props.live - Draw the pages live (few boards) instead of pictures.
+ * @param props.interactive - The live pages take clicks and keys.
  */
-export function CanvasStatic({ canvasId, doc, pageId, boardId, width, maxHeight = 420, names, bare, live }: Props) {
+export function CanvasStatic({
+  canvasId,
+  doc,
+  pageId,
+  boardId,
+  width,
+  maxHeight = 420,
+  names,
+  bare,
+  live,
+  interactive,
+}: Props) {
   const page = pageId ?? doc.pages[0]?.id;
   const items = useMemo(() => {
     const boards = doc.boards.filter((b) => (boardId ? b.id === boardId : b.page === page));
@@ -147,7 +161,7 @@ export function CanvasStatic({ canvasId, doc, pageId, boardId, width, maxHeight 
             </div>
           )}
           {drawLive ? (
-            <BoardFrame canvasId={canvasId} board={b} scale={scale} live />
+            <BoardFrame canvasId={canvasId} board={b} scale={scale} live interactive={interactive} />
           ) : (
             <img src={boardThumbUrl(canvasId, b)} alt={b.name} loading="lazy" draggable={false} />
           )}

@@ -729,6 +729,32 @@ export function blockLabel(node: PMNode): string {
   return names[n] ?? n.charAt(0).toUpperCase() + n.slice(1);
 }
 
+/** Whether a block is a code block an HTML embed can be made of: its language is HTML, or it has none. */
+export function canBeHtmlEmbed(node: PMNode): boolean {
+  if (node.type.name !== 'codeBlock') return false;
+  const lang = typeof node.attrs.language === 'string' ? node.attrs.language.trim().toLowerCase() : '';
+  return lang === '' || lang === 'html' || lang === 'htm';
+}
+
+/**
+ * Turns the code block at `pos` into an HTML embed of its code (block menu, "Turn into HTML embed"): the block keeps
+ * its id (comments and links to it stay), and its scripts run when it has any.
+ * @returns True when the block changed (false when it is not a code block).
+ */
+export function codeToHtmlEmbed(editor: Editor, pos: number): boolean {
+  const { state } = editor;
+  const node = state.doc.nodeAt(pos);
+  if (!node || node.type.name !== 'codeBlock') return false;
+  const html = node.textContent;
+  const embed = state.schema.nodes.htmlEmbed.create({
+    blockId: node.attrs.blockId ?? null,
+    html,
+    runScripts: /<script\b/i.test(html),
+  });
+  editor.view.dispatch(state.tr.replaceWith(pos, pos + node.nodeSize, embed));
+  return true;
+}
+
 /** Whether a block's kind can be turned into another (text blocks, lists, quotes and callouts). */
 export function canTurnInto(node: PMNode): boolean {
   return (

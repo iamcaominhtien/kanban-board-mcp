@@ -14,13 +14,21 @@ const isLocal = (u: string) => !!u && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(u.
 
 /**
  * Put a board's own files into its page, so the source editor can preview what is being typed in the same locked
- * frame the Preview uses (which allows only what is stored inside the file): stylesheets become `<style>`, and
+ * frame the Preview uses: stylesheets become `<style>`, and
  * pictures and fonts of the board become data addresses.
  * @param entry - Path of the page.
  * @param text - Text files by path (as edited).
+ * Scripts by relative path that are edited here become inline scripts (the `type` kept), so unsaved edits run.
  * @param assets - Data addresses of the board's pictures and fonts by path.
+ * @param baseHref - Address of the folder of the saved board files (ending in "/"); when given, a `<base>` pointing at the
+ * folder of the page is added, so every other relative path (a module import, a fetch of a json) reads the saved files.
  */
-export function inlineBoard(entry: string, text: Record<string, string>, assets: Record<string, string>): string {
+export function inlineBoard(
+  entry: string,
+  text: Record<string, string>,
+  assets: Record<string, string>,
+  baseHref?: string,
+): string {
   const html = text[entry] ?? '';
   const sub = (from: string, css: string): string =>
     css.replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/gi, (m, q: string, u: string) => {
@@ -38,10 +46,24 @@ export function inlineBoard(entry: string, text: Record<string, string>, assets:
     /(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi,
     (_m, a: string, css: string, b: string) => `${a}${sub(entry, css)}${b}`,
   );
+  out = out.replace(
+    /<script\b([^>]*?)\bsrc\s*=\s*(["'])([^"']+)\2([^>]*)>\s*<\/script\s*>/gi,
+    (m, before: string, _q: string, u: string, after: string) => {
+      const path = isLocal(u) ? resolve(entry, u) : '';
+      if (!path || !(path in text)) return m;
+      const attrs = `${before}${after}`.replace(/\s+/g, ' ').trimEnd();
+      return `<script${attrs ? (attrs.startsWith(' ') ? attrs : ` ${attrs}`) : ''}>${text[path].replace(/<\/script/gi, '<\\/script')}</script>`;
+    },
+  );
   out = out.replace(/\b(src|poster)\s*=\s*(["'])([^"']+)\2/gi, (m, attr: string, q: string, u: string) => {
     const asset = isLocal(u) ? assets[resolve(entry, u)] : undefined;
     return asset ? `${attr}=${q}${asset}${q}` : m;
   });
+  if (baseHref && !/<base\b/i.test(out)) {
+    const dir = norm(entry).split('/').slice(0, -1).map(encodeURIComponent).join('/');
+    const tag = `<base href="${baseHref}${dir ? `${dir}/` : ''}">`;
+    out = /<head\b[^>]*>/i.test(out) ? out.replace(/<head\b[^>]*>/i, (h) => `${h}${tag}`) : `${tag}${out}`;
+  }
   return out;
 }
 
@@ -50,9 +72,15 @@ export function inlineBoard(entry: string, text: Record<string, string>, assets:
  * @param entry - Path of the page.
  * @param text - Text files by path.
  * @param assets - Data addresses of pictures and fonts by path.
+ * @param baseHref - Folder address of the saved files, for everything that is not inlined (see `inlineBoard`).
  */
-export function previewDocument(entry: string, text: Record<string, string>, assets: Record<string, string>) {
-  return { srcDoc: inlineBoard(entry, text, assets) };
+export function previewDocument(
+  entry: string,
+  text: Record<string, string>,
+  assets: Record<string, string>,
+  baseHref?: string,
+) {
+  return { srcDoc: inlineBoard(entry, text, assets, baseHref) };
 }
 
 /** A byte array as a data address. */

@@ -142,9 +142,13 @@ rarely a block that would not read back exactly), with their id: `<!-- #b-91c2de
 `[embed: video · Release demo]`. Keep both lines as they are to keep the block; `docs_read(action='block')` shows it
 in full. You never edit inside one, nor inside a diagram, sketch or canvas: replace, add or remove the whole block. A
 placeholder is removed only on purpose, with `block_id` and `mode='delete'`; an edit that drops one is refused. A
-new HTML embed (a demo, a chart, an animation; it runs in a sandbox with no access to the board) is a marker line
-that names it, `<!-- htmlEmbed title="Orbit demo" height=480 scripts=true -->`, then the HTML as an `html` code
-block; a new video is `<!-- video caption="The release in 30 seconds" -->`, then the uploaded file as a picture
+new HTML embed (a demo, a chart, an animation, a 3D scene; it runs as a web page does in a browser, scripts and all)
+is a marker line that names it, `<!-- htmlEmbed title="Orbit demo" height=480 scripts=true -->`, then the HTML as an
+`html` code block. A big page, or one with files of its own (scripts, styles, models, pictures), is a site: write its
+files to a folder (`index.html` at the top) and `docs_write(action='upload', path=<the folder, a .zip or an .html
+file>)`; put the marker line it returns, `<!-- htmlEmbed src="/docs/sites/ab12cd34ef56/index.html" title="Globe"
+-->`, in the page on its own (no code block under it). A code block already on the page becomes an embed with
+`docs_write(action='edit', block_id, mode='attrs', attrs={"type": "htmlEmbed"})`. A new video is `<!-- video caption="The release in 30 seconds" -->`, then the uploaded file as a picture
 line, `![Release demo](/uploads/release-demo.mp4)`. An export runs the embed in an HTML file and shows a picture of
 it in a PDF or Word file.
 

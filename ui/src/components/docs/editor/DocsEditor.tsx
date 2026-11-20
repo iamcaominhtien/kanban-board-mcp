@@ -57,6 +57,8 @@ import { BlockLayer } from './blocks/BlockLayer';
 import { askBlockUi, blockKitOf } from './blocks/bus';
 import { dropPlacement, startImageUpload } from './blocks/imageUpload';
 import { startDocUpload } from './blocks/docUpload';
+import { startSiteUpload } from './blocks/siteUpload';
+import { isSiteFile } from '../embeds/embedApi';
 import { isVideoFile } from './blocks/InsertVideoDialog';
 import { withBlockViews } from './blocks/nodeViews';
 import type { Placement } from './blocks/commands';
@@ -394,8 +396,8 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     }
   }, []);
 
-  // Any other file (Excel, Word, PDF, zip…). A rich page puts it in as a file card (or a video block) that uploads to
-  // the project's Docs uploads with its progress and the server's refusals (Rich Docs phase 5); a Markdown page stores
+  // Any other file (Excel, Word, PDF, zip…). A rich page puts it in as a file card (or a video block, or for an .html
+  // page or a .zip an HTML embed of a site) that uploads to the project's Docs uploads with its progress and the server's refusals (Rich Docs phase 5); a Markdown page stores
   // it like a ticket attachment and inserts a link to it, which the page shows as a file card (DocsMarkdown) and opens
   // in the viewer on double-click.
   const uploadFile = useCallback(
@@ -403,7 +405,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       const ed = editorRef.current;
       if (!ed) return;
       if (rich && blockKitOf(ed)?.projectId) {
-        startDocUpload(ed, file, { kind: isVideoFile(file) ? 'video' : 'file', at });
+        // an .html page or a .zip is a site: it goes in as an HTML embed that shows it
+        if (isSiteFile(file)) startSiteUpload(ed, [file], { at });
+        else startDocUpload(ed, file, { kind: isVideoFile(file) ? 'video' : 'file', at });
         return;
       }
       try {

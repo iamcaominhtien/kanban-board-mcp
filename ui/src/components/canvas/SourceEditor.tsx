@@ -46,12 +46,14 @@ interface Props {
 type Width = 'desktop' | 'tablet' | 'phone';
 const PREVIEW: Record<Width, string> = { desktop: '100%', tablet: '768px', phone: '390px' };
 const draftKey = (c: string, b: string) => `kanban-canvas-source:${c}:${b}`;
-const TEXT = /\.(html?|css|txt|md|json)$/i;
+/** The files the editor shows as text (the server's TEXT_EXT); everything else is a picture or a font. */
+const TEXT = /\.(html?|css|txt|md|json|m?js|cjs|svg|xml|csv)$/i;
 
 /**
- * Edit a board's source with a live preview that runs like the file opened in a browser. Opening it takes the lock on this
- * board (nobody else can change its content, everyone can still look, comment and move it); the lock ends on Save,
- * Cancel, closing, or after 10 idle minutes (the person is told first). A draft is kept on this computer.
+ * Edit a board's source with a live preview that runs like the file opened in a browser. Opening it only reads the
+ * source; the first edit takes the lock on this board (nobody else can change its content, everyone can still look,
+ * comment and move it, and the AI can still update it until then). The lock ends on Save, Cancel, closing, or after
+ * 10 idle minutes (the person is told first). A draft is kept on this computer.
  * @param props - The canvas, the board and what to do when it ends.
  */
 export function SourceEditor({
@@ -75,23 +77,50 @@ export function SourceEditor({
   const [idleWarn, setIdleWarn] = useState(false);
   const [draftKept, setDraftKept] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const last = useRef(Date.now());
   const has = useRef(false);
+  const gone = useRef(false);
+  const revRef = useRef<number | null>(null);
+  const pending = useRef<Promise<'ok' | 'reloaded' | 'failed'> | null>(null);
 
   const touch = useCallback(() => {
     last.current = Date.now();
     setIdleWarn(false);
   }, []);
 
-  // take the lock, then read the source
+  /** The board's pictures and fonts of one revision, as data addresses for the preview. */
+  const loadAssets = useCallback(
+    async (rev: number | null) => {
+      const bin = board.content?.files.filter((f) => !TEXT.test(f.path)) ?? [];
+      const next: Record<string, string> = {};
+      await Promise.all(
+        bin.slice(0, 60).map(async (f) => {
+          try {
+            const r = await fetch(boardFileUrl(canvasId, board.id, rev ?? 0, f.path));
+            if (r.ok)
+              next[f.path] = dataUrl(
+                await r.arrayBuffer(),
+                r.headers.get('content-type')?.split(';')[0] ?? 'application/octet-stream',
+              );
+          } catch {
+            /* a missing picture shows as missing */
+          }
+        }),
+      );
+      if (!gone.current) setAssets(next);
+    },
+    [canvasId, board.id, board.content],
+  );
+
+  // read the source (no lock: the lock is taken on the first edit)
   useEffect(() => {
-    let off = false;
+    gone.current = false;
     void (async () => {
       try {
-        await lockBoard(canvasId, board.id);
-        has.current = true;
         const src = await fetchBoardSource(canvasId, board.id);
-        if (off) return;
+        if (gone.current) return;
         const saved = (() => {
           try {
             const raw = localStorage.getItem(draftKey(canvasId, board.id));
@@ -111,48 +140,76 @@ export function SourceEditor({
         setFiles(list);
         setEntry(useDraft ? saved.entry : src.entry);
         setActive(useDraft ? saved.entry : src.entry);
+        revRef.current = src.rev;
         setContentRev(src.rev);
         setDraftKept(useDraft);
         setPhase('ready');
-        // the board's pictures and fonts, for the preview
-        const bin = board.content?.files.filter((f) => !TEXT.test(f.path)) ?? [];
-        const next: Record<string, string> = {};
-        await Promise.all(
-          bin.slice(0, 60).map(async (f) => {
-            try {
-              const r = await fetch(boardFileUrl(canvasId, board.id, src.rev ?? 0, f.path));
-              if (r.ok)
-                next[f.path] = dataUrl(
-                  await r.arrayBuffer(),
-                  r.headers.get('content-type')?.split(';')[0] ?? 'application/octet-stream',
-                );
-            } catch {
-              /* a missing picture shows as missing */
-            }
-          }),
-        );
-        if (!off) setAssets(next);
+        await loadAssets(src.rev);
       } catch (e) {
-        if (off) return;
-        const f = canvasFailure(e);
-        setBlocker(f);
+        if (gone.current) return;
+        setBlocker(canvasFailure(e));
         setPhase('blocked');
       }
     })();
     return () => {
-      off = true;
+      gone.current = true;
       if (has.current) {
         has.current = false;
         void unlockBoard(canvasId, board.id).catch(() => undefined);
       }
     };
-    // the lock and the source are taken once per board and revision, not on every refresh of the plane
+    // the source is read once per board, not on every refresh of the plane
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvasId, board.id]);
 
+  /**
+   * Take the lock (once). When the source changed on the server while the editor sat unlocked, the latest source is
+   * loaded instead of being overwritten and 'reloaded' tells the caller its edit was dropped.
+   */
+  const acquire = useCallback((): Promise<'ok' | 'reloaded' | 'failed'> => {
+    if (has.current) return Promise.resolve('ok');
+    pending.current ??= (async () => {
+      try {
+        await lockBoard(canvasId, board.id);
+        if (gone.current) {
+          void unlockBoard(canvasId, board.id).catch(() => undefined);
+          return 'failed' as const;
+        }
+        has.current = true;
+        setLocked(true);
+        touch();
+        const src = await fetchBoardSource(canvasId, board.id);
+        if (src.rev === revRef.current) return 'ok' as const;
+        revRef.current = src.rev;
+        setFiles(src.files.length ? src.files : [{ path: 'index.html', text: '<h1>New frame</h1>\n' }]);
+        setEntry(src.entry);
+        setActive(src.entry);
+        setContentRev(src.rev);
+        setDraftKept(false);
+        setNotice('This frame was changed while you were looking at it. The latest source is loaded; edit again.');
+        void loadAssets(src.rev);
+        return 'reloaded' as const;
+      } catch (e) {
+        if (has.current) {
+          has.current = false;
+          setLocked(false);
+          void unlockBoard(canvasId, board.id).catch(() => undefined);
+        }
+        if (!gone.current) {
+          setBlocker(canvasFailure(e));
+          setPhase('blocked');
+        }
+        return 'failed' as const;
+      } finally {
+        pending.current = null;
+      }
+    })();
+    return pending.current;
+  }, [canvasId, board.id, touch, loadAssets]);
+
   // heartbeat while the person is here; stop when they have been idle, so the lock can end
   useEffect(() => {
-    if (phase !== 'ready') return;
+    if (phase !== 'ready' || !locked) return;
     const t = window.setInterval(async () => {
       const idle = (Date.now() - last.current) / 1000;
       setIdleWarn(idle > lockIdleSeconds * 0.9);
@@ -165,6 +222,7 @@ export function SourceEditor({
             await lockBoard(canvasId, board.id);
           } catch (e) {
             has.current = false;
+            setLocked(false);
             setBlocker(canvasFailure(e));
             setPhase('lost');
           }
@@ -174,7 +232,7 @@ export function SourceEditor({
       }
     }, 20_000);
     return () => window.clearInterval(t);
-  }, [phase, canvasId, board.id, lockIdleSeconds]);
+  }, [phase, locked, canvasId, board.id, lockIdleSeconds]);
 
   // a draft is kept on this computer
   useEffect(() => {
@@ -194,8 +252,14 @@ export function SourceEditor({
   const size = useMemo(() => files.reduce((n, f) => n + new Blob([f.text]).size, 0), [files]);
   const preview = useMemo(() => {
     const text = Object.fromEntries(files.map((f) => [f.path, f.text]));
-    return previewDocument(text[entry] !== undefined ? entry : (files[0]?.path ?? 'index.html'), text, assets);
-  }, [files, entry, assets]);
+    return previewDocument(
+      text[entry] !== undefined ? entry : (files[0]?.path ?? 'index.html'),
+      text,
+      assets,
+      // the saved folder, so scripts, modules and fetches by relative path find the files that are not edited here
+      boardFileUrl(canvasId, board.id, contentRev ?? 0, ''),
+    );
+  }, [files, entry, assets, canvasId, board.id, contentRev]);
   const lines = (activeFile?.text.match(/\n/g)?.length ?? 0) + 1;
 
   const clearDraft = () => {
@@ -208,6 +272,10 @@ export function SourceEditor({
   const save = async () => {
     setError(null);
     setPhase('busy');
+    if ((await acquire()) !== 'ok') {
+      setPhase((p) => (p === 'blocked' ? p : 'ready'));
+      return;
+    }
     try {
       const out = await saveBoardContent(canvasId, board.id, {
         files,
@@ -216,6 +284,7 @@ export function SourceEditor({
         release: true,
       });
       has.current = false;
+      setLocked(false);
       clearDraft();
       onSaved(out.board);
     } catch (e) {
@@ -241,6 +310,7 @@ export function SourceEditor({
   const cancel = () => {
     if (has.current) {
       has.current = false;
+      setLocked(false);
       void unlockBoard(canvasId, board.id).catch(() => undefined);
     }
     onClose();
@@ -249,6 +319,7 @@ export function SourceEditor({
   const setText = (text: string) => {
     touch();
     setFiles((fs) => fs.map((f) => (f.path === activeFile?.path ? { ...f, text } : f)));
+    void acquire();
   };
   const addFile = () => {
     const name = window.prompt('File name (for example style.css)', 'style.css')?.trim();
@@ -256,13 +327,15 @@ export function SourceEditor({
     if (!TEXT.test(name)) {
       setError({
         code: 'invalid_file',
-        message: 'Add an .html, .css, .txt, .md or .json file here. Pictures and fonts come with Replace content.',
+        message:
+          'Add an .html, .css, .js, .mjs, .svg, .json, .xml, .csv, .txt or .md file here. Pictures and fonts come with Replace content.',
         status: 422,
       });
       return;
     }
     setFiles((fs) => [...fs, { path: name, text: '' }]);
     setActive(name);
+    void acquire();
   };
 
   if (phase === 'blocked') {
@@ -331,9 +404,14 @@ export function SourceEditor({
         <b style={{ fontSize: 15 }}>{board.name}</b>
         <span className={styles.hint}>on canvas {canvasTitle}</span>
         <span className={styles.spacer} />
-        {phase === 'ready' && (
+        {phase === 'ready' && locked && (
           <span className={styles.chip} style={{ background: '#e8f1fa' }} data-testid="canvas-locked-for-you">
             <CanvasIcon name="lock" size={12} /> Locked for you
+          </span>
+        )}
+        {phase === 'ready' && !locked && (
+          <span className={styles.hint} data-testid="canvas-not-locked">
+            Not locked until you edit
           </span>
         )}
         {draftKept && <span className={styles.hint}>Draft kept on this computer</span>}
@@ -350,7 +428,7 @@ export function SourceEditor({
           {phase === 'busy' ? 'Saving…' : 'Save to canvas'}
         </button>
       </div>
-      {idleWarn && phase === 'ready' && (
+      {idleWarn && phase === 'ready' && locked && (
         <div
           className={`${styles.bannerWarn}`}
           style={{
@@ -366,6 +444,25 @@ export function SourceEditor({
           others can edit it.
           <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={touch}>
             Keep editing
+          </button>
+        </div>
+      )}
+      {notice && (
+        <div
+          className={styles.bannerWarn}
+          style={{
+            padding: '8px 16px',
+            borderBottom: '1px solid #f1d98a',
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center',
+          }}
+          role="status"
+          data-testid="canvas-source-notice"
+        >
+          <CanvasIcon name="warning" size={16} /> {notice}
+          <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setNotice(null)}>
+            OK
           </button>
         </div>
       )}
@@ -459,7 +556,7 @@ export function SourceEditor({
           </div>
           {phase === 'locking' ? (
             <div className={styles.hint} style={{ padding: 16 }}>
-              Taking the lock…
+              Opening the source…
             </div>
           ) : (
             <textarea

@@ -1,7 +1,8 @@
 /**
- * The block menu (board J 53, 54, 64): opened from a block's handle (or a long press on a phone). Turn into, the
- * list's style, the block's properties, Duplicate, Move up / down, Copy link to block, Comment, Select several
- * blocks (touch) and Delete. With several blocks chosen it acts on all of them.
+ * The block menu (board J 53, 54, 64): opened from a block's handle (or a long press on a phone). Turn into (and, for
+ * a code block of HTML, Turn into HTML embed), the list's style, the block's properties, Duplicate, Move up / down,
+ * Copy link to block, Comment, Select several blocks (touch) and Delete. With several blocks chosen it acts on all of
+ * them.
  */
 
 import type { Editor } from '@tiptap/core';
@@ -17,7 +18,9 @@ import {
   TURN_INTO,
   blockLabel,
   blockLink,
+  canBeHtmlEmbed,
   canTurnInto,
+  codeToHtmlEmbed,
   deleteBlocks,
   duplicateBlocks,
   moveBlock,
@@ -344,6 +347,9 @@ export function BlockMenu({
         <div role="menu" aria-label="Block">
           {(many || canTurnInto(node)) && <Item label="Turn into" icon="turn" more onClick={() => setSub('turn')} />}
           {!many && isList && <Item label="List style" icon="list" more onClick={() => setSub('list')} />}
+          {!many && canBeHtmlEmbed(node) && (
+            <Item label="Turn into HTML embed" icon="turn" onClick={done(() => codeToHtmlEmbed(editor, pos))} />
+          )}
           {!many && props && (
             <Item
               label={node.type.name === 'image' ? 'Image properties…' : 'Properties…'}

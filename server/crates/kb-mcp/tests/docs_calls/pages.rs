@@ -271,7 +271,7 @@ fn pages(f: &Fixtures) -> Vec<Call> {
         dw(
             "update: too large",
             "update",
-            json!({"page_id": "$pg3", "markdown": "x".repeat(1_000_001), "base_version": 3}),
+            json!({"page_id": "$pg3", "markdown": "x".repeat(20_000_001), "base_version": 3}),
         ),
         dr("get: after the update", "get", json!({"page_id": "$pg1"})),
         dr("get: with an unpublished draft", "get", json!({"page_id": "$pg3"})),

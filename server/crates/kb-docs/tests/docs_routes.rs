@@ -165,7 +165,7 @@ async fn templates_tree_and_create_pages() {
     let gone = mk(&c, &pid, "Gone", json!({})).await;
     c.delete(&format!("/docs/pages/{}", id(&gone))).await;
     rec.check("create: parent deleted", &c.post(&url, json!({"title": "x", "parent_id": gone["id"]})).await);
-    rec.check("create: too large", &c.post(&url, json!({"title": "big", "markdown": "x".repeat(1_000_001)})).await);
+    rec.check("create: too large", &c.post(&url, json!({"title": "big", "markdown": "x".repeat(20_000_001)})).await);
     rec.check("create: unknown project", &c.post("/projects/nope/docs/pages", json!({"title": "x"})).await);
     rec.check("create: viewer", &as_(&c, "Vera").post(&url, json!({"title": "x"})).await);
     rec.check("create: stranger", &as_(&c, "Stranger").post(&url, json!({"title": "x"})).await);
@@ -381,7 +381,7 @@ async fn drafts_publish_versions_seen_and_followers() {
             .await,
     );
     rec.check("draft: blank title", &c.put(&format!("{page}/draft"), json!({"markdown": "x", "title": " "})).await);
-    rec.check("draft: too large", &c.put(&format!("{page}/draft"), json!({"markdown": "x".repeat(1_000_001)})).await);
+    rec.check("draft: too large", &c.put(&format!("{page}/draft"), json!({"markdown": "x".repeat(20_000_001)})).await);
     rec.check("draft: no markdown", &c.put(&format!("{page}/draft"), json!({})).await);
     rec.check("draft: unknown page", &c.put("/docs/pages/nope/draft", json!({"markdown": "x"})).await);
     rec.check("draft: viewer", &as_(&c, "Vera").put(&format!("{page}/draft"), json!({"markdown": "x"})).await);
@@ -394,7 +394,7 @@ async fn drafts_publish_versions_seen_and_followers() {
     rec.check("publish: no base", &c.post(&format!("{page}/publish"), json!({})).await);
     rec.check(
         "publish: too large",
-        &c.post(&format!("{page}/publish"), json!({"base_version": 0, "markdown": "x".repeat(1_000_001)})).await,
+        &c.post(&format!("{page}/publish"), json!({"base_version": 0, "markdown": "x".repeat(20_000_001)})).await,
     );
     rec.check("publish: unknown page", &c.post("/docs/pages/nope/publish", json!({"base_version": 0})).await);
     rec.check("publish: viewer", &as_(&c, "Vera").post(&format!("{page}/publish"), json!({"base_version": 0})).await);

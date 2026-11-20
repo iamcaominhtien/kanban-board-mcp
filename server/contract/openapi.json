@@ -26255,6 +26255,34 @@
     }
    }
   },
+  "/projects/{project_id}/docs/sites": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs: HTML sites",
+    "description": "Store a folder (parts `files`, the filename or a `paths` field giving each relative path), one .zip or one .html file as a site for HTML embeds; optional `entry`. Answers 201 {id, url, entry, files, bytes}.",
+    "responses": {
+     "201": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/sites/{site_id}/{file_path}": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs: a file of an HTML site",
+    "description": "Serve a file of a site inline by its type, without a sandbox or a content security policy. 404 when it is not there.",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
   "/docs/pages/{page_id}/suggestions/notes/dismiss": {
    "post": {
     "tags": [

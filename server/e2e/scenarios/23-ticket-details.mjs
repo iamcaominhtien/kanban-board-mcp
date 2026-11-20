@@ -337,8 +337,10 @@ export default {
       const bin = p.getByRole('dialog', { name: 'Recycle Bin' });
       await bin.getByText('Scratch page').waitFor();
       await bin.getByRole('button', { name: 'Empty bin' }).click();
-      await bin.getByText(/Delete 1 deleted page forever/).waitFor();
-      await bin.getByRole('button', { name: 'Empty bin' }).last().click();
+      // the confirmation is its own dialog above the bin ("Empty the Recycle Bin?"), the red button counts the pages
+      const sure = p.getByRole('dialog', { name: 'Empty the Recycle Bin' });
+      await sure.getByRole('button', { name: /^Delete 1 page forever$/ }).waitFor();
+      await sure.getByRole('button', { name: /^Delete 1 page forever$/ }).click();
       await bin.getByText('Scratch page').waitFor({ state: 'detached' });
       await bin.getByRole('button', { name: 'Close' }).click();
       await bin.waitFor({ state: 'detached' });
