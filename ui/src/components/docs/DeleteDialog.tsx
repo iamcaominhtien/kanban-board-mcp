@@ -10,7 +10,7 @@ interface DeleteDialogProps {
   projectId: string;
   page: { id: string; title: string };
   onClose: () => void;
-  onDeleted: (count: number) => void;
+  onDeleted: (count: number, gone: string[]) => void;
 }
 
 // the rows of the Tree board's lists (frame 37): 34 high, 2 8 2 6, 6 px gaps, the tag 11.5 #5B6B60
@@ -38,7 +38,8 @@ const listBox: React.CSSProperties = {
  * @param props.projectId - Project the page belongs to.
  * @param props.page - Page to delete (its sub-pages go with it).
  * @param props.onClose - Called to dismiss the dialog.
- * @param props.onDeleted - Called with the number of pages moved to the Recycle Bin.
+ * @param props.onDeleted - Called with the number of pages moved to the Recycle Bin and their ids (the page and its
+ *   sub-pages).
  */
 export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDialogProps) {
   const preview = useDeletePreview(page.id);
@@ -58,7 +59,7 @@ export function DeleteDialog({ projectId, page, onClose, onDeleted }: DeleteDial
     setError(null);
     try {
       const res = await del.mutateAsync(page.id);
-      onDeleted(res.deletedPages ?? count);
+      onDeleted(res.deletedPages ?? count, res.gone);
     } catch (err) {
       setError(docsErrorDetail(err)?.message ?? extractError(err));
     }
