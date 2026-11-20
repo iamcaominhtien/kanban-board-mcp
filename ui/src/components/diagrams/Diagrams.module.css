@@ -19,7 +19,7 @@
   justify-content: center;
   align-items: center;
   padding: 14px;
-  /* only a very tall drawing is capped, and then it scrolls at its readable (column-wide) size */
+  /* only a very tall drawing is capped, and then it scrolls at its own readable size */
   max-height: min(1400px, 150vh);
   overflow-y: auto;
   background: #fff;
@@ -27,8 +27,9 @@
 }
 .stage img {
   display: block;
-  /* fill the column like an image: an SVG's own width/height attributes must not set the size */
-  width: 100%;
+  /* the drawing at its own size, made smaller only to fit the column; never a height cap that shrinks a tall or
+     square drawing, and never blown up past its size (a small drawing would get huge boxes and letters) */
+  width: auto;
   max-width: 100%;
   height: auto;
   flex: 0 0 auto;

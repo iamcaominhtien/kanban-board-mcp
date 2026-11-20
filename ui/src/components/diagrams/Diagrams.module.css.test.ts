@@ -7,9 +7,10 @@ const rule = (sel: string) =>
   new RegExp(`(?:^|\\n)${sel.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
 
 describe('diagram preview sizing', () => {
-  it('fills the column width and lets the height follow the aspect ratio', () => {
+  it('shows the drawing at its own size, only made smaller to fit the column, with no height cap', () => {
     const img = rule('.stage img');
-    expect(img).toMatch(/width:\s*100%/);
+    expect(img).toMatch(/(?:^|\s)width:\s*auto/);
+    expect(img).toMatch(/max-width:\s*100%/);
     expect(img).toMatch(/height:\s*auto/);
     expect(img).not.toMatch(/max-height/);
   });
