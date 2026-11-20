@@ -3,7 +3,7 @@
  * block (Preview by default). On a wide screen the Code tab shows the code and a live preview side by side; on a
  * phone editing the code opens full screen with a bar of symbols. The preview updates when typing stops. The block's
  * footer sets the height (Auto follows the content while scripts run, Fixed in px) and whether its scripts run, and
- * counts the lines and the size against the 512 KB limit. After a save that cleaned the HTML it says what was removed
+ * counts the lines and the size against the size limit. After a save that cleaned the HTML it says what was removed
  * and crosses out the lines that held it. A page too big for inline code goes in as a site: "Upload folder…" or
  * "Upload .zip / .html…" sends the files and the embed shows them by their address (`src`, no Code tab); "Back to
  * inline code" lets go of the site and shows the embed's own code again.
@@ -419,7 +419,7 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
       )}
       {!src && !uploadingSrc && (
         <span className={`dk-emb-size${bytes > HTML_EMBED_LIMIT ? ' over' : ''}`}>
-          {lineCount} lines · {kbOrMb(bytes)} of 512 KB
+          {lineCount} lines · {kbOrMb(bytes)} of {kbOrMb(HTML_EMBED_LIMIT)}
         </span>
       )}
     </div>

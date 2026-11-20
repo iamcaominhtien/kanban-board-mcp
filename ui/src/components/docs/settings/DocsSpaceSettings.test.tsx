@@ -94,6 +94,9 @@ describe('Settings › Docs', () => {
     await act(async () => {
       fireEvent.blur(image);
     });
+    // the HTML embed size is the server's limit (10 MB), not the old 512 KB
+    expect(screen.getByText('10.0 MB')).toBeTruthy();
+    expect(screen.queryByText('512 KB')).toBeNull();
     // the per-team "How … changes pages" lives in the AI in Docs card, not here
     expect(screen.queryByRole('radiogroup', { name: /changes pages/ })).toBeNull();
     expect(sent()).toEqual([

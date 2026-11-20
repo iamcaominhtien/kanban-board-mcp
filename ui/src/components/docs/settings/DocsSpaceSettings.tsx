@@ -7,6 +7,7 @@
  * everything is dimmed.
  */
 
+import { HTML_EMBED_LIMIT, kbOrMb } from '../embeds/htmlSandbox';
 import { useState, type ReactNode } from 'react';
 import { docsErrorDetail, useDocsTree } from '../../../api/docs';
 import { useDocsAccess } from '../../../api/docsAccess';
@@ -662,8 +663,8 @@ function UploadsCard({ s, locked, status, error, save }: CardProps & { s: Settin
           max={MAX_UPLOAD_MB.fileMb}
           onSave={limit('fileMb', 'File size')}
         />
-        <SettingRow title="HTML embed size" hint="Fixed. Embeds run in a sandbox.">
-          <span className="ds-fixed ds-fixed-mono">512 KB</span>
+        <SettingRow title="HTML embed size" hint="Fixed. A bigger page goes in as a folder (Upload folder).">
+          <span className="ds-fixed ds-fixed-mono">{kbOrMb(HTML_EMBED_LIMIT)}</span>
         </SettingRow>
       </fieldset>
       <div className="ds-rule" />
