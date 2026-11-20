@@ -791,6 +791,26 @@ export default {
         fs.rmSync(dir, { recursive: true, force: true });
       }
     });
+    await s.step('code block of HTML: Turn into HTML embed in its block menu runs the code at once', async () => {
+      await atEnd();
+      await p.keyboard.press('Enter');
+      await insert('code');
+      await p.keyboard.type('<b id="c">0</b><button id="b">+1</button><script>let n=0;document.getElementById("b").onclick=()=>document.getElementById("c").textContent=++n</script>');
+      const block = content().locator('.dk-code-wrap').last();
+      await block.hover();
+      await p.locator('button.dk-grip').first().click();
+      await p.getByRole('menuitem', { name: 'Turn into HTML embed' }).click();
+      const embed = content().locator('.dk-html-embed').last();
+      const frame = embed.locator('iframe[srcdoc]');
+      await frame.waitFor();
+      if ((await frame.getAttribute('data-scripts')) !== 'on') throw new Error('the new embed does not run its script');
+      const inner = embed.frameLocator('iframe');
+      await inner.getByRole('button', { name: '+1' }).click();
+      await inner.getByRole('button', { name: '+1' }).click();
+      await inner.getByText('2', { exact: true }).waitFor();
+      await saved();
+      await p.keyboard.press('Control+End');
+    });
     await s.step('code block: file name, line numbers, a highlighted line and the light theme from its settings', async () => {
       await atEnd();
       await p.keyboard.press('Enter');

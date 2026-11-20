@@ -79,6 +79,17 @@ async fn a_folder_becomes_a_site_and_its_embed_goes_on_the_page() {
     let got = call(&mcp, "docs_read", json!({"action": "get", "page_id": page_id})).await;
     let md = got["markdown"].as_str().expect("markdown");
     assert!(md.contains(&format!("htmlEmbed src={url} title=globe -->")), "{md}");
+    // the HTML export is one file that holds the site: its script inlined, no address of the board left
+    let html_path = dir.path().join("globe.html");
+    let out = call(
+        &mcp,
+        "docs_read",
+        json!({"action": "export", "page_id": page_id, "format": "html", "path": html_path.to_string_lossy()}),
+    )
+    .await;
+    let html = std::fs::read_to_string(out["path"].as_str().expect("a path")).expect("the export");
+    assert!(html.contains("<iframe srcdoc=") && html.contains("console.log("), "the site's script is inlined");
+    assert!(!html.contains("/docs/sites/"), "the export does not point back at the board");
 
     // one .html file, by its path; a .zip as data
     let one = dir.path().join("Report.html");
