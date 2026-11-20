@@ -484,17 +484,13 @@ impl<'a> HtmlRenderer<'a> {
         let title = attr_str(node, "title");
         let html = attr_str(node, "html").unwrap_or("");
         if self.opts.print.is_none() && !html.is_empty() {
-            // the same sandbox as on the page: the embed works as a web page, in an origin of its own
-            let sandbox = if attr_bool(node, "runScripts") {
-                "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads \
-                 allow-pointer-lock"
-            } else {
-                ""
-            };
+            // as on the page: a frame with scripts has no sandbox (the page works as in a browser), one without
+            // scripts allows nothing
+            let sandbox = if attr_bool(node, "runScripts") { "" } else { " sandbox=\"\"" };
             let height = attr_f64(node, "height").filter(|h| *h > 0.0).unwrap_or(400.0).clamp(80.0, 4000.0).round();
             let _ = write!(
                 out,
-                "<figure class=\"html-embed\"><iframe sandbox=\"{sandbox}\" srcdoc=\"{}\" title=\"{}\" loading=\"lazy\" allowfullscreen \
+                "<figure class=\"html-embed\"><iframe{sandbox} srcdoc=\"{}\" title=\"{}\" loading=\"lazy\" allowfullscreen \
                  style=\"width:100%;height:{height}px;border:0;border-radius:8px\"></iframe>",
                 esc(html),
                 esc(title.unwrap_or("HTML embed"))

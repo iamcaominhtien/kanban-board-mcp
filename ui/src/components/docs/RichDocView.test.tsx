@@ -325,11 +325,10 @@ describe('RichDocView: format 1 attributes', () => {
     expect(video.getAttribute('src')).toBe('/uploads/demo.mp4');
     expect(video.autoplay).toBe(false);
     expect(video.controls).toBe(true);
-    // Rich Docs phase 5: the HTML runs in a sandboxed frame, never in the page itself
+    // Rich Docs phase 5: the HTML runs in its own frame, never in the page itself
     const html = container.querySelector('[data-block-id="b-000002"]')!;
     expect(html.textContent).toContain('HTML');
     expect(html.textContent).toContain('Widget');
-    expect(html.textContent).toContain('Runs in a sandbox: no access to this board.');
     const frame = html.querySelector('iframe')!;
     expect(frame.getAttribute('sandbox')).toBe('');
     expect(frame.getAttribute('srcdoc')).toContain('<b>x</b>');

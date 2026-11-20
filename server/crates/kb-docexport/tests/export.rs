@@ -774,3 +774,17 @@ fn an_html_export_carries_its_video_and_files() {
     // a scrolling box on paper makes Chromium add an empty last page when a kept group holds a table
     assert!(pdf.contains(".table-wrap { overflow: visible; }"), "tables do not scroll on paper");
 }
+
+#[test]
+fn an_html_embed_with_scripts_is_not_sandboxed_in_the_export() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"htmlEmbed","attrs":{"html":"<canvas id=c></canvas><script>spin()</script>","title":"3D","runScripts":true}},
+        {"type":"htmlEmbed","attrs":{"html":"<p>plain</p>","title":"Card"}}]});
+    let pages = [page("Embeds", doc)];
+    let html = render_html(&pages, &TestAssets, &HtmlOptions::default()).index_html().to_string();
+    let frames: Vec<&str> = html.match_indices("<iframe").map(|(i, _)| &html[i..i + 40]).collect();
+    assert_eq!(frames.len(), 2, "{html}");
+    // with scripts: no sandbox at all, the page runs as in a browser; without: a sandbox that allows nothing
+    assert!(frames[0].starts_with("<iframe srcdoc="), "{}", frames[0]);
+    assert!(frames[1].starts_with("<iframe sandbox=\"\" srcdoc="), "{}", frames[1]);
+}

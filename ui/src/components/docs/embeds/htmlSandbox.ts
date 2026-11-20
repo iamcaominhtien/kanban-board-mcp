@@ -1,8 +1,8 @@
 /**
- * How an HTML embed is put in its frame (design "Embeds", section A): a `srcdoc` in an `<iframe sandbox>` that never
- * gets `allow-same-origin`, so the page runs in an origin of its own and cannot reach the board, its cookies or its
- * API. Inside that frame the page works as it would opened in a browser: scripts (also from a CDN), network requests,
- * fonts, forms, pop-ups and full screen. When scripts run, a tiny script is added that reports the content's height
+ * How an HTML embed is put in its frame (design "Embeds", section A): a `srcdoc` iframe that runs the page as it would
+ * run opened in a browser. The board is a local app, so the frame is not sandboxed: scripts, CDN libraries, network
+ * requests, storage, forms, pop-ups and full screen all work. Only when the project turned scripts off is the frame
+ * sandboxed with nothing allowed. When scripts run, a tiny script is added that reports the content's height
  * (Height: Auto).
  */
 
@@ -13,15 +13,12 @@ export const HTML_EMBED_LIMIT = 10 * 1024 * 1024;
 export const DEFAULT_EMBED_HEIGHT = 320;
 
 /**
- * The `sandbox` attribute of an embed's frame. With scripts: what a web page needs to work (scripts, forms, pop-ups,
- * dialogs, downloads, pointer lock); without: nothing allowed. Never `allow-same-origin` (the page would share the
- * board's origin) or top navigation.
+ * The `sandbox` attribute of an embed's frame: none at all while scripts may run (the page works as in a browser),
+ * an empty one (nothing allowed) when they may not.
  * @param scripts - Scripts may run in this view.
  */
-export function embedSandbox(scripts: boolean): string {
-  return scripts
-    ? 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-pointer-lock'
-    : '';
+export function embedSandbox(scripts: boolean): string | undefined {
+  return scripts ? undefined : '';
 }
 
 /** Bytes of a text in UTF-8. */

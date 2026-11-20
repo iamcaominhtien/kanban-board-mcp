@@ -1,11 +1,11 @@
 /**
  * An HTML embed as a reader sees it (design "Embeds", frames 1, 7, 8, 10): the "HTML" header with its title and
- * "View source", the sandbox note, and the frame. Anyone who can read the page can read the source.
+ * "View source", and the frame. Anyone who can read the page can read the source.
  */
 
 import { useState } from 'react';
 import { EmbIcon } from './embIcons';
-import { HtmlEmbedFrame, SandboxNote } from './HtmlEmbedFrame';
+import { HtmlEmbedFrame } from './HtmlEmbedFrame';
 import './embeds.css';
 
 /** The source of an embed, read only, with line numbers and Copy (frame 7). */
@@ -91,7 +91,6 @@ export function HtmlEmbedBlock({ attrs, projectId, blockProps }: HtmlEmbedBlockP
           {source ? 'Hide source' : 'View source'}
         </button>
       </div>
-      <SandboxNote />
       <div className="dk-emb-body">
         <HtmlEmbedFrame
           html={html}

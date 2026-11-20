@@ -36,24 +36,10 @@ function wrap(ui: ReactNode) {
   return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
 }
 
-/** Every frame on the screen must keep the embed off the board's origin. */
-function expectNoSameOrigin(container: HTMLElement) {
-  for (const f of Array.from(container.querySelectorAll('iframe'))) {
-    const sb = f.getAttribute('sandbox');
-    expect(sb).not.toBeNull();
-    expect(sb).not.toContain('allow-same-origin');
-    expect(sb).not.toContain('allow-top-navigation');
-  }
-}
-
 describe('HTML embed: the sandbox', () => {
-  it("lets a page with scripts work as a web page, but never on the board's origin", () => {
+  it('runs a page with scripts with no sandbox at all, and allows nothing when scripts may not run', () => {
+    expect(embedSandbox(true)).toBeUndefined();
     expect(embedSandbox(false)).toBe('');
-    const sb = embedSandbox(true).split(' ');
-    for (const need of ['allow-scripts', 'allow-forms', 'allow-popups', 'allow-modals', 'allow-pointer-lock'])
-      expect(sb).toContain(need);
-    expect(sb).not.toContain('allow-same-origin');
-    expect(sb).not.toContain('allow-top-navigation');
   });
 
   it('puts no Content Security Policy in the document (CDN scripts and requests work), and the reporter only when scripts run', () => {
@@ -96,7 +82,6 @@ describe('HtmlEmbedFrame', () => {
     expect(frame.getAttribute('sandbox')).toBe('');
     expect(frame.style.height).toBe('320px');
     expect(screen.queryByRole('button', { name: 'Run it' })).toBeNull();
-    expectNoSameOrigin(container);
   });
 
   it('asks before running scripts, then runs them in this view only', async () => {
@@ -107,9 +92,8 @@ describe('HtmlEmbedFrame', () => {
     expect(before.getAttribute('data-scripts')).toBe('off');
     fireEvent.click(await screen.findByRole('button', { name: 'Run it' }));
     const after = container.querySelector('iframe')!;
-    expect(after.getAttribute('sandbox')).toBe(embedSandbox(true));
+    expect(after.hasAttribute('sandbox')).toBe(false);
     expect(after.getAttribute('srcdoc')).toContain(FRAME_MESSAGE);
-    expectNoSameOrigin(container);
     // the height reported by the frame's own script is taken (Height: Auto)
     act(() => {
       window.dispatchEvent(
@@ -133,9 +117,8 @@ describe('HtmlEmbedFrame', () => {
     await vi.waitFor(() => expect(container.querySelector('iframe')!.getAttribute('data-scripts')).toBe('on'));
     expect(screen.queryByRole('button', { name: 'Run it' })).toBeNull();
     const frame = container.querySelector('iframe')!;
-    expect(frame.getAttribute('sandbox')).toBe(embedSandbox(true));
+    expect(frame.hasAttribute('sandbox')).toBe(false);
     expect(frame.hasAttribute('allowfullscreen')).toBe(true);
-    expectNoSameOrigin(container);
   });
 
   it('never runs scripts when the project turned them off', async () => {
@@ -146,7 +129,6 @@ describe('HtmlEmbedFrame', () => {
     const frame = container.querySelector('iframe')!;
     expect(frame.getAttribute('sandbox')).toBe('');
     expect(frame.style.height).toBe('200px');
-    expectNoSameOrigin(container);
   });
 
   it('shows "Too large to embed" in place of a frame over the limit', () => {

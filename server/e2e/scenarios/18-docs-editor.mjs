@@ -709,16 +709,16 @@ export default {
       cleanFixtures(fx);
     });
 
-    // Rich Docs phase 5: embeds and attachments (HTML in a sandbox, code options, files, video, links, references)
+    // Rich Docs phase 5: embeds and attachments (HTML in its own frame, code options, files, video, links, references)
     const fx5 = makeFixtures();
-    /** Every frame of an HTML embed: never the board's origin, top navigation or pop-ups. */
+    /** Every frame of an HTML embed whose scripts run has no sandbox (a local app: the page works as in a browser). */
     const checkSandbox = async (root) => {
-      for (const f of await root.locator('.dk-html-embed iframe').all()) {
+      for (const f of await root.locator('.dk-html-embed iframe[data-scripts="on"]').all()) {
         const sb = await f.getAttribute('sandbox');
-        if (sb === null || /allow-same-origin|allow-top-navigation/.test(sb)) throw new Error(`unsafe sandbox: ${sb}`);
+        if (sb !== null) throw new Error(`a frame with scripts is still sandboxed: ${sb}`);
       }
     };
-    await s.step('embeds: a new page Embeds tour; an HTML embed opens on its Code tab and previews in a sandbox', async () => {
+    await s.step('embeds: a new page Embeds tour; an HTML embed opens on its Code tab and previews in its frame', async () => {
       await newDocPage(s, 'Embeds tour');
       await content().click();
       await insert('html');
@@ -726,15 +726,10 @@ export default {
       await code.waitFor();
       await code.fill('<div class="plans"><h3>Team</h3><p>$8 /user</p></div>');
       const embed = content().locator('.dk-html-embed').first();
-      await embed.getByText('Runs in a sandbox: no access to this board.').waitFor();
       await p.waitForFunction(() => document.querySelector('.dk-html-embed iframe')?.getAttribute('srcdoc')?.includes('$8 /user'));
       if ((await embed.locator('iframe').getAttribute('sandbox')) !== '') throw new Error('a frame without scripts must allow nothing');
       await checkSandbox(content());
-      await embed.getByRole('button', { name: 'What is blocked?' }).click();
-      const sheet = p.getByTestId('sandbox-sheet');
-      await sheet.getByText('Scripts, also libraries from the web (CDN)').waitFor();
-      await sheet.getByRole('button', { name: 'Close' }).click();
-      await sheet.waitFor({ state: 'detached' });
+      if ((await embed.getByRole('button', { name: 'What is blocked?' }).count()) !== 0) throw new Error('the sandbox note is still shown');
       await saved();
     });
     await s.step('HTML embed: scripts run at once (the project default), and saving keeps the HTML as written', async () => {
@@ -749,14 +744,11 @@ export default {
       // no "Run it" to press: the frame gets scripts as soon as the code is taken
       await p.waitForFunction(() => document.querySelector('.dk-html-embed iframe')?.getAttribute('data-scripts') === 'on');
       if ((await embed.getByRole('button', { name: 'Run it' }).count()) !== 0) throw new Error('Run it is asked for although the project runs scripts');
-      const sb = (await embed.locator('iframe').getAttribute('sandbox')) ?? '';
-      for (const need of ['allow-scripts', 'allow-forms', 'allow-popups', 'allow-modals']) {
-        if (!sb.split(' ').includes(need)) throw new Error(`the frame misses ${need}: ${sb}`);
-      }
+      if ((await embed.locator('iframe').getAttribute('sandbox')) !== null) throw new Error('a frame with scripts is still sandboxed');
       await p.frameLocator('.dk-html-embed iframe').first().getByText('Ran').waitFor();
       await checkSandbox(content());
       await saved();
-      // the server keeps the onclick attribute (the frame is isolated): nothing is said to be removed
+      // the server keeps the onclick attribute: nothing is said to be removed
       if ((await embed.getByTestId('html-embed-removed').count()) !== 0) throw new Error('saving still removes parts of the HTML');
       await p.keyboard.press('Control+End');
     });
@@ -854,7 +846,7 @@ export default {
       await card.waitFor({ state: 'detached' });
       await saved();
     });
-    await s.step('Preview: the embeds read as readers will see them (sandboxed frame, poster, card, preview)', async () => {
+    await s.step('Preview: the embeds read as readers will see them (the frame, poster, card, preview)', async () => {
       const toggle = p.getByTestId('preview-toggle');
       await toggle.click();
       const preview = p.getByTestId('editor-preview');

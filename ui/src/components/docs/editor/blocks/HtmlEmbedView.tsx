@@ -14,7 +14,7 @@ import { clearRemoved, useRemoved } from '../../embeds/cleanedHtml';
 import { highlight } from '../../docsHighlight';
 import { HtmlChip, HtmlKind, SourceView } from '../../embeds/HtmlEmbedBlock';
 import { EmbIcon } from '../../embeds/embIcons';
-import { HtmlEmbedFrame, SandboxNote } from '../../embeds/HtmlEmbedFrame';
+import { HtmlEmbedFrame } from '../../embeds/HtmlEmbedFrame';
 import { HTML_EMBED_LIMIT, byteSize, kbOrMb, linesWith, listWords } from '../../embeds/htmlSandbox';
 import { useEditorEnv } from '../context';
 import { startDocUpload } from './docUpload';
@@ -448,7 +448,6 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
           </div>
         )}
       </div>
-      <SandboxNote />
       {removedNote}
       {body}
       {footer}
@@ -457,7 +456,7 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
     </>
   );
   // editing code on a phone (Embeds 11): full screen, a 46 px bar (back, the name, Saved, More), the code with its
-  // colours and the caret's line tinted, the sandbox note, and the symbol keys over the keyboard
+  // colours and the caret's line tinted, and the symbol keys over the keyboard
   const fullEditor =
     fullScreen &&
     createPortal(
@@ -520,7 +519,6 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
         </div>
         <div className="dk-emb-full-body">
           <CodeArea value={draft} onChange={setDraft} crossed={crossed} label="HTML code" areaRef={areaRef} autoFocus />
-          <SandboxNote />
         </div>
         <div className="dk-emb-symbols" role="toolbar" aria-label="Symbols">
           {SYMBOLS.map((sym) => (

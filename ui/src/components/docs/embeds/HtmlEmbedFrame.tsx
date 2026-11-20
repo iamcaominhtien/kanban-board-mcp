@@ -1,13 +1,11 @@
 /**
- * The frame of an HTML embed (design "Embeds", frames 1-9, 73): the always-visible sandbox note with "What is
- * blocked?", the frame itself and its states. Scripts run as soon as the embed is shown when the embed asks for them
+ * The frame of an HTML embed (design "Embeds", frames 1-9, 73): the frame itself and its states. Scripts run as soon as the embed is shown when the embed asks for them
  * and the project's `scriptsInEmbeds` is `on` (the default); with `ask` the reader presses "Run it" first, with
- * `off` they never run and the frame gets `sandbox=""` and a fixed height. Too large (over the limit) and
+ * `off` they never run and the frame gets `sandbox=""` and a fixed height. While scripts run the frame has no sandbox. Too large (over the limit) and
  * could-not-load are shown in place of the frame.
  */
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Panel } from '../editor/blocks/ui';
 import { EmbIcon } from './embIcons';
 import { useDocsSpaceSettings } from './embedApi';
 import {
@@ -25,72 +23,6 @@ import './embeds.css';
 
 /** How long a frame may take to load before it counts as blocked (ms). */
 const LOAD_TIMEOUT_MS = 10_000;
-
-/** What the sandbox allows (frame 3). */
-const ALLOWED = [
-  'HTML and CSS',
-  'Scripts, also libraries from the web (CDN)',
-  'Network requests, images, fonts and video from the web',
-  'Forms, pop-ups, dialogs and full screen',
-];
-/** What the sandbox blocks (frame 3). */
-const BLOCKED = [
-  'Reading this board, your login or cookies',
-  'Sending this board to another page',
-  'Camera, microphone and location',
-];
-
-/**
- * What the sandbox allows and blocks (frame 3), opened from the note: a 320 px popover under it on a desktop, a
- * sheet on a phone.
- * @param props.anchor - The rect of the note's link, where the popover points.
- */
-export function SandboxSheet({ onClose, anchor }: { onClose: () => void; anchor: DOMRect | null }) {
-  return (
-    <Panel title="The sandbox" anchor={anchor} onClose={onClose} width={320} testId="sandbox-sheet">
-      <p className="dk-emb-sheet-lead">
-        An HTML embed is a small web page that lives in its own box. It cannot see or touch anything else on the board.
-      </p>
-      <div className="dk-emb-sheet-group dk-emb-ok">
-        <div className="dk-emb-sheet-head">Allowed</div>
-        <ul className="dk-emb-sheet-list">
-          {ALLOWED.map((t) => (
-            <li key={t}>
-              <EmbIcon name="check" size={13} sw={2.6} />
-              <span>{t}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="dk-emb-sheet-group dk-emb-no">
-        <div className="dk-emb-sheet-head">Blocked</div>
-        <ul className="dk-emb-sheet-list">
-          {BLOCKED.map((t) => (
-            <li key={t}>
-              <EmbIcon name="x" size={13} sw={2.6} />
-              <span>{t}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Panel>
-  );
-}
-
-/** The always-visible note above an embed: what the sandbox is, and the sheet that says what it blocks. */
-export function SandboxNote() {
-  const [anchor, setAnchor] = useState<DOMRect | null>(null);
-  return (
-    <div className="dk-emb-note" contentEditable={false}>
-      <EmbIcon name="shield" size={14} sw={2.2} />
-      <span>Runs in a sandbox: no access to this board.</span>
-      <button type="button" className="dk-emb-link" onClick={(e) => setAnchor(e.currentTarget.getBoundingClientRect())}>
-        What is blocked?
-      </button>
-      {anchor && <SandboxSheet anchor={anchor} onClose={() => setAnchor(null)} />}
-    </div>
-  );
-}
 
 /** Props of {@link HtmlEmbedFrame}. */
 export interface HtmlEmbedFrameProps {
@@ -218,7 +150,7 @@ export function HtmlEmbedFrame({
       {wantsScripts && policy === 'ask' && !ran && (
         <div className="dk-emb-bar" role="note">
           <EmbIcon name="code" size={15} sw={2.2} />
-          <span>This embed has scripts. They run inside the sandbox only.</span>
+          <span>This embed has scripts.</span>
           <button type="button" className="st-btn st-btn-primary st-btn-sm dk-emb-run" onClick={() => setRan(true)}>
             Run it
           </button>
@@ -232,7 +164,7 @@ export function HtmlEmbedFrame({
         sandbox={embedSandbox(scripts)}
         srcDoc={srcDoc}
         referrerPolicy="no-referrer"
-        allow="fullscreen; autoplay; clipboard-write; xr-spatial-tracking"
+        allow="fullscreen; autoplay; clipboard-read; clipboard-write; camera; microphone; geolocation; xr-spatial-tracking; accelerometer; gyroscope"
         allowFullScreen
         style={{ height: frameHeight }}
         onLoad={() => setLoaded(true)}
