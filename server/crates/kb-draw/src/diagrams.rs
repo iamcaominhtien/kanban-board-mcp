@@ -206,6 +206,18 @@ fn clean_attributes(el: &mut Element) {
     }
 }
 
+/// Returns an SVG preview drawn in its light colours whatever the viewer's system theme.
+///
+/// The draw.io editor writes `color-scheme: light dark` on the root and colours as `light-dark(light, dark)`, so a
+/// computer in dark mode showed the diagram dark (black shapes, white text) on a light Docs page. Saying
+/// `color-scheme: light` makes every `light-dark()` pick its light colour; an SVG without it is returned as it is.
+pub fn light_only(svg: &str) -> String {
+    static SCHEME: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"color-scheme\s*:\s*light\s+dark|color-scheme\s*:\s*dark\s+light").expect("a valid pattern")
+    });
+    SCHEME.replace_all(svg, "color-scheme: light").into_owned()
+}
+
 /// Return the SVG preview without scripts, event handlers or `javascript:` links.
 ///
 /// `svg` is the SVG exported by the editor; fails with 413 if too large and 422 if it is not an SVG.
@@ -425,7 +437,7 @@ pub async fn read_file(
     let stem = util::file_stem(&d.label);
     let stem = if stem.is_empty() { "diagram".to_string() } else { stem };
     if kind == "svg" {
-        return Ok((v.svg, "image/svg+xml", format!("{stem}.svg")));
+        return Ok((light_only(&v.svg), "image/svg+xml", format!("{stem}.svg")));
     }
     Ok((v.source, "application/vnd.jgraph.mxfile", format!("{stem}.drawio")))
 }
