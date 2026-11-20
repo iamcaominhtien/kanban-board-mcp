@@ -13,7 +13,7 @@ import type { RichDoc } from '../../types/docs';
 import { BottomSheet } from './DocsSheets';
 import { PageHeader, titleClass } from './PageHeader';
 import { lookClass, lookVars, readPageLook, readingMinutes } from './pageSettings';
-import { shortDate } from './pageStatus';
+import { shortDate } from './pageStatusRules';
 import { docHeadings, publicDoc, setRobots } from './publicView';
 import { PlainRefsCtx } from './readerParts';
 import { applyReaderLook, readerClass, readerThemeCss, readerVars, useReaderPrefs } from './readerPrefs';

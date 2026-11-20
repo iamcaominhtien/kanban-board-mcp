@@ -4,7 +4,7 @@ import type { DocsTreeNode } from '../../types/docs';
 import { bookOf, chapterLabel, readingNeighbours } from './book';
 import { headerPlan, HEADER_WIDE_MIN } from './headerActions';
 import { readPageLook } from './pageSettings';
-import { monthsBetween, outdatedOf, outdatedText } from './pageStatus';
+import { monthsBetween, outdatedOf, outdatedText } from './pageStatusRules';
 import { buildPrintSheet, DEFAULT_PRINT, mountPrintSheet, pageCss } from './printPage';
 import {
   applyReaderLook,

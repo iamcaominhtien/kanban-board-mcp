@@ -62,7 +62,7 @@ import { ChapterList, ReadingFooter, TouchOutline } from './BookReading';
 import { ExportMenu, type ExportFormat } from './docsExport';
 import { headerPlan, useElementWidth, useScrollProgress } from './headerActions';
 import { OlderVersionBar, OutdatedNote, VersionBadge } from './PageStatus';
-import { outdatedOf, shortDate } from './pageStatus';
+import { outdatedOf, shortDate } from './pageStatusRules';
 import { PrintDialog } from './PrintDialog';
 import { openDocsFind } from './FindInPage';
 import { DEFAULT_PRINT, isPrinting, mountPrintSheet, printPage, type PrintOptions, type PrintParts } from './printPage';

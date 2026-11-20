@@ -6,7 +6,7 @@
  */
 
 import type { DocsTreeNode } from '../../../types/docs';
-import { monthsBetween, OUTDATED_MONTHS } from '../pageStatus';
+import { monthsBetween, OUTDATED_MONTHS } from '../pageStatusRules';
 
 /** The three ways to see the same pages. */
 export type TreeView = 'tree' | 'gallery' | 'recent';
