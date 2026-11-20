@@ -222,6 +222,17 @@ test('the embed shows the boards, the footer and the hover actions', async () =>
   );
 });
 
+test('one frame in a text is a working page: it takes the clicks, and View full size opens the large view', async () => {
+  const api: Partial<CanvasApi> = { openViewer: vi.fn() };
+  render(wrap(<CanvasEmbed id="cv_12345678" label="Login redesign" boardId="b_aaaaaaaa" />, api));
+  const stage = await screen.findByTestId('canvas-embed-stage');
+  expect(stage.getAttribute('data-interactive')).toBe('true');
+  fireEvent.click(stage);
+  expect(api.openViewer).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByTestId('canvas-view'));
+  expect(api.openViewer).toHaveBeenCalledWith({ id: 'cv_12345678', boardId: 'b_aaaaaaaa', pageId: undefined });
+});
+
 test('the embed hides Edit for people who cannot edit and says when the canvas or one board is gone', async () => {
   handlers['GET /canvases/cv_12345678'] = () => reply({ ...CANVAS, canEdit: false, role: 'viewer' });
   const view = render(wrap(<CanvasEmbed id="cv_12345678" label="Login redesign" />));
