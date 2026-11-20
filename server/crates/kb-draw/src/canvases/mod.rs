@@ -116,8 +116,10 @@ pub const ALLOWED_EXT: &[&str] = &[
 ];
 /// The extensions an import turns into a picture frame.
 pub const IMAGE_EXT: [&str; 7] = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"];
-/// The extensions a frame's text editor shows.
-pub const TEXT_EXT: [&str; 6] = [".html", ".htm", ".css", ".txt", ".md", ".json"];
+/// The extensions a frame's text editor shows (and the source read, the save's kept pictures and the version diff
+/// treat as text). Every one is also in the allowed upload list above.
+pub const TEXT_EXT: [&str; 12] =
+    [".html", ".htm", ".css", ".txt", ".md", ".json", ".js", ".mjs", ".cjs", ".svg", ".xml", ".csv"];
 
 /// `MEDIA.get(ext, "application/octet-stream")`.
 pub fn media_of(ext: &str) -> &'static str {

@@ -12,7 +12,7 @@ import { client } from '../../../api/client';
 export interface DocsSpaceSettings {
   uploads?: { imageMb?: number; videoMb?: number; fileMb?: number };
   /** `ask`: a reader presses "Run it" first; `off`: scripts in HTML embeds never run. */
-  scriptsInEmbeds?: 'ask' | 'off';
+  scriptsInEmbeds?: 'on' | 'ask' | 'off';
   /** The hosts whose links may be shown inside a page (a player), e.g. `youtube.com`. */
   embedSites?: string[];
 }

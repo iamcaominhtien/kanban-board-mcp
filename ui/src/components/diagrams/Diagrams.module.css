@@ -11,7 +11,7 @@
   max-width: 100%;
 }
 .embedSmall .stage {
-  max-height: 360px;
+  max-height: 480px;
 }
 .stage {
   position: relative;
@@ -19,21 +19,21 @@
   justify-content: center;
   align-items: center;
   padding: 14px;
-  max-height: 600px;
+  /* only a very tall drawing is capped, and then it scrolls at its readable (column-wide) size */
+  max-height: min(1400px, 150vh);
+  overflow-y: auto;
   background: #fff;
   min-height: 80px;
 }
 .stage img {
   display: block;
+  /* fill the column like an image: an SVG's own width/height attributes must not set the size */
+  width: 100%;
   max-width: 100%;
-  max-height: 560px;
-  width: auto;
   height: auto;
+  flex: 0 0 auto;
   border-radius: 0;
   cursor: zoom-in;
-}
-.embedSmall .stage img {
-  max-height: 330px;
 }
 /* Inside text the picture is the card's own content: no second border and margin from the text's image style
    (`.markdown img`), which drew a box inside the card (design B: one card, the drawing on white) */

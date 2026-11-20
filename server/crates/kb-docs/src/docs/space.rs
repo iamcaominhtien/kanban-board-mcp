@@ -15,7 +15,7 @@ use crate::{Result, docs_err};
 /// The largest upload limits an admin can choose, in MB (images, video, files).
 pub const MAX_LIMITS_MB: (u64, u64, u64) = (50, 2048, 1024);
 /// The fixed size limit of an HTML embed, in bytes.
-pub const HTML_EMBED_BYTES: usize = 512 * 1024;
+pub const HTML_EMBED_BYTES: usize = 10 * 1024 * 1024;
 
 /// The settings every project starts with.
 pub fn defaults() -> Map<String, Value> {
@@ -28,7 +28,7 @@ pub fn defaults() -> Map<String, Value> {
         "publicLinkExpiry": "never",
         "highlights": "on",
         "uploads": {"imageMb": 10, "videoMb": 200, "fileMb": 100},
-        "scriptsInEmbeds": "ask",
+        "scriptsInEmbeds": "on",
         "embedSites": ["youtube.com", "youtu.be", "vimeo.com", "loom.com", "figma.com", "codepen.io",
                        "docs.google.com", "github.com", "gist.github.com"],
         "aiApply": {},
@@ -85,7 +85,7 @@ fn allowed(key: &str, value: &Value) -> bool {
         "allowPublicLinks" => value.is_boolean(),
         "publicLinkExpiry" => one_of(value, &["never", "7d", "30d", "90d"]),
         "highlights" => one_of(value, &["on", "off"]),
-        "scriptsInEmbeds" => one_of(value, &["ask", "off"]),
+        "scriptsInEmbeds" => one_of(value, &["on", "ask", "off"]),
         "uploads" => value.as_object().is_some_and(|o| {
             o.iter().all(|(k, v)| {
                 let max = match k.as_str() {

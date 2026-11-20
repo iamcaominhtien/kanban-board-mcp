@@ -715,7 +715,7 @@ export default {
     const checkSandbox = async (root) => {
       for (const f of await root.locator('.dk-html-embed iframe').all()) {
         const sb = await f.getAttribute('sandbox');
-        if (sb === null || /allow-same-origin|allow-top-navigation|allow-popups/.test(sb)) throw new Error(`unsafe sandbox: ${sb}`);
+        if (sb === null || /allow-same-origin|allow-top-navigation/.test(sb)) throw new Error(`unsafe sandbox: ${sb}`);
       }
     };
     await s.step('embeds: a new page Embeds tour; an HTML embed opens on its Code tab and previews in a sandbox', async () => {
@@ -732,12 +732,12 @@ export default {
       await checkSandbox(content());
       await embed.getByRole('button', { name: 'What is blocked?' }).click();
       const sheet = p.getByTestId('sandbox-sheet');
-      await sheet.getByText('Network requests from scripts').waitFor();
+      await sheet.getByText('Scripts, also libraries from the web (CDN)').waitFor();
       await sheet.getByRole('button', { name: 'Close' }).click();
       await sheet.waitFor({ state: 'detached' });
       await saved();
     });
-    await s.step('HTML embed: scripts run only after Run it, and saving says what was cleaned out', async () => {
+    await s.step('HTML embed: scripts run at once (the project default), and saving keeps the HTML as written', async () => {
       const embed = content().locator('.dk-html-embed').first();
       // Run scripts sits in the Embed size popover, opened from the block's header
       await embed.getByRole('button', { name: 'Embed size' }).click();
@@ -746,18 +746,18 @@ export default {
       await size.getByRole('button', { name: 'Done' }).click();
       await size.waitFor({ state: 'detached' });
       await p.getByRole('textbox', { name: 'HTML code' }).fill('<div onclick="track()" id="t">Team</div>\n<script>document.getElementById("t").textContent = "Ran"</script>');
-      const run = embed.getByRole('button', { name: 'Run it' });
-      await run.waitFor();
-      if ((await embed.locator('iframe').getAttribute('sandbox')) !== '') throw new Error('scripts ran before Run it');
-      await run.click();
-      await p.waitForFunction(() => document.querySelector('.dk-html-embed iframe')?.getAttribute('sandbox') === 'allow-scripts');
+      // no "Run it" to press: the frame gets scripts as soon as the code is taken
+      await p.waitForFunction(() => document.querySelector('.dk-html-embed iframe')?.getAttribute('data-scripts') === 'on');
+      if ((await embed.getByRole('button', { name: 'Run it' }).count()) !== 0) throw new Error('Run it is asked for although the project runs scripts');
+      const sb = (await embed.locator('iframe').getAttribute('sandbox')) ?? '';
+      for (const need of ['allow-scripts', 'allow-forms', 'allow-popups', 'allow-modals']) {
+        if (!sb.split(' ').includes(need)) throw new Error(`the frame misses ${need}: ${sb}`);
+      }
+      await p.frameLocator('.dk-html-embed iframe').first().getByText('Ran').waitFor();
       await checkSandbox(content());
       await saved();
-      // the server removes the onclick attribute on save; the author is told, and the line is crossed out
-      const note = embed.getByTestId('html-embed-removed');
-      await note.getByText(/Saved\. 1 thing was removed/).waitFor();
-      await note.getByText(/an onclick attribute/).waitFor();
-      await embed.locator('.dk-ca-gutter .dk-ca-x').first().waitFor();
+      // the server keeps the onclick attribute (the frame is isolated): nothing is said to be removed
+      if ((await embed.getByTestId('html-embed-removed').count()) !== 0) throw new Error('saving still removes parts of the HTML');
       await p.keyboard.press('Control+End');
     });
     await s.step('code block: file name, line numbers, a highlighted line and the light theme from its settings', async () => {
@@ -861,7 +861,8 @@ export default {
       await preview.waitFor();
       await preview.getByTestId('html-embed').getByRole('button', { name: 'View source' }).waitFor();
       await checkSandbox(preview);
-      await preview.getByRole('button', { name: 'Run it' }).waitFor();
+      // a reader's embed runs its scripts without a click too
+      await preview.locator('.dk-html-embed iframe[data-scripts="on"]').waitFor();
       await preview.locator('[data-testid="code-view"].dk-cv-light').getByText('tokens.py').waitFor();
       await preview.getByTestId('video-poster').or(preview.getByText('This video could not be played')).first().waitFor();
       const started = await preview.locator('video').evaluateAll((vs) => vs.some((v) => !v.paused || v.autoplay || v.controls));

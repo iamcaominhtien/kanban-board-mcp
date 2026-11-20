@@ -433,7 +433,9 @@ test('Try it in the editor lets the selected page take clicks, and Stop gives it
   vi.unstubAllGlobals();
 });
 
-test('the source editor says who is editing when the lock is taken, and does not start', async () => {
+test('the source editor opens without a lock and, when the lock cannot be taken at the first edit, says who is editing', async () => {
+  handlers['GET /canvases/cv_12345678/boards/b_aaaaaaaa/source'] = () =>
+    reply({ boardId: 'b_aaaaaaaa', rev: 2, entry: 'index.html', files: [{ path: 'index.html', text: '<h1>x</h1>' }] });
   handlers['POST /canvases/cv_12345678/boards/b_aaaaaaaa/lock'] = () =>
     reject(423, {
       code: 'board_locked',
@@ -452,6 +454,10 @@ test('the source editor says who is editing when the lock is taken, and does not
       />,
     ),
   );
+  const area = await screen.findByTestId('canvas-source-text');
+  expect(calls.filter((c) => c.url.endsWith('/lock'))).toHaveLength(0);
+  expect(screen.queryByTestId('canvas-locked-for-you')).toBeNull();
+  fireEvent.change(area, { target: { value: '<h1>y</h1>' } });
   const card = await screen.findByTestId('canvas-source-blocked');
   expect(card.textContent).toContain('An Nguyen is editing Sign in');
   expect(card.textContent).toContain('still look, comment and move');
@@ -484,7 +490,7 @@ test('the source editor takes the lock, previews the page as written and saves w
   );
   const text = (await screen.findByTestId('canvas-source-text')) as HTMLTextAreaElement;
   await waitFor(() => expect(text.value).toContain('<h1>Sign in</h1>'));
-  expect(screen.getByTestId('canvas-locked-for-you')).toBeTruthy();
+  expect(screen.queryByTestId('canvas-locked-for-you')).toBeNull(); // just looking: nothing is locked
   // the preview is an open page: nothing is removed from it and the frame has no sandbox
   const frame = screen.getByTestId('canvas-source-preview') as HTMLIFrameElement;
   expect(frame.hasAttribute('sandbox')).toBe(false);
@@ -492,6 +498,7 @@ test('the source editor takes the lock, previews the page as written and saves w
   expect(doc).toContain('<h1>Sign in</h1>');
   expect(doc).not.toContain('Content-Security-Policy');
   fireEvent.change(text, { target: { value: '<h1>Sign in again</h1>' } });
+  await screen.findByTestId('canvas-locked-for-you'); // the first edit takes the lock
   fireEvent.click(screen.getByTestId('canvas-source-save'));
   await waitFor(() => expect(saved).toHaveBeenCalled());
   const put = calls.find((c) => c.method === 'PUT');
@@ -557,7 +564,8 @@ test('a refresh of the plane while the source is open does not drop and take the
     onSaved: () => undefined,
   };
   const view = render(wrap(<SourceEditor {...props} board={DOC.boards[0]} />));
-  await screen.findByTestId('canvas-source-text');
+  fireEvent.change(await screen.findByTestId('canvas-source-text'), { target: { value: '<h1>y</h1>' } });
+  await screen.findByTestId('canvas-locked-for-you');
   // somebody moved a note: the poll gives the editor a new plane, so the board object is new (same revision)
   const fresh = { ...DOC.boards[0], content: { ...DOC.boards[0].content!, files: [...DOC.boards[0].content!.files] } };
   view.rerender(wrap(<SourceEditor {...props} board={fresh} />));
@@ -566,6 +574,35 @@ test('a refresh of the plane while the source is open does not drop and take the
   });
   expect(calls.filter((c) => c.method === 'POST' && c.url.endsWith('/lock'))).toHaveLength(1);
   expect(calls.filter((c) => c.method === 'DELETE')).toHaveLength(0);
+});
+
+test('when the frame changed while the editor sat unlocked, the first edit loads the latest source instead of overwriting it', async () => {
+  handlers['POST /canvases/cv_12345678/boards/b_aaaaaaaa/lock'] = () => reply({ holder: 'user' });
+  let rev = 2;
+  handlers['GET /canvases/cv_12345678/boards/b_aaaaaaaa/source'] = () =>
+    reply({
+      boardId: 'b_aaaaaaaa',
+      rev,
+      entry: 'index.html',
+      files: [{ path: 'index.html', text: `<h1>v${rev}</h1>` }],
+    });
+  render(
+    wrap(
+      <SourceEditor
+        canvasId="cv_12345678"
+        canvasTitle="Login redesign"
+        board={DOC.boards[0]}
+        onClose={() => undefined}
+        onSaved={() => undefined}
+      />,
+    ),
+  );
+  const text = (await screen.findByTestId('canvas-source-text')) as HTMLTextAreaElement;
+  await waitFor(() => expect(text.value).toBe('<h1>v2</h1>'));
+  rev = 3; // the AI updated it meanwhile
+  fireEvent.change(text, { target: { value: '<h1>mine</h1>' } });
+  await screen.findByTestId('canvas-source-notice');
+  await waitFor(() => expect(text.value).toBe('<h1>v3</h1>'));
 });
 
 test('Ctrl Z does not undo or delete what other people did meanwhile', async () => {

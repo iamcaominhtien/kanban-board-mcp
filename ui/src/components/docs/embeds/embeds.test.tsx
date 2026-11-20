@@ -14,8 +14,8 @@ import { CodeView, copyText, parseLineRanges } from './CodeView';
 import { limitSentence, siteAllowed, uploadDocsFile, uploadProblem } from './embedApi';
 import { HtmlEmbedFrame } from './HtmlEmbedFrame';
 import {
-  EMBED_CSP,
   FRAME_MESSAGE,
+  HTML_EMBED_LIMIT,
   buildSrcdoc,
   embedSandbox,
   linesWith,
@@ -43,23 +43,22 @@ function expectNoSameOrigin(container: HTMLElement) {
     expect(sb).not.toBeNull();
     expect(sb).not.toContain('allow-same-origin');
     expect(sb).not.toContain('allow-top-navigation');
-    expect(sb).not.toContain('allow-popups');
   }
 }
 
 describe('HTML embed: the sandbox', () => {
-  it('allows scripts only when they may run, and never the same origin', () => {
+  it("lets a page with scripts work as a web page, but never on the board's origin", () => {
     expect(embedSandbox(false)).toBe('');
-    expect(embedSandbox(true)).toBe('allow-scripts');
-    expect(embedSandbox(true)).not.toContain('allow-same-origin');
+    const sb = embedSandbox(true).split(' ');
+    for (const need of ['allow-scripts', 'allow-forms', 'allow-popups', 'allow-modals', 'allow-pointer-lock'])
+      expect(sb).toContain(need);
+    expect(sb).not.toContain('allow-same-origin');
+    expect(sb).not.toContain('allow-top-navigation');
   });
 
-  it('puts the Content Security Policy in every document, and the reporter only when scripts run', () => {
+  it('puts no Content Security Policy in the document (CDN scripts and requests work), and the reporter only when scripts run', () => {
     const quiet = buildSrcdoc('<p>Hi</p>', { scripts: false, frameId: 'f1' });
-    expect(quiet).toContain(`<meta http-equiv="Content-Security-Policy" content="${EMBED_CSP}">`);
-    expect(EMBED_CSP).toContain("default-src 'none'");
-    expect(EMBED_CSP).toContain("connect-src 'none'");
-    expect(EMBED_CSP).toContain("form-action 'none'");
+    expect(quiet).not.toContain('Content-Security-Policy');
     expect(quiet).toContain('<p>Hi</p>');
     expect(quiet).not.toContain('<script>');
     const loud = buildSrcdoc('<p>Hi</p>', { scripts: true, frameId: 'f1' });
@@ -95,7 +94,6 @@ describe('HtmlEmbedFrame', () => {
     );
     const frame = container.querySelector('iframe')!;
     expect(frame.getAttribute('sandbox')).toBe('');
-    expect(frame.getAttribute('srcdoc')).toContain('Content-Security-Policy');
     expect(frame.style.height).toBe('320px');
     expect(screen.queryByRole('button', { name: 'Run it' })).toBeNull();
     expectNoSameOrigin(container);
@@ -109,7 +107,7 @@ describe('HtmlEmbedFrame', () => {
     expect(before.getAttribute('data-scripts')).toBe('off');
     fireEvent.click(await screen.findByRole('button', { name: 'Run it' }));
     const after = container.querySelector('iframe')!;
-    expect(after.getAttribute('sandbox')).toBe('allow-scripts');
+    expect(after.getAttribute('sandbox')).toBe(embedSandbox(true));
     expect(after.getAttribute('srcdoc')).toContain(FRAME_MESSAGE);
     expectNoSameOrigin(container);
     // the height reported by the frame's own script is taken (Height: Auto)
@@ -128,6 +126,18 @@ describe('HtmlEmbedFrame', () => {
     expect(container.querySelector('iframe')!.style.height).toBe('512px');
   });
 
+  it('runs scripts as soon as it is shown when the project lets them run (the default)', async () => {
+    api.get.mockResolvedValue({ data: {} });
+    const { container } = wrap(<HtmlEmbedFrame html={html} title="Widget" height={null} runScripts projectId="p1" />);
+    // the settings arrive, and with no choice made the scripts run without a click
+    await vi.waitFor(() => expect(container.querySelector('iframe')!.getAttribute('data-scripts')).toBe('on'));
+    expect(screen.queryByRole('button', { name: 'Run it' })).toBeNull();
+    const frame = container.querySelector('iframe')!;
+    expect(frame.getAttribute('sandbox')).toBe(embedSandbox(true));
+    expect(frame.hasAttribute('allowfullscreen')).toBe(true);
+    expectNoSameOrigin(container);
+  });
+
   it('never runs scripts when the project turned them off', async () => {
     api.get.mockResolvedValue({ data: { scriptsInEmbeds: 'off' } });
     const { container } = wrap(<HtmlEmbedFrame html={html} title="Widget" height={200} runScripts projectId="p1" />);
@@ -139,12 +149,12 @@ describe('HtmlEmbedFrame', () => {
     expectNoSameOrigin(container);
   });
 
-  it('shows "Too large to embed" in place of a frame over 512 KB', () => {
+  it('shows "Too large to embed" in place of a frame over the limit', () => {
     api.get.mockResolvedValue({ data: {} });
-    const big = `<p>${'x'.repeat(600 * 1024)}</p>`;
+    const big = `<p>${'x'.repeat(HTML_EMBED_LIMIT)}</p>`;
     const { container } = wrap(<HtmlEmbedFrame html={big} title="Export" height={null} runScripts={false} />);
     expect(screen.getByText('Too large to embed')).toBeTruthy();
-    expect(screen.getByText(/An embed can be 512 KB at most/)).toBeTruthy();
+    expect(screen.getByText(/An embed can be 10\.0 MB at most/)).toBeTruthy();
     expect(container.querySelector('iframe')).toBeNull();
   });
 });

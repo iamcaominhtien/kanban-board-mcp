@@ -80,8 +80,8 @@ impl PageBody {
                     return docs_err(422, "invalid_content", e.to_string());
                 }
                 let mut doc = doc.clone();
-                // HTML embeds are cleaned on save (allow-list); what went is said by the editor after Save
-                crate::docs_embeds::sanitize_doc(&mut doc)?;
+                // HTML embeds are kept as written (they run in an isolated sandbox); only their size is checked
+                crate::docs_embeds::check_doc(&doc)?;
                 kb_richdoc::ensure_block_ids(&mut doc, &mut RandomIds);
                 let body = Self::from_doc(doc);
                 if body.markdown.chars().count() > MAX_MARKDOWN {

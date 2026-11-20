@@ -26,7 +26,7 @@ export interface DocsSpaceSettings {
   publicLinkExpiry: 'never' | '7d' | '30d' | '90d';
   highlights: 'on' | 'off';
   uploads: { imageMb: number; videoMb: number; fileMb: number };
-  scriptsInEmbeds: 'ask' | 'off';
+  scriptsInEmbeds: 'on' | 'ask' | 'off';
   embedSites: string[];
   /** How each AI team (by member id) changes pages. */
   aiApply: Record<string, 'suggest' | 'direct'>;

@@ -314,9 +314,9 @@ async fn test_importing_under_a_parent_page() {
 #[tokio::test]
 async fn test_wrong_extension_size_utf8_and_unsafe_paths_are_errors_not_crashes() {
     let (_s, c, pid) = setup!("test_wrong_extension_size_utf8_and_unsafe_paths_are_errors_not_crashes");
-    let big = vec![b'x'; 2 * 1024 * 1024 + 1];
-    let exact = vec![b'x'; 1_000_000];
-    let two_mb = vec![b'x'; 2 * 1024 * 1024];
+    let big = vec![b'x'; 20 * 1024 * 1024 + 1];
+    let exact = vec![b'x'; 2 * 1024 * 1024];
+    let two_mb = vec![b'x'; 20_000_001];
     let files: Vec<(&str, &[u8])> = vec![
         ("notes.txt", b"x"),
         ("big.md", &big),
@@ -340,14 +340,14 @@ async fn test_wrong_extension_size_utf8_and_unsafe_paths_are_errors_not_crashes(
         .map(|f| (f["path"].as_str().unwrap(), (f["status"].as_str().unwrap(), f["message"].as_str())))
         .collect();
     assert_eq!(msgs["notes.txt"], ("error", Some("Only .md and .markdown files can be imported")));
-    assert_eq!(msgs["big.md"], ("error", Some("File is larger than 2 MB")));
+    assert_eq!(msgs["big.md"], ("error", Some("File is larger than 20 MB")));
     assert_eq!(msgs["latin.md"], ("error", Some("File is not valid UTF-8 text")));
     for p in ["../evil.md", "a/../../evil.md", "/abs/evil.md", "C:/win/evil.md", "back\\..\\evil.md"] {
         assert!(msgs[p].0 == "error" && msgs[p].1.unwrap().starts_with("Unsafe path"), "{p}");
     }
     assert_eq!(msgs["ok.md"], ("ok", None));
     assert_eq!(msgs["exact.md"].0, "ok");
-    // a page holds at most 1,000,000 characters
+    // a page holds at most 20,000,000 characters (a file under 20 MB can still be more)
     assert_eq!(msgs["two-mb.md"], ("error", Some("File is too large for a page")));
     assert!(out["errors"] == 9 && out["pages"] == 2);
     let real = import(&c, &pid, &files, &[]).await.json();

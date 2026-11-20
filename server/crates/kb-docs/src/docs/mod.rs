@@ -47,7 +47,7 @@ pub const RECYCLE_DAYS: i64 = 30;
 /// Longest page title, in characters.
 pub const MAX_TITLE: usize = 200;
 /// Largest page, in characters.
-pub const MAX_MARKDOWN: usize = 1_000_000;
+pub const MAX_MARKDOWN: usize = 20_000_000;
 
 /// The BA's page templates (`services/ba_templates/`: `docs_templates()`), in the order of its `DOCS`.
 fn ba_templates() -> Vec<(String, Template)> {
