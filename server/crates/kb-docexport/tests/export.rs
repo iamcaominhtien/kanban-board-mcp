@@ -869,3 +869,48 @@ fn a_missing_site_falls_back_to_a_note() {
     let html = html_of(doc);
     assert!(html.contains("HTML embed: Gone"), "{html}");
 }
+
+struct ModuleSite;
+
+impl AssetSource for ModuleSite {
+    fn fetch(&self, _src: &str) -> Option<Asset> {
+        None
+    }
+
+    fn drawing_png(&self, _kind: DrawingKind, _id: &str) -> Option<Vec<u8>> {
+        None
+    }
+
+    fn site_files(&self, _id: &str) -> Option<Vec<kb_docexport::SiteFile>> {
+        let f = |p: &str, b: &str| kb_docexport::SiteFile { path: p.into(), bytes: b.as_bytes().to_vec() };
+        Some(vec![
+            f("index.html", "<script type=module src=js/main.js></script>"),
+            f(
+                "js/main.js",
+                "import { Box } from './shapes.js';\n// import 'ignored.js'\nimport('https://cdn.example/x.js'); import 'lib';\nconsole.log(Box);",
+            ),
+            f("js/shapes.js", "import { u } from \"../lib/util.js\";\nimport './main.js';\nexport const Box = u;"),
+            f("lib/util.js", "export const u = 1;"),
+        ])
+    }
+}
+
+#[test]
+fn site_modules_are_rewritten_to_data_uris() {
+    use base64::Engine;
+    let doc =
+        json!({"type":"doc","content":[{"type":"htmlEmbed","attrs":{"src":"/docs/sites/m1/index.html","html":""}}]});
+    let html = render_html(&[page("M", doc)], &ModuleSite, &HtmlOptions::default()).index_html().to_string();
+    let decode = |s: &str| {
+        let b64 = s.split("data:text/javascript;base64,").nth(1).unwrap().split(['\'', '"', '&', ';']).next().unwrap();
+        String::from_utf8(base64::engine::general_purpose::STANDARD.decode(b64).unwrap()).unwrap()
+    };
+    assert!(!html.contains("./shapes.js") && !html.contains("util.js"), "{html}");
+    assert!(html.contains("https://cdn.example/x.js") && html.contains("import &#39;lib&#39;"), "{html}");
+    let shapes = decode(&html);
+    assert!(shapes.contains("export const Box = u;"), "{shapes}");
+    let util = decode(&shapes);
+    assert_eq!(util, "export const u = 1;");
+    // the cycle (shapes imports main) keeps its relative specifier
+    assert!(shapes.contains("import './main.js';"), "{shapes}");
+}

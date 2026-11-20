@@ -2,7 +2,8 @@
  * The frame of an HTML embed (design "Embeds", frames 1-9, 73): the frame itself and its states. Scripts run as soon as the embed is shown when the embed asks for them
  * and the project's `scriptsInEmbeds` is `on` (the default); with `ask` the reader presses "Run it" first, with
  * `off` they never run and the frame gets `sandbox=""` and a fixed height. While scripts run the frame has no sandbox. Too large (over the limit) and
- * could-not-load are shown in place of the frame.
+ * could-not-load are shown in place of the frame. An embed with a `src` (a site uploaded as a folder) opens that
+ * address instead of its HTML; it always wants its scripts, and Height Auto reads the page's own height (same origin).
  */
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -26,8 +27,10 @@ const LOAD_TIMEOUT_MS = 10_000;
 
 /** Props of {@link HtmlEmbedFrame}. */
 export interface HtmlEmbedFrameProps {
-  /** The embed's HTML. */
+  /** The embed's HTML (unused when `src` is set). */
   html: string;
+  /** The address of the site the embed shows (`/docs/sites/<id>/<entry>`); wins over `html`. */
+  src?: string | null;
   /** Its title (the frame's accessible name). */
   title: string;
   /** Fixed height in px; null follows the content (only possible while scripts run). */
@@ -47,6 +50,7 @@ export interface HtmlEmbedFrameProps {
  */
 export function HtmlEmbedFrame({
   html,
+  src,
   title,
   height,
   runScripts,
@@ -65,14 +69,48 @@ export function HtmlEmbedFrame({
   const loadedRef = useRef(false);
   loadedRef.current = loaded;
 
-  const bytes = useMemo(() => byteSize(html), [html]);
+  const site = src || null;
+  const bytes = useMemo(() => (site ? 0 : byteSize(html)), [html, site]);
   const tooLarge = bytes > HTML_EMBED_LIMIT;
   // until the project's choice is known nothing runs, so an "ask" project never runs a script before asking
   const policy = settings.isPending && !!projectId ? 'loading' : (settings.data?.scriptsInEmbeds ?? 'on');
   const scriptsOff = policy === 'off';
-  const wantsScripts = runScripts && hasScripts(html);
+  // a site is a whole page with its own files: it runs as it would in a browser tab
+  const wantsScripts = site ? true : runScripts && hasScripts(html);
   const scripts = wantsScripts && !scriptsOff && (policy === 'on' || ran);
-  const srcDoc = useMemo(() => buildSrcdoc(html, { scripts, frameId }), [html, scripts, frameId]);
+  const srcDoc = useMemo(
+    () => (site ? undefined : buildSrcdoc(html, { scripts, frameId })),
+    [html, scripts, frameId, site],
+  );
+  const observer = useRef<ResizeObserver | null>(null);
+  useEffect(() => () => observer.current?.disconnect(), [site, attempt, scripts]);
+
+  // a site comes from this board, so its document can be read: its height follows the content (Height: Auto)
+  const measureSite = () => {
+    observer.current?.disconnect();
+    observer.current = null;
+    if (!site || height != null) return;
+    let doc: Document | null = null;
+    try {
+      doc = ref.current?.contentDocument ?? null;
+    } catch {
+      doc = null; // another origin, or sandboxed: the height stays fixed
+    }
+    const root = doc?.documentElement;
+    if (!doc || !root) return;
+    const read = () => {
+      const h = Math.max(root.scrollHeight, doc?.body?.scrollHeight ?? 0);
+      if (Number.isFinite(h) && h > 0) setMeasured(Math.max(40, Math.min(4000, Math.ceil(h))));
+    };
+    read();
+    const own = (doc.defaultView as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)?.ResizeObserver;
+    const Ctor = own ?? (typeof ResizeObserver === 'undefined' ? undefined : ResizeObserver);
+    if (Ctor) {
+      observer.current = new Ctor(read);
+      observer.current.observe(root);
+      if (doc.body) observer.current.observe(doc.body);
+    }
+  };
 
   // the frame's own script reports the height; only messages from this frame count
   useEffect(() => {
@@ -94,7 +132,7 @@ export function HtmlEmbedFrame({
     setLoaded(false);
     const t = window.setTimeout(() => setFailed((f) => f || !loadedRef.current), LOAD_TIMEOUT_MS);
     return () => window.clearTimeout(t);
-  }, [srcDoc, attempt, tooLarge]);
+  }, [srcDoc, site, attempt, tooLarge]);
   if (tooLarge) {
     return (
       <div className="dk-emb-fail dk-emb-fail-big" role="status" data-testid="html-embed-too-large">
@@ -135,7 +173,14 @@ export function HtmlEmbedFrame({
     );
   }
 
-  const frameHeight = scripts && height == null ? (measured ?? 150) : (height ?? DEFAULT_EMBED_HEIGHT);
+  const frameHeight =
+    height != null
+      ? height
+      : site
+        ? (measured ?? DEFAULT_EMBED_HEIGHT)
+        : scripts
+          ? (measured ?? 150)
+          : DEFAULT_EMBED_HEIGHT;
   return (
     <div className="dk-emb-frame-wrap">
       {wantsScripts && scriptsOff && (
@@ -157,17 +202,21 @@ export function HtmlEmbedFrame({
         </div>
       )}
       <iframe
-        key={attempt}
+        // a sandbox only takes effect when the frame loads, so a change of it loads the frame again
+        key={`${attempt}-${scripts ? 'on' : 'off'}`}
         ref={ref}
         className="dk-emb-frame"
         title={title || 'HTML embed'}
         sandbox={embedSandbox(scripts)}
-        srcDoc={srcDoc}
+        {...(site ? { src: site } : { srcDoc })}
         referrerPolicy="no-referrer"
         allow="fullscreen; autoplay; clipboard-read; clipboard-write; camera; microphone; geolocation; xr-spatial-tracking; accelerometer; gyroscope"
         allowFullScreen
         style={{ height: frameHeight }}
-        onLoad={() => setLoaded(true)}
+        onLoad={() => {
+          setLoaded(true);
+          measureSite();
+        }}
         data-scripts={scripts ? 'on' : 'off'}
       />
     </div>

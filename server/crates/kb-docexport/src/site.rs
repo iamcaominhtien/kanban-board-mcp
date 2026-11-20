@@ -2,8 +2,9 @@
 //! inlining the entry's local stylesheets, scripts and media.
 //!
 //! The scanner is a small tag walker, not an HTML parser: it handles `<link rel=stylesheet>`, `<script src>`,
-//! `src`/`poster` attributes and CSS `url(...)`. Limit: a `type=module` script is inlined as it is, so the
-//! relative `import`s inside it stay unresolved (`@import` in CSS is inlined to a depth of 3).
+//! `src`/`poster` attributes and CSS `url(...)` (`@import` in CSS is inlined to a depth of 3). A `type=module`
+//! script has its relative import specifiers rewritten, bottom-up, to `data:text/javascript` URIs of the
+//! already-rewritten target (a cycle keeps the specifier of the file that closes it).
 
 use std::collections::HashMap;
 
@@ -147,6 +148,32 @@ impl<'a> Site<'a> {
         Some(self.inline_html(&String::from_utf8_lossy(bytes), dir_of(entry)))
     }
 
+    /// Rewrites the relative specifiers of the module `source` (the file at `path`) to data URIs of their
+    /// rewritten targets; `stack` holds the files being rewritten, so a cycle leaves its specifier as it is.
+    fn rewrite_module(&self, source: &str, path: &str, stack: &mut Vec<String>) -> String {
+        let dir = dir_of(path);
+        let mut out = String::with_capacity(source.len());
+        let mut last = 0;
+        for (start, end) in module_specifiers(source) {
+            let spec = &source[start..end];
+            if !(spec.starts_with("./") || spec.starts_with("../") || spec.starts_with('/')) {
+                continue;
+            }
+            let Some((target, bytes)) = self.lookup(dir, spec) else { continue };
+            if stack.contains(&target) {
+                continue;
+            }
+            stack.push(target.clone());
+            let code = self.rewrite_module(&String::from_utf8_lossy(bytes), &target, stack);
+            stack.pop();
+            out.push_str(&source[last..start]);
+            out.push_str(&data_uri("text/javascript", code.as_bytes()));
+            last = end;
+        }
+        out.push_str(&source[last..]);
+        out
+    }
+
     fn inline_css(&self, css: &str, dir: &str, depth: u8) -> String {
         let mut out = String::with_capacity(css.len());
         let mut rest = css;
@@ -229,12 +256,29 @@ impl<'a> Site<'a> {
                         match src.as_deref().and_then(|s| self.lookup(dir, s)) {
                             Some((_, bytes)) => {
                                 out.push_str(&rebuild(tag, &attrs, &["src"]));
-                                out.push_str(&String::from_utf8_lossy(bytes).replace("</script", "<\\/script"));
+                                let text = String::from_utf8_lossy(bytes);
+                                let text = match (is_module(&attrs), src.as_deref().and_then(|s| self.lookup(dir, s))) {
+                                    (true, Some((path, _))) => {
+                                        self.rewrite_module(&text, &path, &mut vec![path.clone()])
+                                    }
+                                    _ => text.into_owned(),
+                                };
+                                out.push_str(&text.replace("</script", "<\\/script"));
                                 out.push_str("</script>");
                             }
                             None => {
-                                out.push_str(&rewrite_attrs(tag, &attrs, |_, _| None));
-                                out.push_str(&html[i..after]);
+                                out.push_str(tag);
+                                if src.is_none() && is_module(&attrs) {
+                                    let own = if dir.is_empty() {
+                                        "_inline.js".to_string()
+                                    } else {
+                                        format!("{dir}/_inline.js")
+                                    };
+                                    out.push_str(&self.rewrite_module(body, &own, &mut vec![own.clone()]));
+                                    out.push_str(&html[i + body_end..after]);
+                                } else {
+                                    out.push_str(&html[i..after]);
+                                }
                             }
                         }
                     }
@@ -403,4 +447,75 @@ fn rewrite_attrs(tag: &str, attrs: &[Attr], f: impl Fn(&str, &str) -> Option<Str
     }
     out.push_str(&tag[last..]);
     out
+}
+
+fn is_module(attrs: &[Attr]) -> bool {
+    attr(attrs, "type").is_some_and(|a| a.value.trim().eq_ignore_ascii_case("module"))
+}
+
+/// The byte ranges (inside the quotes) of the static module specifiers in JavaScript source: `import x from 'a'`,
+/// `import 'a'`, `export … from 'a'` and `import('a')`. Comments, strings and templates are skipped.
+fn module_specifiers(src: &str) -> Vec<(usize, usize)> {
+    let b = src.as_bytes();
+    let mut found = Vec::new();
+    let mut i = 0;
+    let word = |c: u8| c.is_ascii_alphanumeric() || c == b'_' || c == b'$';
+    // the string literal starting at the first non-space byte at or after `j`
+    let literal = |mut j: usize| -> Option<(usize, usize)> {
+        while j < b.len() && b[j].is_ascii_whitespace() {
+            j += 1;
+        }
+        let q = *b.get(j).filter(|c| **c == b'"' || **c == b'\'')?;
+        let end = b[j + 1..].iter().position(|c| *c == q || *c == b'\n')? + j + 1;
+        (b[end] == q).then_some((j + 1, end))
+    };
+    while i < b.len() {
+        match b[i] {
+            b'/' if b.get(i + 1) == Some(&b'/') => {
+                i = b[i..].iter().position(|c| *c == b'\n').map_or(b.len(), |p| i + p);
+            }
+            b'/' if b.get(i + 1) == Some(&b'*') => {
+                i = src[i + 2..].find("*/").map_or(b.len(), |p| i + 2 + p + 2);
+            }
+            q @ (b'"' | b'\'' | b'`') => {
+                i += 1;
+                while i < b.len() && b[i] != q {
+                    i += if b[i] == b'\\' { 2 } else { 1 };
+                }
+                i += 1;
+            }
+            c if word(c) => {
+                let start = i;
+                while i < b.len() && word(b[i]) {
+                    i += 1;
+                }
+                let after_dot = src[..start].trim_end().ends_with('.');
+                match &src[start..i] {
+                    "from" if !after_dot => found.extend(literal(i)),
+                    "import" if !after_dot => {
+                        let mut j = i;
+                        while j < b.len() && b[j].is_ascii_whitespace() {
+                            j += 1;
+                        }
+                        if b.get(j) == Some(&b'(') {
+                            found.extend(literal(j + 1).filter(|(_, e)| {
+                                let mut k = e + 1;
+                                while k < b.len() && b[k].is_ascii_whitespace() {
+                                    k += 1;
+                                }
+                                matches!(b.get(k), Some(b')' | b','))
+                            }));
+                        } else {
+                            found.extend(literal(i));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            _ => i += 1,
+        }
+    }
+    found.sort_unstable();
+    found.dedup();
+    found
 }
