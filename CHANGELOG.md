@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [5.2.1] - 2026-11-20
+
+### Fixed
+- **HTML embeds did not run in the desktop app.** The app's window allowed only its own scripts, so an embed's inline and CDN scripts never ran (a page said "script chưa chạy", code stayed uncoloured), and a site embed (a folder or page under `/docs/sites/`) was an empty frame because its address was read against the app's `file://` page. The window now lets embeds run as in a browser tab, and a site's address is put on the board server's origin (the frame, "Open in a new tab" and the editor menu). In the desktop app a site's frame cannot be measured, so give the block a fixed height.
+
 ## [5.2.0] - 2026-11-20
 
 **HTML embeds work like real web pages, and a whole folder can be one.** The board is a local app, so the extra guards around embeds are gone: an interactive page (a 3D view from a CDN library, a page that saves to `localStorage`) runs in Docs exactly as it does opened in a browser.
