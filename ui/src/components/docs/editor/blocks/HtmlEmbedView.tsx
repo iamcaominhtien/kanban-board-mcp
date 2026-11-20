@@ -4,20 +4,38 @@
  * phone editing the code opens full screen with a bar of symbols. The preview updates when typing stops. The block's
  * footer sets the height (Auto follows the content while scripts run, Fixed in px) and whether its scripts run, and
  * counts the lines and the size against the 512 KB limit. After a save that cleaned the HTML it says what was removed
- * and crosses out the lines that held it.
+ * and crosses out the lines that held it. A page too big for inline code goes in as a site: "Upload folder…" or
+ * "Upload .zip / .html…" sends the files and the embed shows them by their address (`src`, no Code tab); "Back to
+ * inline code" lets go of the site and shows the embed's own code again.
  */
 
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { clearRemoved, useRemoved } from '../../embeds/cleanedHtml';
 import { highlight } from '../../docsHighlight';
-import { HtmlChip, HtmlKind, SourceView } from '../../embeds/HtmlEmbedBlock';
+import { HtmlChip, HtmlKind, SiteSourceView, SourceView, siteEntry } from '../../embeds/HtmlEmbedBlock';
 import { EmbIcon } from '../../embeds/embIcons';
 import { HtmlEmbedFrame } from '../../embeds/HtmlEmbedFrame';
 import { HTML_EMBED_LIMIT, byteSize, kbOrMb, linesWith, listWords } from '../../embeds/htmlSandbox';
 import { useEditorEnv } from '../context';
 import { startDocUpload } from './docUpload';
+import {
+  cancelSiteUpload,
+  dropSiteUpload,
+  retrySiteUpload,
+  siteUploadFor,
+  siteUploadsVersion,
+  startSiteUpload,
+  subscribeSiteUploads,
+} from './siteUpload';
 import { Panel, Seg, Toggle, useBlockLayout } from './ui';
 import '../../embeds/embeds.css';
 
@@ -98,16 +116,68 @@ export function CodeArea({ value, onChange, crossed, label, autoFocus, areaRef }
   );
 }
 
+/** The "Upload folder…" and "Upload .zip / .html…" pickers of an embed (hidden; the menu opens them). */
+function SitePickers({
+  folderRef,
+  fileRef,
+  onFiles,
+}: {
+  folderRef: React.RefObject<HTMLInputElement>;
+  fileRef: React.RefObject<HTMLInputElement>;
+  onFiles: (files: File[]) => void;
+}) {
+  const take = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (files.length) onFiles(files);
+  };
+  // React does not know webkitdirectory; it is set on the element
+  useEffect(() => {
+    folderRef.current?.setAttribute('webkitdirectory', '');
+    folderRef.current?.setAttribute('directory', '');
+  }, [folderRef]);
+  return (
+    <>
+      <input
+        ref={folderRef}
+        type="file"
+        multiple
+        hidden
+        aria-label="Upload folder"
+        data-testid="html-embed-folder-input"
+        onChange={take}
+      />
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".zip,.html,.htm,application/zip,text/html"
+        hidden
+        aria-label="Upload .zip or .html"
+        data-testid="html-embed-file-input"
+        onChange={take}
+      />
+    </>
+  );
+}
+
 /**
  * The node view.
  */
 export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes, deleteNode }: NodeViewProps) {
   const attrs = node.attrs as Record<string, unknown>;
   const html = typeof attrs.html === 'string' ? attrs.html : '';
+  const rawSrc = typeof attrs.src === 'string' && attrs.src ? attrs.src : null;
+  const uploadingSrc = rawSrc?.startsWith('uploading:') ? rawSrc : null;
+  // the embed shows a site (not its own code) once its files are on the board
+  const src = uploadingSrc ? null : rawSrc;
   const title = typeof attrs.title === 'string' ? attrs.title : '';
   const height = typeof attrs.height === 'number' && attrs.height > 0 ? attrs.height : null;
   const blockId = typeof attrs.blockId === 'string' ? attrs.blockId : null;
   const editable = editor.isEditable;
+  useSyncExternalStore(subscribeSiteUploads, siteUploadsVersion);
+  const upload = uploadingSrc ? siteUploadFor(uploadingSrc) : undefined;
+  const folderRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const env = useEditorEnv();
   const layout = useBlockLayout();
   const phone = layout === 'phone';
@@ -178,6 +248,15 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
       t?.setSelectionRange(a + sym.length, a + sym.length);
     });
   };
+  const uploadSite = (files: File[]) => {
+    const pos = typeof getPos === 'function' ? getPos() : undefined;
+    if (pos == null) return;
+    startSiteUpload(editor, files, { replacePos: pos });
+  };
+  const backToInline = () => {
+    updateAttributes({ src: null });
+    setTab(phone ? 'preview' : 'code');
+  };
   const attachAsFile = () => {
     const pos = typeof getPos === 'function' ? getPos() : undefined;
     if (pos == null) return;
@@ -186,9 +265,57 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
     startDocUpload(editor, file, { kind: 'file', at: pos });
   };
 
-  const frame = (
+  const frame = uploadingSrc ? (
+    <div className="dk-emb-fail" role="status" data-testid="html-embed-upload">
+      <EmbIcon name={upload?.status === 'failed' ? 'warn' : 'upload'} size={24} />
+      {upload?.status === 'failed' ? (
+        <>
+          <strong>Not added</strong>
+          <span>{upload.problem?.text}</span>
+        </>
+      ) : upload ? (
+        <>
+          <strong>
+            Uploading {upload.files.length === 1 ? upload.files[0].name : `${upload.files.length} files`}…
+          </strong>
+          <span>
+            {kbOrMb(upload.loaded)} of {kbOrMb(upload.total)}
+          </span>
+        </>
+      ) : (
+        <>
+          <strong>This embed is still uploading</strong>
+          <span>It shows here once its files reach the board.</span>
+        </>
+      )}
+      {editable && (
+        <div className="dk-emb-actions">
+          {upload?.status === 'failed' && (
+            <button
+              type="button"
+              className="st-btn st-btn-primary st-btn-sm"
+              onClick={() => retrySiteUpload(editor, upload.id)}
+            >
+              Try again
+            </button>
+          )}
+          <button
+            type="button"
+            className="st-btn st-btn-sm"
+            onClick={() => {
+              if (upload) cancelSiteUpload(editor, upload.id);
+              else updateAttributes({ src: null });
+            }}
+          >
+            {upload?.status === 'failed' ? (upload.previous ? 'Cancel' : 'Remove') : 'Cancel'}
+          </button>
+        </div>
+      )}
+    </div>
+  ) : (
     <HtmlEmbedFrame
       html={shown}
+      src={src}
       title={title}
       height={height}
       runScripts={!!attrs.runScripts}
@@ -255,7 +382,19 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
   const sizeLabel = height == null ? 'Height: Auto' : `Height: ${height} px`;
   const footer = editable && (
     <div className="dk-emb-foot">
-      {tab === 'code' && !phone ? (
+      {src || uploadingSrc ? (
+        <>
+          <EmbIcon name="size" size={12} />
+          <span>{sizeLabel}</span>
+          <span aria-hidden="true">·</span>
+          <span>Scripts on</span>
+          {src && (
+            <span className="dk-emb-size" data-testid="html-embed-site">
+              Site · {siteEntry(src)}
+            </span>
+          )}
+        </>
+      ) : tab === 'code' && !phone ? (
         <>
           {draft === shown && (
             <>
@@ -278,9 +417,11 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
           )}
         </>
       )}
-      <span className={`dk-emb-size${bytes > HTML_EMBED_LIMIT ? ' over' : ''}`}>
-        {lineCount} lines · {kbOrMb(bytes)} of 512 KB
-      </span>
+      {!src && !uploadingSrc && (
+        <span className={`dk-emb-size${bytes > HTML_EMBED_LIMIT ? ' over' : ''}`}>
+          {lineCount} lines · {kbOrMb(bytes)} of 512 KB
+        </span>
+      )}
     </div>
   );
 
@@ -318,11 +459,13 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
             </div>
           )}
         </div>
-        <Toggle
-          label="Run scripts"
-          checked={!!attrs.runScripts}
-          onChange={(v) => updateAttributes({ runScripts: v })}
-        />
+        {!rawSrc && (
+          <Toggle
+            label="Run scripts"
+            checked={!!attrs.runScripts}
+            onChange={(v) => updateAttributes({ runScripts: v })}
+          />
+        )}
       </div>
       <div className="dk-emb-sz-done">
         <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={() => setSizeAt(null)}>
@@ -333,7 +476,7 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
   );
 
   const body =
-    tab === 'code' && editable && !phone ? (
+    tab === 'code' && editable && !phone && !rawSrc ? (
       <div className="dk-emb-split">
         <CodeArea value={draft} onChange={setDraft} crossed={crossed} label="HTML code" areaRef={areaRef} />
         <div className="dk-emb-live">
@@ -363,7 +506,7 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
         ) : (
           <HtmlChip title={title} />
         )}
-        {editable && !phone && (
+        {editable && !phone && !rawSrc && (
           <div className="dk-emb-tabs" role="tablist" aria-label="HTML embed">
             {(
               [
@@ -437,22 +580,62 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
               role="menuitem"
               onClick={() => {
                 setMenu(false);
-                attachAsFile();
+                folderRef.current?.click();
               }}
             >
-              Attach as a file
+              Upload folder…
             </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenu(false);
+                fileRef.current?.click();
+              }}
+            >
+              Upload .zip / .html…
+            </button>
+            {src && (
+              <a role="menuitem" href={src} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}>
+                Open in a new tab
+              </a>
+            )}
+            {rawSrc ? (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenu(false);
+                  if (upload) dropSiteUpload(upload.id);
+                  backToInline();
+                }}
+              >
+                Back to inline code
+              </button>
+            ) : (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenu(false);
+                  attachAsFile();
+                }}
+              >
+                Attach as a file
+              </button>
+            )}
             <button type="button" role="menuitem" className="dk-emb-del" onClick={deleteNode}>
               <EmbIcon name="trash" /> Delete the embed
             </button>
           </div>
         )}
       </div>
-      {removedNote}
+      {!rawSrc && removedNote}
       {body}
       {footer}
       {sizePanel}
-      {source && <SourceView html={html} />}
+      {source && (src ? <SiteSourceView src={src} /> : <SourceView html={html} />)}
+      {editable && <SitePickers folderRef={folderRef} fileRef={fileRef} onFiles={uploadSite} />}
     </>
   );
   // editing code on a phone (Embeds 11): full screen, a 46 px bar (back, the name, Saved, More), the code with its
@@ -535,7 +718,7 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
   return phone ? (
     <NodeViewWrapper className="dk-emb-phone-wrap" data-testid="html-embed" contentEditable={false}>
       <div className={cardClass}>{card}</div>
-      {editable && phone && (
+      {editable && phone && !rawSrc && (
         <div className="dk-emb-under">
           <button type="button" className="st-btn" onClick={() => setFullScreen(true)}>
             <EmbIcon name="code" size={15} sw={2.2} />

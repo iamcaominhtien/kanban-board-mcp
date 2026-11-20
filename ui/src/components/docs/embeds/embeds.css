@@ -217,7 +217,10 @@
   background: #ffffff;
   box-shadow: 0 14px 36px rgba(30, 42, 34, 0.16);
 }
-.dk-emb-menu button {
+.dk-emb-menu button,
+.dk-emb-menu a {
+  box-sizing: border-box;
+  text-decoration: none;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -233,7 +236,8 @@
   text-align: left;
   cursor: pointer;
 }
-.dk-emb-menu button:hover {
+.dk-emb-menu button:hover,
+.dk-emb-menu a:hover {
   background: #f1f5f2;
 }
 .dk-emb-menu .dk-emb-del {

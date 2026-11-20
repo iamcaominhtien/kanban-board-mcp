@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { ensureProject, openDocs, newDocPage, publishDoc, setMarkdown, getMarkdown } from '../lib/ui.mjs';
 import { makeFixtures, cleanFixtures } from '../lib/fixtures.mjs';
 
@@ -751,6 +753,43 @@ export default {
       // the server keeps the onclick attribute: nothing is said to be removed
       if ((await embed.getByTestId('html-embed-removed').count()) !== 0) throw new Error('saving still removes parts of the HTML');
       await p.keyboard.press('Control+End');
+    });
+    await s.step('HTML embed of a folder: Upload folder… sends its files, the frame opens the site with no sandbox and runs it', async () => {
+      // a small site: a page with its own stylesheet and script in sub-folders
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kb-e2e-site-'));
+      const site = path.join(dir, 'globe-demo');
+      fs.mkdirSync(path.join(site, 'css'), { recursive: true });
+      fs.mkdirSync(path.join(site, 'js'), { recursive: true });
+      fs.writeFileSync(path.join(site, 'index.html'), '<!doctype html><html><head><link rel="stylesheet" href="css/style.css"></head><body><h1 id="t">Waiting</h1><script src="js/app.js"></script></body></html>');
+      fs.writeFileSync(path.join(site, 'css', 'style.css'), 'h1 { color: rgb(46, 111, 64); }');
+      fs.writeFileSync(path.join(site, 'js', 'app.js'), 'document.getElementById("t").textContent = "Site ran";');
+      try {
+        await atEnd();
+        await p.keyboard.press('Enter');
+        await insert('html');
+        const embed = content().locator('.dk-html-embed').last();
+        await embed.getByRole('button', { name: 'More' }).click();
+        await p.getByRole('menuitem', { name: 'Upload folder…' }).waitFor();
+        await p.keyboard.press('Escape');
+        // the folder picker takes a directory (webkitdirectory): each file goes with its path inside the folder
+        await embed.getByTestId('html-embed-folder-input').setInputFiles(site);
+        const frame = embed.locator('iframe[src^="/docs/sites/"]');
+        await frame.waitFor();
+        if (!/^\/docs\/sites\/[0-9a-f]{12}\/index\.html$/.test((await frame.getAttribute('src')) ?? '')) throw new Error('the frame does not open the site entry');
+        if ((await frame.getAttribute('sandbox')) !== null) throw new Error('a site frame is sandboxed');
+        if ((await embed.getByRole('textbox', { name: 'Embed title' }).inputValue()) !== 'globe-demo') throw new Error('the embed did not take the folder name');
+        // the page loads its stylesheet and script from the site, as in a browser tab
+        const inner = embed.frameLocator('iframe');
+        await inner.getByText('Site ran').waitFor();
+        const color = await inner.locator('#t').evaluate((el) => getComputedStyle(el).color);
+        if (color !== 'rgb(46, 111, 64)') throw new Error(`the site stylesheet did not load: ${color}`);
+        await embed.getByTestId('html-embed-site').getByText('Site · index.html').waitFor();
+        if ((await embed.getByRole('tab', { name: 'Code' }).count()) !== 0) throw new Error('a site embed still has a Code tab');
+        await checkSandbox(content());
+        await saved();
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
     });
     await s.step('code block: file name, line numbers, a highlighted line and the light theme from its settings', async () => {
       await atEnd();

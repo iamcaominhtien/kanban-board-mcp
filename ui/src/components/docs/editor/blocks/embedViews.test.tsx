@@ -273,3 +273,152 @@ describe('the Insert catalog', () => {
     expect(filterSlash('youtube')[0].id).toBe('embed-link');
   });
 });
+
+describe('HTML embed of a site (a folder, a .zip or an .html page)', () => {
+  const SITE = {
+    id: 'ab12cd34ef56',
+    url: '/docs/sites/ab12cd34ef56/index.html',
+    entry: 'index.html',
+    files: [
+      { path: 'index.html', bytes: 40 },
+      { path: 'js/globe.js', bytes: 9 },
+    ],
+    bytes: 49,
+  };
+  const embedDoc = (attrs: Record<string, unknown>): RichDoc => ({
+    type: 'doc',
+    content: [{ type: 'htmlEmbed', attrs: { blockId: 'b-0000e2', html: '', runScripts: false, ...attrs } }],
+  });
+  const folderFiles = () => {
+    const page = new File(['<h1>Globe</h1><script src="js/globe.js"></script>'], 'index.html', { type: 'text/html' });
+    const script = new File(['spin()'], 'globe.js');
+    Object.defineProperty(page, 'webkitRelativePath', { value: 'globe/index.html' });
+    Object.defineProperty(script, 'webkitRelativePath', { value: 'globe/js/globe.js' });
+    return [page, script];
+  };
+  const pick = (input: HTMLElement, files: File[]) => {
+    Object.defineProperty(input, 'files', { value: files, configurable: true });
+    fireEvent.change(input);
+  };
+  const openMore = () => fireEvent.click(screen.getByRole('button', { name: 'More' }));
+
+  it('uploads a folder from the embed, shows the site by its address and takes the folder name', async () => {
+    api.post.mockResolvedValue({ data: SITE });
+    const ref = renderEditor(embedDoc({}));
+    await screen.findByTestId('docs-editor-surface');
+    const input = screen.getByTestId('html-embed-folder-input');
+    expect(input.hasAttribute('webkitdirectory')).toBe(true);
+    openMore();
+    expect(screen.getByRole('menuitem', { name: 'Upload folder…' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Upload .zip / .html…' })).toBeTruthy();
+    pick(input, folderFiles());
+    await waitFor(() => expect(blocks(ref)[0].attrs?.src).toBe(SITE.url));
+    expect(blocks(ref)[0]).toMatchObject({
+      type: 'htmlEmbed',
+      attrs: { blockId: 'b-0000e2', title: 'globe', html: '', runScripts: true },
+    });
+    const [url, form] = api.post.mock.lastCall as [string, FormData];
+    expect(url).toBe('/projects/p1/docs/sites');
+    expect((form.getAll('files') as File[]).map((f) => f.name)).toEqual(['globe/index.html', 'globe/js/globe.js']);
+    // a site has no Code tab; the frame opens its address
+    expect(screen.queryByRole('tab', { name: 'Code' })).toBeNull();
+    const frame = document.querySelector('.dk-html-embed iframe')!;
+    expect(frame.getAttribute('src')).toBe(SITE.url);
+    expect(screen.getByTestId('html-embed-site').textContent).toBe('Site · index.html');
+  });
+
+  it('uploads a .zip or an .html page into the embed and keeps its title; Back to inline code lets the site go', async () => {
+    api.post.mockResolvedValue({ data: SITE });
+    const ref = renderEditor(embedDoc({ title: 'Solar system', html: '<p>old</p>' }));
+    await screen.findByTestId('docs-editor-surface');
+    pick(screen.getByTestId('html-embed-file-input'), [new File(['PK'], 'solar.zip', { type: 'application/zip' })]);
+    await waitFor(() => expect(blocks(ref)[0].attrs?.src).toBe(SITE.url));
+    expect(blocks(ref)[0].attrs?.title).toBe('Solar system');
+    expect(((api.post.mock.lastCall as [string, FormData])[1].get('files') as File).name).toBe('solar.zip');
+    openMore();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Back to inline code' }));
+    expect(blocks(ref)[0].attrs?.src).toBeNull();
+    expect(await screen.findByRole('textbox', { name: 'HTML code' })).toBeTruthy();
+  });
+
+  it('keeps a refused upload on the embed with what the server said; Cancel puts back what it showed', async () => {
+    api.post.mockRejectedValue({ response: { status: 422, data: { detail: 'no_html_page' } } });
+    const ref = renderEditor(embedDoc({ html: '<p>kept</p>' }));
+    await screen.findByTestId('docs-editor-surface');
+    pick(screen.getByTestId('html-embed-folder-input'), folderFiles());
+    expect(await screen.findByText(/There is no HTML page in it/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(blocks(ref)[0].attrs).toMatchObject({ src: null, html: '<p>kept</p>' });
+  });
+
+  it('a dropped .html file becomes an HTML embed of a site, not a file card', async () => {
+    api.post.mockResolvedValue({ data: { ...SITE, url: '/docs/sites/ab12cd34ef56/globe.html', entry: 'globe.html' } });
+    const ref = renderEditor(EMPTY);
+    const surface = await screen.findByTestId('docs-editor-surface');
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/projects/p1/docs/settings'));
+    const editor = ref.current!.getEditor()!;
+    // jsdom has no layout: the drop lands at the start of the page
+    editor.view.posAtCoords = () => ({ pos: 1, inside: 0 });
+    const file = new File(['<h1>Globe</h1>'], 'globe.html', { type: 'text/html' });
+    fireEvent.drop(surface, { dataTransfer: { files: [file], types: ['Files'], getData: () => '' } });
+    await waitFor(() =>
+      expect(blocks(ref).find((b) => b.type === 'htmlEmbed')?.attrs?.src).toBe('/docs/sites/ab12cd34ef56/globe.html'),
+    );
+    expect(blocks(ref).find((b) => b.type === 'htmlEmbed')?.attrs?.title).toBe('globe');
+    expect(blocks(ref).some((b) => b.type === 'fileCard')).toBe(false);
+    expect(api.post).toHaveBeenCalledWith('/projects/p1/docs/sites', expect.any(FormData), expect.anything());
+  });
+
+  it('a pasted .zip with no page in it goes in as a file card instead', async () => {
+    api.post.mockImplementation((url: string) =>
+      url.endsWith('/docs/sites')
+        ? Promise.reject({ response: { status: 422, data: { detail: { code: 'no_html_page' } } } })
+        : Promise.resolve({
+            data: { src: '/uploads/data_1.zip', name: 'data.zip', size: 2, mime: 'application/zip', kind: 'file' },
+          }),
+    );
+    const ref = renderEditor(EMPTY);
+    const surface = await screen.findByTestId('docs-editor-surface');
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/projects/p1/docs/settings'));
+    const file = new File(['PK'], 'data.zip', { type: 'application/zip' });
+    fireEvent.paste(surface, { clipboardData: { getData: () => '', files: [file], types: ['Files'] } });
+    await waitFor(() => expect(blocks(ref).find((b) => b.type === 'fileCard')?.attrs?.src).toBe('/uploads/data_1.zip'));
+    expect(blocks(ref).some((b) => b.type === 'htmlEmbed')).toBe(false);
+  });
+});
+
+describe('Turn into HTML embed (block menu of a code block)', () => {
+  const code = (language: string | null, text: string): RichDoc => ({
+    type: 'doc',
+    content: [{ type: 'codeBlock', attrs: { blockId: 'b-0000c1', language }, content: [{ type: 'text', text }] }],
+  });
+
+  it('turns an HTML code block into an embed of its code, keeping the block id', async () => {
+    const html = '<canvas id="c"></canvas>\n<script>draw()</script>';
+    const ref = renderEditor(code('html', html));
+    await screen.findByTestId('docs-editor-surface');
+    const editor = ref.current!.getEditor()!;
+    askBlockUi(editor, { type: 'blockMenu', pos: 0, anchor: new DOMRect(0, 0, 10, 10) });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Turn into HTML embed' }));
+    expect(blocks(ref)[0]).toMatchObject({
+      type: 'htmlEmbed',
+      attrs: { blockId: 'b-0000c1', html, runScripts: true, src: null },
+    });
+  });
+
+  it('offers it for a code block with no language, not for another language', async () => {
+    const ref = renderEditor(code('javascript', 'run()'));
+    await screen.findByTestId('docs-editor-surface');
+    const editor = ref.current!.getEditor()!;
+    askBlockUi(editor, { type: 'blockMenu', pos: 0, anchor: new DOMRect(0, 0, 10, 10) });
+    await screen.findByTestId('block-menu');
+    expect(screen.queryByRole('menuitem', { name: 'Turn into HTML embed' })).toBeNull();
+    cleanup();
+    const plain = renderEditor(code(null, '<b>Hi</b>'));
+    await screen.findByTestId('docs-editor-surface');
+    askBlockUi(plain.current!.getEditor()!, { type: 'blockMenu', pos: 0, anchor: new DOMRect(0, 0, 10, 10) });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Turn into HTML embed' }));
+    expect(blocks(plain)[0]).toMatchObject({ type: 'htmlEmbed', attrs: { html: '<b>Hi</b>', runScripts: false } });
+  });
+});

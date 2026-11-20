@@ -11,7 +11,18 @@ vi.mock('../../../api/client', async (orig) => {
 });
 
 import { CodeView, copyText, parseLineRanges } from './CodeView';
-import { limitSentence, siteAllowed, uploadDocsFile, uploadProblem } from './embedApi';
+import {
+  isSiteFile,
+  knownSite,
+  limitSentence,
+  siteAllowed,
+  siteProblem,
+  siteTitle,
+  uploadDocsFile,
+  uploadDocsSite,
+  uploadProblem,
+} from './embedApi';
+import { HtmlEmbedBlock, siteEntry } from './HtmlEmbedBlock';
 import { HtmlEmbedFrame } from './HtmlEmbedFrame';
 import {
   FRAME_MESSAGE,
@@ -138,6 +149,120 @@ describe('HtmlEmbedFrame', () => {
     expect(screen.getByText('Too large to embed')).toBeTruthy();
     expect(screen.getByText(/An embed can be 10\.0 MB at most/)).toBeTruthy();
     expect(container.querySelector('iframe')).toBeNull();
+  });
+});
+
+describe('HtmlEmbedFrame with a site (src)', () => {
+  const src = '/docs/sites/ab12cd34ef56/index.html';
+  // jsdom loads no frames: the frame gets a document of this origin whose content is `height` px tall
+  const pageOf = (frame: HTMLIFrameElement, height: number) => {
+    const doc = document.implementation.createHTMLDocument('Globe');
+    Object.defineProperty(doc.documentElement, 'scrollHeight', { value: height, configurable: true });
+    Object.defineProperty(frame, 'contentDocument', { value: doc, configurable: true });
+  };
+
+  it('opens the address in a frame with no sandbox and no srcdoc, whatever runScripts says', async () => {
+    api.get.mockResolvedValue({ data: {} });
+    const { container } = wrap(
+      <HtmlEmbedFrame html="" src={src} title="Globe" height={480} runScripts={false} projectId="p1" />,
+    );
+    await vi.waitFor(() => expect(container.querySelector('iframe')!.getAttribute('data-scripts')).toBe('on'));
+    const frame = container.querySelector('iframe')!;
+    expect(frame.getAttribute('src')).toBe(src);
+    expect(frame.hasAttribute('srcdoc')).toBe(false);
+    expect(frame.hasAttribute('sandbox')).toBe(false);
+    expect(frame.hasAttribute('allowfullscreen')).toBe(true);
+    expect(frame.getAttribute('allow')).toContain('xr-spatial-tracking');
+    expect(frame.style.height).toBe('480px');
+  });
+
+  it('gets sandbox="" when the project turned scripts off', async () => {
+    api.get.mockResolvedValue({ data: { scriptsInEmbeds: 'off' } });
+    const { container } = wrap(
+      <HtmlEmbedFrame html="" src={src} title="Globe" height={null} runScripts projectId="p1" />,
+    );
+    expect(await screen.findByText(/Scripts are turned off for this project/)).toBeTruthy();
+    const frame = container.querySelector('iframe')!;
+    expect(frame.getAttribute('sandbox')).toBe('');
+    expect(frame.getAttribute('src')).toBe(src);
+  });
+
+  it("follows the page's own height (Height: Auto) by reading its document", async () => {
+    api.get.mockResolvedValue({ data: {} });
+    const { container } = wrap(
+      <HtmlEmbedFrame html="" src={src} title="Globe" height={null} runScripts projectId="p1" />,
+    );
+    await vi.waitFor(() => expect(container.querySelector('iframe')!.getAttribute('data-scripts')).toBe('on'));
+    const frame = container.querySelector('iframe')!;
+    // until the page has loaded, the default height
+    expect(frame.style.height).toBe('320px');
+    pageOf(frame, 912);
+    act(() => {
+      fireEvent.load(frame);
+    });
+    expect(frame.style.height).toBe('912px');
+    // a fixed height wins over the page's
+    cleanup();
+    const fixed = wrap(<HtmlEmbedFrame html="" src={src} title="Globe" height={300} runScripts projectId="p1" />);
+    const f2 = fixed.container.querySelector('iframe')!;
+    pageOf(f2, 912);
+    act(() => {
+      fireEvent.load(f2);
+    });
+    expect(f2.style.height).toBe('300px');
+  });
+
+  it("the reader's View source names the page it opens and links to it", async () => {
+    api.get.mockResolvedValue({ data: {} });
+    wrap(<HtmlEmbedBlock attrs={{ html: '', src, title: 'Globe' }} projectId="p1" />);
+    fireEvent.click(screen.getByRole('button', { name: 'View source' }));
+    const view = screen.getByTestId('html-embed-site-source');
+    expect(view.textContent).toContain('Site · opens index.html');
+    expect(screen.getByRole('link', { name: /Open in a new tab/ }).getAttribute('href')).toBe(src);
+    expect(siteEntry('/docs/sites/ab12cd34ef56/demo/page%20one.html')).toBe('demo/page one.html');
+  });
+});
+
+describe('sites: uploading a folder, a .zip or an .html', () => {
+  it('sends each file under its path inside the folder, and remembers the answer', async () => {
+    const site = {
+      id: 'ab12cd34ef56',
+      url: '/docs/sites/ab12cd34ef56/index.html',
+      entry: 'index.html',
+      files: [
+        { path: 'index.html', bytes: 12 },
+        { path: 'js/app.js', bytes: 3 },
+      ],
+      bytes: 15,
+    };
+    api.post.mockResolvedValue({ data: site });
+    const page = new File(['<h1>Hi</h1>'], 'index.html', { type: 'text/html' });
+    const script = new File(['x()'], 'app.js');
+    Object.defineProperty(page, 'webkitRelativePath', { value: 'globe/index.html' });
+    Object.defineProperty(script, 'webkitRelativePath', { value: 'globe/js/app.js' });
+    const res = await uploadDocsSite('p1', [page, script]);
+    expect(res).toEqual(site);
+    const [url, form] = api.post.mock.lastCall as [string, FormData];
+    expect(url).toBe('/projects/p1/docs/sites');
+    const sent = form.getAll('files') as File[];
+    expect(sent.map((f) => f.name)).toEqual(['globe/index.html', 'globe/js/app.js']);
+    expect(knownSite(site.url)).toEqual(site);
+    expect(siteTitle([page, script])).toBe('globe');
+    expect(siteTitle([new File(['PK'], 'Solar system.zip')])).toBe('Solar system');
+  });
+
+  it('knows which files are sites, and says why the server refused one', () => {
+    expect(isSiteFile(new File([''], 'globe.HTML'))).toBe(true);
+    expect(isSiteFile(new File([''], 'site.zip'))).toBe(true);
+    expect(isSiteFile(new File([''], 'notes.pdf'))).toBe(false);
+    const refused = (status: number, detail: unknown) => siteProblem({ response: { status, data: { detail } } });
+    expect(refused(422, 'no_html_page').text).toBe(
+      'There is no HTML page in it. Add an index.html and upload it again.',
+    );
+    expect(refused(422, { code: 'unsafe_path' }).code).toBe('unsafe_path');
+    expect(refused(413, 'too_large').text).toBe('Too large. A site can be 500 MB at most.');
+    expect(refused(422, 'too_many_files').text).toBe('Too many files. A site can have 5000 files at most.');
+    expect(siteProblem(new Error('offline')).code).toBe('failed');
   });
 });
 
