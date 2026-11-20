@@ -450,19 +450,25 @@ export default {
       });
       await saved();
     });
-    await s.step('table controls: select a row, toggle the Header row, add a row above, delete it', async () => {
+    await s.step('table controls: select a row, add a row below, delete it; Header row from Table properties', async () => {
       const table = content().locator('table');
       await table.locator('td').first().click(); // the grips belong to the cell with the caret
       await p.getByRole('button', { name: 'Select row 2' }).click();
       const cells = p.getByTestId('cell-toolbar');
       await cells.waitFor();
-      const heads = await table.locator('th').count();
-      await cells.getByRole('button', { name: 'Header row' }).click();
-      await p.waitForFunction((n) => document.querySelectorAll('[aria-label="Page content"] table th').length !== n, heads);
-      await cells.getByRole('button', { name: 'Add row above' }).click();
+      await cells.getByRole('button', { name: 'Add row below' }).click();
       await p.waitForFunction(() => document.querySelector('[aria-label="Page content"] table').rows.length === 4);
       await cells.getByRole('button', { name: 'Delete row' }).click();
       await p.waitForFunction(() => document.querySelector('[aria-label="Page content"] table').rows.length === 3);
+      // the Header row switch lives in Table properties (board F 31), not in the cell toolbar
+      await table.locator('td').first().click();
+      const heads = await table.locator('th').count();
+      await p.getByRole('button', { name: 'Table properties' }).click();
+      const props = p.getByTestId('table-props');
+      await props.getByRole('switch', { name: 'Header row' }).click({ force: true });
+      await p.waitForFunction((n) => document.querySelectorAll('[aria-label="Page content"] table th').length !== n, heads);
+      await props.getByRole('button', { name: 'Done' }).click();
+      await props.waitFor({ state: 'detached' });
     });
     await s.step('table controls: select a column, add one to the right, then delete the table', async () => {
       const table = content().locator('table');
@@ -471,11 +477,14 @@ export default {
       const cells = p.getByTestId('cell-toolbar');
       await cells.getByRole('button', { name: 'Add column right' }).click();
       await p.waitForFunction(() => document.querySelector('[aria-label="Page content"] table').rows[0].cells.length === 3);
-      await cells.getByRole('button', { name: 'Delete table' }).click();
+      // Delete table is in Table properties, at the foot of the panel
+      await table.locator('td').first().click();
+      await p.getByRole('button', { name: 'Table properties' }).click();
+      await p.getByTestId('table-props').getByRole('button', { name: 'Delete table' }).click();
       await table.waitFor({ state: 'detached' });
       await saved();
     });
-    await s.step('toolbar: Image uploads a picture, Attach a file inserts a link to the upload', async () => {
+    await s.step('toolbar: Image uploads a picture, Attach a file inserts a card of the upload', async () => {
       await content().click();
       await p.keyboard.press('Control+End');
       const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
@@ -485,7 +494,8 @@ export default {
       const attach = toolbar().getByRole('button', { name: /^Attach a file/ });
       const [f] = await Promise.all([p.waitForEvent('filechooser'), attach.click()]);
       await f.setFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('some notes') });
-      await content().getByRole('link', { name: /notes\.txt/ }).waitFor();
+      // the rich editor puts an attached file in as a file card that names it
+      await content().getByTestId('file-block').filter({ hasText: 'notes.txt' }).waitFor();
       await saved();
     });
 

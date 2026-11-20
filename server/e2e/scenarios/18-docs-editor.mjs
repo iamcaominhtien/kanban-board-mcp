@@ -824,11 +824,11 @@ export default {
       await block.hover();
       await p.locator('button.dk-grip').first().click();
       await p.getByRole('menuitem', { name: 'Turn into HTML embed' }).click();
-      const embed = content().locator('.dk-html-embed').last();
-      const frame = embed.locator('iframe[srcdoc]');
+      // the new embed is found by its own code (where the code block stood, not always the last embed of the page)
+      const frame = content().locator('.dk-html-embed iframe[srcdoc*="getElementById(&quot;b&quot;)"], .dk-html-embed iframe[srcdoc*=\'getElementById("b")\']').first();
       await frame.waitFor();
       if ((await frame.getAttribute('data-scripts')) !== 'on') throw new Error('the new embed does not run its script');
-      const inner = embed.frameLocator('iframe');
+      const inner = frame.contentFrame();
       await inner.getByRole('button', { name: '+1' }).click();
       await inner.getByRole('button', { name: '+1' }).click();
       await inner.getByText('2', { exact: true }).waitFor();
