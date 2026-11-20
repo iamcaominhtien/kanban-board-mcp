@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { EmbIcon } from './embIcons';
 import { knownSite } from './embedApi';
 import { HtmlEmbedFrame } from './HtmlEmbedFrame';
-import { kbOrMb } from './htmlSandbox';
+import { kbOrMb, siteUrl } from './htmlSandbox';
 import './embeds.css';
 
 /** The source of an embed, read only, with line numbers and Copy (frame 7). */
@@ -61,7 +61,7 @@ export function SiteSourceView({ src }: { src: string }) {
           Site · opens {siteEntry(src)}
           {site ? ` · ${site.files.length} ${site.files.length === 1 ? 'file' : 'files'}, ${kbOrMb(site.bytes)}` : ''}
         </span>
-        <a className="st-btn st-btn-sm" href={src} target="_blank" rel="noreferrer">
+        <a className="st-btn st-btn-sm" href={siteUrl(src)} target="_blank" rel="noreferrer">
           <EmbIcon name="open" size={12} sw={2.2} />
           Open in a new tab
         </a>

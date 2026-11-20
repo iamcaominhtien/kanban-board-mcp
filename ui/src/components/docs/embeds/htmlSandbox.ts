@@ -6,6 +6,8 @@
  * (Height: Auto).
  */
 
+import { resolveOrigin } from '../../../api/resolveOrigin';
+
 /** The largest HTML an embed may hold (bytes), as the server checks it. */
 export const HTML_EMBED_LIMIT = 10 * 1024 * 1024;
 
@@ -19,6 +21,16 @@ export const DEFAULT_EMBED_HEIGHT = 320;
  */
 export function embedSandbox(scripts: boolean): string | undefined {
   return scripts ? undefined : '';
+}
+
+/**
+ * The address a frame or link opens for a site embed. A site is stored as `/docs/sites/<id>/<entry>`, which only means
+ * the board's server when the page itself comes from it; in the desktop app the page is a `file://` one, so the
+ * address is put on the server's origin.
+ * @param src - The embed's `src` as stored.
+ */
+export function siteUrl(src: string): string {
+  return src.startsWith('/') && !src.startsWith('//') ? `${resolveOrigin()}${src}` : src;
 }
 
 /** Bytes of a text in UTF-8. */

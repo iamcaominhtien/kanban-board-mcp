@@ -32,8 +32,10 @@ import {
   linesWith,
   listWords,
   removedThings,
+  siteUrl,
   withoutScripts,
 } from './htmlSandbox';
+import { setBackendPort } from '../../../api/resolveOrigin';
 import { ProviderPlayer, VideoPlayer } from './VideoBlock';
 import { playableInBrowser, videoEmbedOf } from './videoEmbed';
 
@@ -172,7 +174,7 @@ describe('HtmlEmbedFrame with a site (src)', () => {
     act(() => answer({ data: {} }));
     await vi.waitFor(() => expect(container.querySelector('iframe')!.getAttribute('data-scripts')).toBe('on'));
     const frame = container.querySelector('iframe')!;
-    expect(frame.getAttribute('src')).toBe(src);
+    expect(frame.getAttribute('src')).toBe(siteUrl(src));
     expect(frame.hasAttribute('srcdoc')).toBe(false);
     expect(frame.hasAttribute('sandbox')).toBe(false);
     expect(frame.hasAttribute('allowfullscreen')).toBe(true);
@@ -188,7 +190,7 @@ describe('HtmlEmbedFrame with a site (src)', () => {
     expect(await screen.findByText(/Scripts are turned off for this project/)).toBeTruthy();
     const frame = container.querySelector('iframe')!;
     expect(frame.getAttribute('sandbox')).toBe('');
-    expect(frame.getAttribute('src')).toBe(src);
+    expect(frame.getAttribute('src')).toBe(siteUrl(src));
   });
 
   it("follows the page's own height (Height: Auto) by reading its document", async () => {
@@ -222,8 +224,16 @@ describe('HtmlEmbedFrame with a site (src)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'View source' }));
     const view = screen.getByTestId('html-embed-site-source');
     expect(view.textContent).toContain('Site · opens index.html');
-    expect(screen.getByRole('link', { name: /Open in a new tab/ }).getAttribute('href')).toBe(src);
+    expect(screen.getByRole('link', { name: /Open in a new tab/ }).getAttribute('href')).toBe(siteUrl(src));
     expect(siteEntry('/docs/sites/ab12cd34ef56/demo/page%20one.html')).toBe('demo/page one.html');
+  });
+
+  it("puts the site on the server's origin, so it also loads when the page is the desktop app's file:// one", () => {
+    setBackendPort(57463);
+    expect(siteUrl(src)).toBe('http://127.0.0.1:57463/docs/sites/ab12cd34ef56/index.html');
+    // an address that already names a host stays as it is
+    expect(siteUrl('https://example.com/a.html')).toBe('https://example.com/a.html');
+    expect(siteUrl('//cdn.example.com/a.html')).toBe('//cdn.example.com/a.html');
   });
 });
 

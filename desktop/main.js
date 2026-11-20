@@ -241,7 +241,21 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*; img-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; media-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:* https://embed.diagrams.net; base-uri 'self'; object-src 'none'"
+          [
+            "default-src 'self'",
+            // the board is a local app: an HTML embed (a srcdoc frame inherits this policy, a site is a page served from
+            // 127.0.0.1 that gets it too) runs as it would in a browser tab: inline scripts, CDN libraries, fonts, images
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https:",
+            "style-src 'self' 'unsafe-inline' https:",
+            "font-src 'self' data: https:",
+            "connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* https: wss:",
+            "img-src 'self' data: blob: http://127.0.0.1:* http://localhost:* https:",
+            "media-src 'self' data: blob: http://127.0.0.1:* http://localhost:* https:",
+            "frame-src 'self' http://127.0.0.1:* http://localhost:* https:",
+            "worker-src 'self' blob:",
+            "base-uri 'self'",
+            "object-src 'none'",
+          ].join('; ')
         ]
       }
     });

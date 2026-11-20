@@ -24,7 +24,7 @@ import { highlight } from '../../docsHighlight';
 import { HtmlChip, HtmlKind, SiteSourceView, SourceView, siteEntry } from '../../embeds/HtmlEmbedBlock';
 import { EmbIcon } from '../../embeds/embIcons';
 import { HtmlEmbedFrame } from '../../embeds/HtmlEmbedFrame';
-import { HTML_EMBED_LIMIT, byteSize, kbOrMb, linesWith, listWords } from '../../embeds/htmlSandbox';
+import { HTML_EMBED_LIMIT, byteSize, kbOrMb, linesWith, listWords, siteUrl } from '../../embeds/htmlSandbox';
 import { useEditorEnv } from '../context';
 import { startDocUpload } from './docUpload';
 import {
@@ -596,7 +596,7 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
               Upload .zip / .html…
             </button>
             {src && (
-              <a role="menuitem" href={src} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}>
+              <a role="menuitem" href={siteUrl(src)} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}>
                 Open in a new tab
               </a>
             )}
