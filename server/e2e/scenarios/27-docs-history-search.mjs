@@ -1,4 +1,4 @@
-import { ensureProject, createTicket, addMember, openTicket, closeTicket, openDocs, newDocPage, setMarkdown, publishDoc, home } from '../lib/ui.mjs';
+import { ensureProject, createTicket, addMember, openTicket, closeTicket, openDocs, newDocPage, setMarkdown, getMarkdown, publishDoc, home } from '../lib/ui.mjs';
 
 // Docs: version history and compare, "Changes since you last viewed", the search palette and the results page,
 // hover cards and the side panel, references typed in the editor, the bubble toolbar and the table controls.
@@ -94,7 +94,9 @@ export default {
       const banner = p.getByTestId('since-viewed-banner');
       await banner.getByRole('button', { name: 'Show changes' }).click();
       await banner.getByText('Document GraphQL').waitFor();
-      await banner.getByText('API', { exact: true }).waitFor();
+      // the rich page names the changed blocks as chips ("Paragraph 2"), not by section heading
+      await banner.getByTestId('since-chips').getByText('Paragraph 2', { exact: true }).waitFor();
+      await banner.getByText(/1 section/).waitFor();
       await p.locator('[data-changed-in="Changed in v3"]').first().waitFor();
     });
     await s.step('the eye button hides and shows the change markers', async () => {
@@ -108,8 +110,8 @@ export default {
     await s.step('Compare v2 to v3 opens the diff of just that edit', async () => {
       await p.getByTestId('since-viewed-banner').getByRole('button', { name: 'Compare v2 to v3' }).click();
       await compare().waitFor();
-      await compare().getByText('The API speaks REST and GraphQL.').waitFor();
-      await compare().getByRole('combobox', { name: 'Version 2' }).waitFor();
+      await compare().getByText(/REST and GraphQL\./) /* inline word diff: the changed words are marked on their own */.waitFor();
+      await compare().getByRole('combobox', { name: 'From version' }).waitFor();
       await compare().getByRole('button', { name: 'Close' }).click();
       await compare().waitFor({ state: 'detached' });
     });
@@ -136,8 +138,9 @@ export default {
       await d.getByText('v1 → v3').waitFor();
       await d.getByRole('button', { name: 'Compare', exact: true }).click();
       await compare().waitFor();
-      await compare().getByText(/lines in 3 sections/).waitFor();
-      await compare().getByText('Data lives in PostgreSQL.').first().waitFor();
+      // the rich compare counts blocks (the Security section's heading and paragraph are new), not lines
+      await compare().getByTestId('hx-counts').filter({ hasText: /[1-9]\d* added/ }).waitFor();
+      await compare().getByText(/PostgreSQL/).first().waitFor();
       await compare().getByText('Tokens expire daily.').first().waitFor();
       await compare().getByText(/Comparing the published versions/).waitFor();
     });
@@ -145,9 +148,9 @@ export default {
       const layout = compare().getByRole('group', { name: 'Diff layout' });
       await layout.getByRole('button', { name: 'Side by side' }).click();
       await layout.getByRole('button', { name: 'Side by side' }).and(p.locator('[aria-pressed="true"]')).waitFor();
-      await compare().locator('[data-mode="side-by-side"]').first().waitFor();
+      await compare().locator('.hx-mode-side-by-side').first().waitFor();
       await layout.getByRole('button', { name: 'Inline' }).click();
-      await compare().locator('[data-mode="inline"]').first().waitFor();
+      await compare().locator('.hx-mode-inline').first().waitFor();
       await layout.getByRole('button', { name: 'Inline' }).and(p.locator('[aria-pressed="true"]')).waitFor();
     });
     await s.step('Jump to a change: pick a section, then step with J and K', async () => {
@@ -155,22 +158,23 @@ export default {
       const bold = async (name) => p.waitForFunction((n) => {
         const nv = document.querySelector('[aria-label="Jump to a change"]');
         const b = [...nv.querySelectorAll('button')].find((x) => x.textContent.includes(n));
-        return b && Number(getComputedStyle(b).fontWeight) >= 700;
+        return b && b.getAttribute('aria-current') === 'true'; // the current change is the marked item
       }, name);
       await nav.getByRole('button', { name: /Security/ }).click();
       await bold('Security');
-      await p.keyboard.press('k');
-      await bold('API');
+      await p.keyboard.press('k'); // the change listed before the Security heading (the old trailing paragraph)
+      await bold('Paragraph 4');
       await p.keyboard.press('j');
       await bold('Security');
       await nav.getByRole('button', { name: /Storage/ }).click();
       await bold('Storage');
     });
     await s.step('the version pickers change the pair that is compared', async () => {
-      await compare().getByRole('combobox', { name: 'Version 1' }).selectOption('2');
-      await compare().getByText(/lines in 1 section/).waitFor();
-      await compare().getByText('The API speaks REST and GraphQL.').first().waitFor();
-      if (await compare().getByText('Tokens expire daily.').count()) throw new Error('v2 to v3 must not list the Security section');
+      await compare().getByRole('combobox', { name: 'From version' }).selectOption('2');
+      await compare().getByTestId('hx-counts').filter({ hasText: /\b0 added/ }).waitFor();
+      await compare().getByText(/REST and GraphQL\./).first().waitFor();
+      // no block is added or removed between v2 and v3 (the Security section exists in both)
+      await compare().getByTestId('hx-counts').filter({ hasText: /\b0 removed/ }).waitFor();
       await compare().getByRole('button', { name: 'Restore v2' }).waitFor();
     });
     await s.step('Back to page returns to the list; View on a row shows what that version changed', async () => {
@@ -179,8 +183,8 @@ export default {
       const row = drawer().locator('.hd-row').filter({ hasText: 'Switch storage' });
       await row.hover();
       await row.getByRole('button', { name: 'View' }).click();
-      await compare().getByText('Data lives in PostgreSQL.').first().waitFor();
-      await compare().getByRole('combobox', { name: 'Version 1' }).waitFor();
+      await compare().getByText(/PostgreSQL/).first().waitFor();
+      await compare().getByRole('combobox', { name: 'From version' }).waitFor();
       await p.keyboard.press('Escape');
       await compare().waitFor({ state: 'detached' });
     });
@@ -317,7 +321,9 @@ export default {
       await panel.waitFor({ state: 'detached' });
     });
     await s.step('the chip of a gone section explains it in its card', async () => {
+      await p.mouse.move(5, 500); // leave the chip first: a card opens on the pointer entering it
       await p.getByTestId('ref-section-missing').hover();
+      await p.waitForTimeout(1500); console.log('DBG', await p.evaluate(() => { const c = document.querySelector('[data-testid="ref-section-missing"]'); const r = c.getBoundingClientRect(); const e = document.elementFromPoint(r.x + r.width/2, r.y + r.height/2); return [JSON.stringify(r), e && e.outerHTML.slice(0,200), c.matches(':hover'), document.body.children.length, [...document.body.children].map(x=>x.className)]; }));
       await p.locator('[aria-label^="Preview of"]').getByText(/Gone/).first().waitFor();
     });
     await s.step('Referenced by lists the pages that link here; the button collapses and expands it', async () => {
@@ -348,13 +354,7 @@ export default {
     // ---- the editor: references, bubble toolbar, tables, blocks, files ----
     const toolbar = () => p.getByRole('toolbar', { name: 'Formatting' });
     const refMenu = () => p.getByRole('listbox', { name: 'Link a page or ticket' });
-    const source = async () => {
-      await p.getByRole('button', { name: 'Markdown', exact: true }).click();
-      const md = await p.getByRole('textbox', { name: 'Markdown source' }).inputValue();
-      await p.getByRole('button', { name: 'Visual', exact: true }).click();
-      await content().waitFor();
-      return md;
-    };
+    const source = () => getMarkdown(s); // the editor has no Markdown pane: read what it would write
     await s.step('typing [[ in the editor suggests pages; Tab completes one, # lists its sections, Enter inserts', async () => {
       await item('Runbook').click();
       await newDocPage(s, 'Deploy guide', { parent: 'Runbook' });

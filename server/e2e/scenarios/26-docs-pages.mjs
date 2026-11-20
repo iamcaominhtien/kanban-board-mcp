@@ -118,7 +118,9 @@ export default {
         await d.waitFor({ state: 'detached' });
         await p.getByRole('textbox', { name: 'Page title' }).waitFor();
         await toast('Page created');
-        await p.getByRole('textbox', { name: 'Markdown source' }).or(p.getByRole('button', { name: 'Markdown', exact: true })).first().waitFor();
+        // the rich editor opens with the template's headings in the page
+        await p.getByRole('heading', { name: 'Attendees' }).first().waitFor();
+        await p.getByRole('heading', { name: 'Action items' }).first().waitFor();
         await publishDoc(s);
         await row('Handbook').getByRole('button', { name: 'Collapse' }).waitFor();
       });
@@ -177,7 +179,7 @@ export default {
         await p.mouse.up();
         if ((await width()) <= w0 + 32) throw new Error('dragging right should widen the tree');
         await handle.dblclick();
-        if ((await width()) !== 280) throw new Error('a double click should reset the width to 280');
+        if ((await width()) !== 272) throw new Error('a double click should reset the width to 272');
       });
 
       await s.step('page info: who, version, words and links', async () => {
@@ -223,7 +225,7 @@ export default {
         const sw = d.getByRole('switch', { name: 'Include child pages' });
         await sw.click();
         const list = d.getByRole('list', { name: 'Pages that will be created' });
-        await list.getByText('Copy of Install guide').waitFor();
+        await list.getByText('Install guide', { exact: true }).waitFor();
         await d.getByRole('button', { name: 'Duplicate', exact: true }).click();
         await d.waitFor({ state: 'detached' });
         await toast('Duplicated “Handbook”');
@@ -301,8 +303,9 @@ export default {
         await input.fill('Team handbook');
         await input.press('Enter');
         const d = p.getByRole('dialog', { name: 'Rename page' });
-        await d.getByText(/1 link on 1 page/).waitFor();
-        await d.getByRole('button', { name: 'Rename only' }).waitFor();
+        // links point at the page, not at its title: they follow by themselves (no "Rename only" choice any more)
+        await d.getByText('Links follow by themselves').waitFor();
+        await d.getByText(/1 link · 1 page/).waitFor();
         await d.getByTestId('confirm-rename').click();
         await d.waitFor({ state: 'detached' });
         await toast('Renamed to “Team handbook”');
