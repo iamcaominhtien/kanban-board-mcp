@@ -1,8 +1,8 @@
 /**
  * What the Docs embeds read from the server (design "Embeds and attachments"): the project's Docs settings (upload
  * limits, scripts in HTML embeds, the sites that may be embedded), uploads to the project (`POST
- * /projects/{id}/docs/uploads`, with progress and the server's refusals mapped to what the card says), the preview
- * of a link (`/docs/link-preview`) and of a file (`/docs/file-preview`).
+ * /projects/{id}/docs/uploads`, with progress and the server's refusals mapped to what the card says), the sites an
+ * HTML embed shows (`POST /projects/{id}/docs/sites`: a folder, a .zip or an .html page), the preview of a link (`/docs/link-preview`) and of a file (`/docs/file-preview`).
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -146,6 +146,119 @@ export function uploadProblem(err: unknown, kind: UploadKind, limitMb: number): 
     };
   }
   return { code: 'failed', title: 'Upload failed', text: 'The file did not reach the server. Try again.' };
+}
+
+/** One file of a site. */
+export interface DocsSiteFile {
+  /** Its path inside the site (`js/app.js`). */
+  path: string;
+  bytes: number;
+}
+
+/** A stored site, as `POST /projects/{id}/docs/sites` answers. */
+export interface DocsSite {
+  /** 12 hex characters. */
+  id: string;
+  /** `/docs/sites/<id>/<entry>`: what the embed's `src` becomes. */
+  url: string;
+  /** The page the embed opens (`index.html`). */
+  entry: string;
+  files: DocsSiteFile[];
+  /** All the files together. */
+  bytes: number;
+}
+
+/** The largest site the server keeps (MB), and the most files. */
+export const SITE_LIMIT_MB = 500;
+export const SITE_MAX_FILES = 5000;
+
+/** True for a file that becomes a site when it is put on a page: an `.html` / `.htm` page or a `.zip`. */
+export function isSiteFile(file: File): boolean {
+  return /\.(html?|zip)$/i.test(file.name);
+}
+
+/** The path a file is sent with: its path inside the chosen folder (`webkitRelativePath`), else its name. */
+export function sitePath(file: File): string {
+  const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+  return rel || file.name;
+}
+
+/**
+ * The name an embed gets from what was uploaded: the folder's name, else the file's name without its extension.
+ * @param files - The files as chosen (a folder's files carry their relative path).
+ */
+export function siteTitle(files: File[]): string {
+  const first = files[0];
+  if (!first) return '';
+  const path = sitePath(first);
+  if (path.includes('/')) return path.split('/')[0];
+  return first.name.replace(/\.[^.]+$/, '');
+}
+
+// what this browser uploaded, so View source can list the files without asking the server
+const knownSites = new Map<string, DocsSite>();
+
+/** The site behind an embed's `src`, when this browser uploaded it. */
+export function knownSite(url: string): DocsSite | undefined {
+  return knownSites.get(url);
+}
+
+/**
+ * Sends a folder (its files with their relative paths), a single `.zip` or a single `.html` page; the server keeps
+ * them as a site an HTML embed shows by its address.
+ * @param projectId - The project the page belongs to.
+ * @param files - The files: a folder's, or one `.zip` / `.html`.
+ * @param opts - Abort, progress, and the page to open (the server picks `index.html` when unset).
+ * @returns The stored site.
+ * @throws The request's error; {@link siteProblem} says what it means.
+ */
+export async function uploadDocsSite(
+  projectId: string,
+  files: File[],
+  opts: UploadOptions & { entry?: string } = {},
+): Promise<DocsSite> {
+  const form = new FormData();
+  if (opts.entry) form.append('entry', opts.entry);
+  for (const f of files) form.append('files', f, sitePath(f));
+  const total = files.reduce((n, f) => n + f.size, 0);
+  const res = await client.post<DocsSite>(`/projects/${projectId}/docs/sites`, form, {
+    signal: opts.signal,
+    onUploadProgress: (e) => opts.onProgress?.(e.loaded, e.total ?? total),
+  });
+  knownSites.set(res.data.url, res.data);
+  return res.data;
+}
+
+/** Why a site was not kept. */
+export interface SiteProblem {
+  code: 'no_html_page' | 'unsafe_path' | 'too_large' | 'too_many_files' | 'failed';
+  /** The sentence the embed shows. */
+  text: string;
+}
+
+/**
+ * What a failed site upload means for the person who sent it.
+ * @param err - What {@link uploadDocsSite} threw.
+ */
+export function siteProblem(err: unknown): SiteProblem {
+  const e = err as { response?: { status?: number; data?: { detail?: unknown } } };
+  const status = e?.response?.status;
+  const raw = e?.response?.data?.detail;
+  const code =
+    typeof raw === 'string'
+      ? raw
+      : raw && typeof raw === 'object' && typeof (raw as { code?: unknown }).code === 'string'
+        ? (raw as { code: string }).code
+        : '';
+  if (code === 'no_html_page')
+    return { code, text: 'There is no HTML page in it. Add an index.html and upload it again.' };
+  if (code === 'unsafe_path')
+    return { code, text: 'A file name points outside the folder (like ../). Rename it and upload again.' };
+  if (code === 'too_many_files')
+    return { code: 'too_many_files', text: `Too many files. A site can have ${SITE_MAX_FILES} files at most.` };
+  if (status === 413 || code === 'too_large')
+    return { code: 'too_large', text: `Too large. A site can be ${SITE_LIMIT_MB} MB at most.` };
+  return { code: 'failed', text: 'The files did not reach the server. Try again.' };
 }
 
 /** What `/docs/link-preview` says about a link (keys camelCased by the client). */

@@ -76,6 +76,13 @@ pub trait AssetSource {
     fn size_of(&self, _src: &str) -> Option<u64> {
         None
     }
+
+    /// Returns every file of an HTML site (the folder an `htmlEmbed` block with a `src` shows) by its id, the
+    /// `<id>` of `/docs/sites/<id>/<entry>`; `None` when the site is missing or not served, and the renderer then
+    /// writes the picture or the note it writes for an embed it cannot show.
+    fn site_files(&self, _id: &str) -> Option<Vec<crate::site::SiteFile>> {
+        None
+    }
 }
 
 /// An [`AssetSource`] that has nothing: pictures stay links and drawings become placeholder lines.

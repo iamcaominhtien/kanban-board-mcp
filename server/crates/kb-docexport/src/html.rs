@@ -1,7 +1,7 @@
 //! HTML export: one self-contained file (pictures as `data:` URIs) or a folder (`index.html` + `assets/`), with the
 //! page theme or plain. The same HTML, with a print stylesheet, is what [`crate::render_pdf`] prints.
 //!
-//! Everything from the page is escaped; no script is ever written and an HTML embed is never copied (a note says
+//! Everything from the page is escaped; no script is written except those of an HTML site (an embed with a `src`); an inline HTML embed is never copied (a note says
 //! to open the page to run it). Links pass [`crate::inline::safe_href`], colours the palette, sizes are numbers.
 
 use std::collections::HashMap;
@@ -112,6 +112,19 @@ pub(crate) fn esc(s: &str) -> String {
         }
     }
     out
+}
+
+/// Percent-encodes one path segment of a relative URL.
+fn url_segment(s: &str) -> String {
+    s.bytes()
+        .map(|b| {
+            if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~') {
+                (b as char).to_string()
+            } else {
+                format!("%{b:02X}")
+            }
+        })
+        .collect()
 }
 
 /// Escapes text for a CSS string in double quotes inside a `<style>` element.
@@ -483,11 +496,28 @@ impl<'a> HtmlRenderer<'a> {
     fn html_embed(&mut self, node: &Value, out: &mut String) {
         let title = attr_str(node, "title");
         let html = attr_str(node, "html").unwrap_or("");
+        let height = attr_f64(node, "height").filter(|h| *h > 0.0).unwrap_or(400.0).clamp(80.0, 4000.0).round();
+        if self.opts.print.is_none()
+            && html.is_empty()
+            && let Some(frame) = attr_str(node, "src").and_then(|s| self.site_frame(s))
+        {
+            // a site (a folder of files): no sandbox, as on the page; its scripts run
+            let _ = write!(
+                out,
+                "<figure class=\"html-embed\"><iframe {frame} title=\"{}\" loading=\"lazy\" allowfullscreen \
+                 style=\"width:100%;height:{height}px;border:0;border-radius:8px\"></iframe>",
+                esc(title.unwrap_or("HTML embed"))
+            );
+            if let Some(t) = title {
+                let _ = write!(out, "<figcaption>{}</figcaption>", esc(t));
+            }
+            out.push_str("</figure>\n");
+            return;
+        }
         if self.opts.print.is_none() && !html.is_empty() {
             // as on the page: a frame with scripts has no sandbox (the page works as in a browser), one without
             // scripts allows nothing
             let sandbox = if attr_bool(node, "runScripts") { "" } else { " sandbox=\"\"" };
-            let height = attr_f64(node, "height").filter(|h| *h > 0.0).unwrap_or(400.0).clamp(80.0, 4000.0).round();
             let _ = write!(
                 out,
                 "<figure class=\"html-embed\"><iframe{sandbox} srcdoc=\"{}\" title=\"{}\" loading=\"lazy\" allowfullscreen \
@@ -520,6 +550,37 @@ impl<'a> HtmlRenderer<'a> {
             None => "HTML embed (open the page to run it)".to_string(),
         };
         let _ = writeln!(out, "<p class=\"embed-note\">{}</p>", esc(&note));
+    }
+
+    /// The frame attribute (`srcdoc="…"` in one file, `src="assets/sites/<id>/<entry>"` in a folder) that shows the
+    /// site at `src`; `None` when the address is not a site or its files are not available.
+    fn site_frame(&mut self, src: &str) -> Option<String> {
+        let (id, entry) = crate::site::parse_site_src(src)?;
+        let key = format!("site:{id}");
+        match self.opts.layout {
+            HtmlLayout::SingleFile => {
+                let files = self.assets.site_files(&id)?;
+                let doc = crate::site::Site::new(&files).inline_page(&entry)?;
+                Some(format!("srcdoc=\"{}\"", esc(&doc)))
+            }
+            HtmlLayout::Folder => {
+                if !self.cache.contains_key(&key) {
+                    let files = self.assets.site_files(&id);
+                    if let Some(files) = &files {
+                        for f in files {
+                            self.files.push(OutFile {
+                                path: format!("assets/sites/{id}/{}", f.path),
+                                bytes: f.bytes.clone(),
+                            });
+                        }
+                    }
+                    self.cache.insert(key.clone(), files.filter(|f| !f.is_empty()).map(|_| id.clone()));
+                }
+                self.cache.get(&key)?.as_ref()?;
+                let encoded: Vec<String> = entry.split('/').map(url_segment).collect();
+                Some(format!("src=\"assets/sites/{id}/{}\"", encoded.join("/")))
+            }
+        }
     }
 
     fn drawing_url(&mut self, kind: DrawingKind, id: &str) -> Option<String> {

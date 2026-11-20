@@ -12,7 +12,7 @@ use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Qu
 use kb_docexport::{
     Asset, AssetSource, Book, DocxOptions, DrawingKind, ExportFormat, ExportPage, HeaderFooter, HighlightMode,
     HtmlLayout, HtmlLook, HtmlOptions, HtmlOutput, Margins, MarkdownEmbeds, MarkdownImages, MarkdownOptions,
-    Orientation, OutFile, PageSetup, PageSize, PdfOptions, TableOfContents,
+    Orientation, OutFile, PageSetup, PageSize, PdfOptions, SiteFile, TableOfContents,
 };
 use serde_json::{Map, Value, json};
 
@@ -371,6 +371,23 @@ async fn diagram_picture(session: &Session, id: &str) -> Option<Vec<u8>> {
     }
 }
 
+/// Reads every file under `dir` (recursively) into `out`, by its path relative to `root` with `/` separators.
+fn collect_site_files(root: &std::path::Path, dir: &std::path::Path, out: &mut Vec<SiteFile>) {
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Ok(kind) = entry.file_type() else { continue };
+        if kind.is_dir() {
+            collect_site_files(root, &path, out);
+        } else if kind.is_file()
+            && let (Ok(rel), Ok(bytes)) = (path.strip_prefix(root), std::fs::read(&path))
+        {
+            let rel = rel.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect::<Vec<_>>();
+            out.push(SiteFile { path: rel.join("/"), bytes });
+        }
+    }
+}
+
 impl AssetSource for Uploads {
     fn fetch(&self, src: &str) -> Option<Asset> {
         let name = src.strip_prefix("/uploads/")?;
@@ -386,6 +403,17 @@ impl AssetSource for Uploads {
 
     fn drawing_png(&self, kind: DrawingKind, id: &str) -> Option<Vec<u8>> {
         self.drawings.get(&drawing_key(kind, id)).cloned()
+    }
+
+    fn site_files(&self, id: &str) -> Option<Vec<SiteFile>> {
+        // TEMPORARY: replace with `kb_docs::docs_sites::site_dir(id)` once that module exists.
+        if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
+            return None;
+        }
+        let dir = kb_files::uploads::get_uploads_dir(false).join("docs-sites").join(id);
+        let mut files = Vec::new();
+        collect_site_files(&dir, &dir, &mut files);
+        (!files.is_empty()).then_some(files)
     }
 
     fn size_of(&self, src: &str) -> Option<u64> {

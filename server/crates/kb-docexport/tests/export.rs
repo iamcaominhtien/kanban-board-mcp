@@ -788,3 +788,84 @@ fn an_html_embed_with_scripts_is_not_sandboxed_in_the_export() {
     assert!(frames[0].starts_with("<iframe srcdoc="), "{}", frames[0]);
     assert!(frames[1].starts_with("<iframe sandbox=\"\" srcdoc="), "{}", frames[1]);
 }
+
+/// A site of three files plus an image: `index.html` links `style.css` and `js/app.js`, shows `img/dot.png`.
+struct SiteAssets;
+
+impl AssetSource for SiteAssets {
+    fn fetch(&self, _src: &str) -> Option<Asset> {
+        None
+    }
+
+    fn drawing_png(&self, _kind: DrawingKind, _id: &str) -> Option<Vec<u8>> {
+        None
+    }
+
+    fn site_files(&self, id: &str) -> Option<Vec<kb_docexport::SiteFile>> {
+        let f = |p: &str, b: &[u8]| kb_docexport::SiteFile { path: p.into(), bytes: b.to_vec() };
+        (id == "ab12cd34ef56").then(|| {
+            vec![
+                f(
+                    "index.html",
+                    b"<!doctype html><html><head><link rel=\"stylesheet\" href=\"style.css\"></head><body>\
+                      <img src=\"img/dot.png\"><script type=\"module\" src=\"./js/app.js\"></script>\
+                      <script src=\"https://cdn.example/x.js\"></script></body></html>",
+                ),
+                f("style.css", b"body{background:url('img/dot.png')}"),
+                f("js/app.js", b"console.log('site-app </script>');"),
+                f("img/dot.png", &tiny_png()),
+            ]
+        })
+    }
+}
+
+fn site_doc() -> Value {
+    json!({"type":"doc","content":[{"type":"htmlEmbed","attrs":{"src":"/docs/sites/ab12cd34ef56/index.html","html":"","title":"Globe","height":600,"runScripts":false}}]})
+}
+
+#[test]
+fn a_site_embed_is_inlined_in_one_file() {
+    let out = render_html(&[page("Site", site_doc())], &SiteAssets, &HtmlOptions::default());
+    let html = out.index_html();
+    assert!(html.contains("<iframe srcdoc=\""), "{html}");
+    assert!(!html.contains("sandbox"));
+    assert!(html.contains("allowfullscreen"));
+    assert!(html.contains("height:600px"));
+    assert!(html.contains("&lt;style&gt;body{background:url(&quot;data:image/png;base64,"), "{html}");
+    assert!(html.contains("&lt;img src=&quot;data:image/png;base64,"));
+    assert!(
+        html.contains(
+            "&lt;script type=&quot;module&quot; &gt;console.log(&#39;site-app &lt;\\/script&gt;&#39;);&lt;/script&gt;"
+        ),
+        "{html}"
+    );
+    assert!(html.contains("https://cdn.example/x.js"));
+    assert!(!html.contains("style.css"));
+}
+
+#[test]
+fn a_site_embed_is_copied_in_a_folder() {
+    let opts = HtmlOptions { layout: kb_docexport::HtmlLayout::Folder, ..HtmlOptions::default() };
+    let HtmlOutput::Folder(files) = render_html(&[page("Site", site_doc())], &SiteAssets, &opts) else {
+        panic!("folder expected")
+    };
+    let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+    for p in [
+        "assets/sites/ab12cd34ef56/index.html",
+        "assets/sites/ab12cd34ef56/style.css",
+        "assets/sites/ab12cd34ef56/js/app.js",
+        "assets/sites/ab12cd34ef56/img/dot.png",
+    ] {
+        assert!(paths.contains(&p), "{p} in {paths:?}");
+    }
+    let index = std::str::from_utf8(&files[0].bytes).unwrap();
+    assert!(index.contains("<iframe src=\"assets/sites/ab12cd34ef56/index.html\""), "{index}");
+    assert!(!index.contains("sandbox"));
+}
+
+#[test]
+fn a_missing_site_falls_back_to_a_note() {
+    let doc = json!({"type":"doc","content":[{"type":"htmlEmbed","attrs":{"src":"/docs/sites/zzzzzzzzzzzz/index.html","html":"","title":"Gone"}}]});
+    let html = html_of(doc);
+    assert!(html.contains("HTML embed: Gone"), "{html}");
+}
