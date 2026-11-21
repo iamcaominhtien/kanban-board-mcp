@@ -517,5 +517,26 @@ export default {
       await a.getByTestId('docs-popped-out').waitFor({ state: 'detached' });
       await a.getByRole('heading', { name: PAGE, level: 1 }).first().waitFor();
     });
+
+    await s.step('two identical paragraphs: the thread is drawn on the copy it was made on, not the first one', async () => {
+      const call = async (method, url, body) => {
+        const r = await fetch(`${s.server.base}${url}`, { method, headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+        if (!r.ok) throw new Error(`${method} ${url}: ${r.status} ${await r.text()}`);
+        return r.json();
+      };
+      const projects = await call('GET', '/projects');
+      const pid = (Array.isArray(projects) ? projects : projects.projects)[0].id;
+      const pg = await call('POST', `/projects/${pid}/docs/pages`, { title: 'Twins' });
+      const para = (id, text) => ({ type: 'paragraph', attrs: { blockId: id }, content: [{ type: 'text', text }] });
+      const SAME = 'Check it on a real machine first.';
+      await call('PUT', `/docs/pages/${pg.id}/draft`, { content: { type: 'doc', content: [para('b-000001', SAME), para('b-000002', 'Between.'), para('b-000003', SAME)] } });
+      await call('POST', `/docs/pages/${pg.id}/publish`, { base_version: 0 });
+      const t = await call('POST', `/docs/pages/${pg.id}/comments`, { kind: 'inline', body: 'The second one', anchor: { quote: SAME, block_id: 'b-000003' } });
+      await openTreePage(a, 'Twins');
+      const badge = a.locator(`[data-testid="comment-badge"][data-thread="${t.id}"]`);
+      await badge.waitFor();
+      const block = await badge.evaluate((el) => el.closest('[data-block-id]')?.getAttribute('data-block-id'));
+      if (block !== 'b-000003') throw new Error(`the thread is drawn on ${block}, it was made on b-000003`);
+    });
   },
 };
