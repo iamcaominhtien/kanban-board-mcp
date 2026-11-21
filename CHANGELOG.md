@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [5.2.3] - 2026-11-21
+
+### Fixed
+- **Codes like `MH-001` in a Docs page were still drawn as red "Ticket not found" chips after 5.2.2.** The Markdown parser stores every word shaped like a ticket key as a ticket reference in the page, so a page written with screen ids (such as a table of `MH-001`, `MH-027`) held references, not text, and 5.2.2 only covered text. A key in a page is now a chip only when it is a real ticket, or when its prefix belongs to one of your projects (a deleted or mistyped `KAN-999` still shows "Ticket not found"); any other code stays plain text. This holds whether the key was found in text or stored as a reference.
+
 ## [5.2.2] - 2026-11-21
 
 ### Fixed
