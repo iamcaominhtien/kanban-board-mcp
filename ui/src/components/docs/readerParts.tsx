@@ -7,7 +7,8 @@
 import { createContext, isValidElement, useContext, useState, type CSSProperties, type ReactNode } from 'react';
 import { resolveOrigin } from '../../api/resolveOrigin';
 import type { useResolveRefs } from '../../api/docs';
-import { slugify } from '../../utils/docsMarkdown';
+import { useProjectPrefixes } from '../../api/projects';
+import { isDetectedTicket, slugify } from '../../utils/docsMarkdown';
 import { galleryAround, previewAttrs, usePreview } from '../preview/PreviewContext';
 import { highlight } from './docsHighlight';
 import type { useDocsPeek } from './DocsRefsContext';
@@ -68,16 +69,18 @@ function PlainRef({ label }: { label: string }) {
 /**
  * A ticket key drawn as a chip, resolved through {@link ChipCtx}.
  * @param props.ticketKey - The key, e.g. `KAN-12`.
- * @param props.detected - True when the key was found in plain text rather than placed as a ticket reference. Text
- *   like `MH-005` (a screen id, a spec number) has the shape of a key but is not a ticket, so such a key becomes a
- *   chip only once the server confirms the ticket; until then, and when it is not one, it stays text. A key the
- *   author placed as a reference keeps the "not found" chip, which is how a broken reference is told.
+ * @param props.detected - True when the key was found in plain text rather than placed as a ticket reference. Such a
+ *   key is a chip only when it is a ticket or has a project's prefix (see {@link isDetectedTicket}); any other, like
+ *   the screen id `MH-005`, stays text. A key the author placed as a reference always keeps its chip, with the "not
+ *   found" state when it is broken.
  */
 export function TicketRefChip({ ticketKey, detected = false }: { ticketKey: string; detected?: boolean }) {
   const c = useContext(ChipCtx)!;
   const plain = useContext(PlainRefsCtx);
+  // the public view asks the server nothing; a key placed as a reference does not need the prefixes
+  const prefixes = useProjectPrefixes(!plain && detected);
   if (plain) return <PlainRef label={ticketKey} />;
-  if (detected && c.tickets.get(ticketKey)?.status !== 'ok') return <>{ticketKey}</>;
+  if (detected && !isDetectedTicket(ticketKey, c.tickets.get(ticketKey)?.status, prefixes)) return <>{ticketKey}</>;
   return (
     <RefChip
       kind="ticket"
