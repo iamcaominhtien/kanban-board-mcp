@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { internalPageLink, linkifyDocs, pageRefKey, parseDocRef, REF_SCHEME } from './docsMarkdown';
+import { internalPageLink, isDetectedTicket, linkifyDocs, pageRefKey, parseDocRef, REF_SCHEME } from './docsMarkdown';
 
 describe('internalPageLink', () => {
   it('reads the page and section of a link that stays inside the space', () => {
@@ -53,5 +53,24 @@ describe('linkifyDocs with page links', () => {
     const { markdown } = linkifyDocs('[[Data model#Fields]]');
     const href = markdown.match(/\]\(([^)]+)\)/)?.[1] ?? '';
     expect(parseDocRef(href)).toEqual({ title: 'Data model', anchor: 'Fields', bySlug: false });
+  });
+});
+
+describe('isDetectedTicket', () => {
+  const prefixes = new Set(['KAN', 'DOC']);
+  it('is a chip for a ticket that exists', () => {
+    expect(isDetectedTicket('KAN-7', 'ok', prefixes)).toBe(true);
+    expect(isDetectedTicket('KAN-7', 'ok', undefined)).toBe(true);
+  });
+  it('is a chip, shown as not found, for a missing ticket with a project prefix', () => {
+    expect(isDetectedTicket('KAN-999', 'missing', prefixes)).toBe(true);
+    expect(isDetectedTicket('DOC-1', 'missing', prefixes)).toBe(true);
+  });
+  it('is text for a key whose prefix belongs to no project, such as a screen id', () => {
+    expect(isDetectedTicket('MH-005', 'missing', prefixes)).toBe(false);
+  });
+  it('is text until the server and the projects have answered', () => {
+    expect(isDetectedTicket('KAN-999', undefined, prefixes)).toBe(false);
+    expect(isDetectedTicket('KAN-999', 'missing', undefined)).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import { FileAttachmentCard } from './FileAttachmentCard';
 import { isVideoName } from './preview/kinds';
 import { galleryAround, previewAttrs, usePreview } from './preview/PreviewContext';
 import { useResolveRefs, useRestorePage } from '../api/docs';
+import { useProjectPrefixes } from '../api/projects';
 import { useToast } from './Toast';
 import { RefChip } from './docs/RefChip';
 import { DiagramEmbed } from './diagrams/DiagramEmbed';
@@ -18,7 +19,14 @@ import { CanvasChip, CanvasEmbed } from './canvas/CanvasEmbed';
 import { CANVAS_SCHEME, canvasRefOf, hasCanvas } from './canvas/canvasRefs';
 import { useDocsRefs } from './docs/DocsRefsContext';
 import { MentionPill } from './ai/MentionPill';
-import { linkifyDocs, parseDocRef, remarkDocs, REF_SCHEME, TICKET_SCHEME } from '../utils/docsMarkdown';
+import {
+  isDetectedTicket,
+  linkifyDocs,
+  parseDocRef,
+  remarkDocs,
+  REF_SCHEME,
+  TICKET_SCHEME,
+} from '../utils/docsMarkdown';
 import type { DocsRefRequest } from '../types/docs';
 import { splitAlignBlocks, stripAlignMarkers } from '../utils/markdownAlign';
 import styles from './MarkdownRenderer.module.css';
@@ -139,6 +147,8 @@ function MarkdownRendererImpl({ children, docs: docsProp, plain, inline }: Markd
   const Wrapper = (inline ? 'span' : 'div') as 'div';
   const refs = useDocsRefs();
   const toast = useToast();
+  // only the Docs mode draws ticket chips, so only it needs the prefixes
+  const prefixes = useProjectPrefixes(!!(docsProp ?? (refs && !plain)));
   const restorePage = useRestorePage(refs?.projectId ?? '');
   const ticketSurface = !docsProp && !!refs && !plain;
   const docs: DocsRenderOptions | undefined =
@@ -280,6 +290,9 @@ function MarkdownRendererImpl({ children, docs: docsProp, plain, inline }: Markd
           }
           if (docs && href?.startsWith(TICKET_SCHEME)) {
             const key = href.slice(TICKET_SCHEME.length);
+            // a key found in plain text (`dockey:` is only written by linkifyDocs) that is neither a ticket nor
+            // has a project's prefix, like a screen id `MH-005`, stays text instead of a "not found" chip
+            if (!isDetectedTicket(key, resolvedTickets.get(key)?.status, prefixes)) return <>{children}</>;
             return (
               <RefChip
                 kind="ticket"

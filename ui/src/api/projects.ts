@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { DocsEditPolicy, Project } from '../types/ticket';
@@ -61,6 +62,15 @@ export function useProjects() {
     queryFn: listProjects,
     retry: false, // a failure is shown (with Try again) instead of retrying silently for a long time
   });
+}
+
+/**
+ * The ticket prefix of every project (`KAN`, `MH`…), or undefined until the projects are loaded.
+ * @param enabled - False to leave the projects unasked (a view that may not call the server); the result stays undefined.
+ */
+export function useProjectPrefixes(enabled = true): ReadonlySet<string> | undefined {
+  const { data } = useQuery({ queryKey: projectKeys.all, queryFn: listProjects, retry: false, enabled });
+  return useMemo(() => (data ? new Set(data.map((p) => p.prefix)) : undefined), [data]);
 }
 
 /** Query one project. */

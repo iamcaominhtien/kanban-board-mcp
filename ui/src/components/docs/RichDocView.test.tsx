@@ -14,10 +14,17 @@ vi.mock('../../api/docs', async (importOriginal) => ({
       data: list.map((r) =>
         r.kind === 'page'
           ? { kind: 'page', status: 'ok', pageId: `id-${r.title}`, title: r.title }
-          : { kind: 'ticket', status: 'ok', key: r.key, title: `Ticket ${r.key}`, ticketStatus: 'todo' },
+          : r.key.startsWith('MH-') || r.key === 'KAN-999'
+            ? // a screen id, or a ticket that does not exist
+              { kind: 'ticket', status: 'missing', key: r.key }
+            : { kind: 'ticket', status: 'ok', key: r.key, title: `Ticket ${r.key}`, ticketStatus: 'todo' },
       ),
     };
   },
+}));
+vi.mock('../../api/projects', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../api/projects')>()),
+  useProjectPrefixes: () => new Set(['KAN']),
 }));
 vi.mock('../diagrams/DiagramEmbed', () => ({
   DiagramEmbed: ({ id, label }: { id: string; label: string }) => <div data-testid="diagram">{`${id}:${label}`}</div>,
@@ -197,6 +204,47 @@ describe('RichDocView: references and embeds', () => {
     expect(container.querySelector('.dk-math-inline .katex')).toBeTruthy();
     expect(container.querySelector('[data-block-id="b-000008"]')?.textContent).toContain('Roadmap');
     expect(container.querySelector('[data-block-id="b-000009"]')?.textContent).toContain('KAN-3');
+  });
+});
+
+describe('ticket keys that are not tickets', () => {
+  // Bug: a screen id such as MH-005 in prose matched the ticket-key pattern and was drawn as a red "not found"
+  // chip. A key found in plain text is a chip when it is a ticket or has a project's prefix (a ticket that is gone
+  // still shows "not found"); any other stays text. One the author placed as a ticket reference is always a chip.
+  it('leaves a key with no project prefix as text, chips a real ticket and flags a missing one', () => {
+    const doc: RichDoc = {
+      type: 'doc',
+      content: [para('b-000001', [t('Dialogs MH-005 and MH-006, then KAN-7 and KAN-999.')])],
+    };
+    const { container } = show(doc);
+    const p = container.querySelector('[data-block-id="b-000001"]')!;
+    expect(p.textContent).toContain('MH-005 and MH-006');
+    expect(p.querySelectorAll('.dk-chip')).toHaveLength(2);
+    expect(p.querySelector('[data-testid="ref-ticket-KAN-7"]')).toBeTruthy();
+    // the only broken chip is the ticket with a project's prefix
+    expect(p.querySelectorAll('.dk-chip-missing')).toHaveLength(1);
+    expect(p.querySelector('.dk-chip-missing')?.textContent).toContain('KAN-999');
+  });
+
+  it('keeps the broken chip for a ticket reference the author placed', () => {
+    const doc: RichDoc = {
+      type: 'doc',
+      content: [para('b-000001', [{ type: 'ticketRef', attrs: { key: 'MH-005' } }])],
+    };
+    const { container } = show(doc);
+    expect(container.querySelectorAll('.dk-chip-missing')).toHaveLength(1);
+  });
+
+  it('does the same for Markdown text', () => {
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <DocsMarkdown projectId="p1">{'Dialogs MH-005 and KAN-7 and KAN-999.'}</DocsMarkdown>
+      </QueryClientProvider>,
+    );
+    expect(container.textContent).toContain('MH-005');
+    expect(container.querySelectorAll('.dk-chip-missing')).toHaveLength(1);
+    expect(container.querySelector('.dk-chip-missing')?.textContent).toContain('KAN-999');
+    expect(container.querySelector('[data-testid="ref-ticket-KAN-7"]')).toBeTruthy();
   });
 });
 

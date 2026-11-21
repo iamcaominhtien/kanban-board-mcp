@@ -398,7 +398,8 @@ export function DocsMarkdown({
         if (href?.startsWith(NEEDS_INPUT_SCHEME)) return <span className="dk-needs-input">{inner}</span>;
         if (href?.startsWith(TICKET_SCHEME)) {
           const key = href.slice(TICKET_SCHEME.length);
-          return <TicketRefChip ticketKey={key} />;
+          // `dockey:` links are only written by linkifyDocs, for keys found in plain text
+          return <TicketRefChip ticketKey={key} detected />;
         }
         if (href?.startsWith(REF_SCHEME)) {
           const ref = parseDocRef(href);

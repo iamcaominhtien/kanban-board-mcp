@@ -52,6 +52,21 @@ export function headingAnchors(markdown: string): DocsHeading[] {
 export const REF_SCHEME = 'docref:';
 export const TICKET_SCHEME = 'dockey:';
 
+/**
+ * Whether a ticket-shaped key found in plain text should be drawn as a ticket chip.
+ *
+ * Text like `MH-005` (a screen id, a spec number) has the shape of a ticket key but is not one, so a key in text is
+ * a chip only when it is a real ticket, or when its prefix belongs to a project (a ticket that is gone or mistyped:
+ * the chip then shows "not found"). Any other key stays text.
+ * @param key - The key as written, e.g. `KAN-12`.
+ * @param status - What the server says about the key (`ok`, `missing`…); undefined until it has answered.
+ * @param prefixes - The prefix of every project; undefined until the projects are loaded.
+ */
+export function isDetectedTicket(key: string, status: string | undefined, prefixes: ReadonlySet<string> | undefined) {
+  if (status === 'ok') return true;
+  return status !== undefined && !!prefixes?.has(key.slice(0, key.lastIndexOf('-')));
+}
+
 /** Marks a `docref:` written from a Markdown link, which may name the page by slug or id as well as by title. */
 const LINK_MARK = '?link';
 
