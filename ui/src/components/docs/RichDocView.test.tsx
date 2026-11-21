@@ -210,7 +210,7 @@ describe('RichDocView: references and embeds', () => {
 describe('ticket keys that are not tickets', () => {
   // Bug: a screen id such as MH-005 in prose matched the ticket-key pattern and was drawn as a red "not found"
   // chip. A key found in plain text is a chip when it is a ticket or has a project's prefix (a ticket that is gone
-  // still shows "not found"); any other stays text. One the author placed as a ticket reference is always a chip.
+  // still shows "not found"); any other stays text, whether it is text or a stored ticketRef node.
   it('leaves a key with no project prefix as text, chips a real ticket and flags a missing one', () => {
     const doc: RichDoc = {
       type: 'doc',
@@ -226,13 +226,22 @@ describe('ticket keys that are not tickets', () => {
     expect(p.querySelector('.dk-chip-missing')?.textContent).toContain('KAN-999');
   });
 
-  it('keeps the broken chip for a ticket reference the author placed', () => {
+  // Bug (5.2.2 did not fix it): the Markdown parser stores every `AB-12`-shaped word as a `ticketRef` node, so a page
+  // an agent wrote with screen ids (MH-001…) holds nodes, not text, and each was still drawn as a red chip.
+  it('does the same for stored ticketRef nodes', () => {
+    const ref = (key: string) => ({ type: 'ticketRef', attrs: { key } });
     const doc: RichDoc = {
       type: 'doc',
-      content: [para('b-000001', [{ type: 'ticketRef', attrs: { key: 'MH-005' } }])],
+      content: [para('b-000001', [ref('MH-005'), t(' '), ref('MH-006'), t(' '), ref('KAN-7'), t(' '), ref('KAN-999')])],
     };
     const { container } = show(doc);
-    expect(container.querySelectorAll('.dk-chip-missing')).toHaveLength(1);
+    const p = container.querySelector('[data-block-id="b-000001"]')!;
+    expect(p.textContent).toContain('MH-005 MH-006');
+    expect(p.querySelector('[data-testid="ref-ticket-MH-005"]')).toBeNull();
+    expect(p.querySelectorAll('.dk-chip')).toHaveLength(2);
+    expect(p.querySelector('[data-testid="ref-ticket-KAN-7"]')).toBeTruthy();
+    expect(p.querySelectorAll('.dk-chip-missing')).toHaveLength(1);
+    expect(p.querySelector('.dk-chip-missing')?.textContent).toContain('KAN-999');
   });
 
   it('does the same for Markdown text', () => {
