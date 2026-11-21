@@ -133,10 +133,10 @@ pub fn section_of(thread: &docs_comment_thread::Model, blocks: &[Block]) -> Opti
     blocks.iter().find(|b| !quote.is_empty() && b.text.contains(&quote)).and_then(|b| b.section.clone())
 }
 
-/// `_is_board_note`: one of the board's own lines ("Sent to ...").
+/// `_is_board_note`: one of the board's own lines ("Sent to ...", "Text rewritten in v4").
 fn is_board_note(c: &docs_comment::Model) -> bool {
     let Some(ai) = c.ai.as_deref().filter(|a| !a.is_empty()) else { return false };
-    pyjson::loads(ai).is_some_and(|v| v.get("kind").and_then(Value::as_str) == Some("sent"))
+    pyjson::loads(ai).is_some_and(|v| matches!(v.get("kind").and_then(Value::as_str), Some("sent" | "anchor")))
 }
 
 /// `_comments`: what the thread's people said, oldest first (the board's own lines are not what anyone said).

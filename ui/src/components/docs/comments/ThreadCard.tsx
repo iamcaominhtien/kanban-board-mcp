@@ -11,6 +11,8 @@ import { aiCostLabel, aiReplyKind, canSummarise, thinking } from '../../../utils
 import { LineIcon } from '../../ui/LineIcon';
 import { ThreadSendButton } from './SendToAi';
 import type { ThreadPlace } from './blockAnchor';
+import { isAnchorLine, isBoardLine, spoken } from './boardLines';
+import { revealWhere, slugWords, whereTarget } from './whereItWas';
 
 type Actions = ReturnType<typeof useCommentActions>;
 
@@ -220,7 +222,8 @@ export function ThreadCard({
   const [expanded, setExpanded] = useState(false);
   // runs of replies between AIs are folded into one line until shown (by the first reply's id)
   const [shownAiRuns, setShownAiRuns] = useState<Set<string>>(() => new Set());
-  const folded = !expanded && thread.comments.length > FOLD_AFTER;
+  // the board's lines ("Text rewritten in v4") do not make a thread long
+  const folded = !expanded && spoken(thread.comments).length > FOLD_AFTER;
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLElement>(null);
   const { me, members } = data;
@@ -232,6 +235,9 @@ export function ThreadCard({
   const quoteEdited = place?.state === 'quoteEdited';
   const orphaned = thread.anchor?.state === 'orphaned' || blockGone;
   const resolved = thread.status === 'resolved';
+  const section = thread.anchor?.section ?? null;
+  const sectionName = orphaned ? (place?.sectionTitle ?? (section ? slugWords(section) : null)) : null;
+  const canShowWhere = orphaned && !!(place?.whereBlockId || section);
 
   useEffect(() => {
     if (active) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -277,6 +283,28 @@ export function ThreadCard({
 
   function renderComment(c: DocsCommentItem, first: boolean) {
     const p = personOf(c.author, members, me);
+    if (isAnchorLine(c)) {
+      // a publish changed the text the thread is on: one quiet line, with the text it was on before
+      const change = c.ai?.change;
+      const was = c.ai?.quote && change !== 'back' ? c.ai.quote : '';
+      return (
+        <div key={c.id} className="dc-board-note dc-anchor-line" data-testid="anchor-line" data-change={change}>
+          <LineIcon name={change === 'removed' ? 'trash' : change === 'back' ? 'undo' : 'edit'} size={12} />
+          <span className="dc-board-note-text">
+            {c.body}
+            {was && (
+              <span className="dc-anchor-was" title={was}>
+                {' '}
+                · was “{was.length > 60 ? `${was.slice(0, 59).trimEnd()}…` : was}”
+              </span>
+            )}{' '}
+            <span className="dc-board-note-meta" title={absoluteTime(c.createdAt)}>
+              by {p.name} · {relativeTime(c.createdAt)}
+            </span>
+          </span>
+        </div>
+      );
+    }
     if (c.ai?.kind === 'sent') {
       // the board's line, not a comment: where the thread went, and who sent it
       return (
@@ -461,7 +489,11 @@ export function ThreadCard({
   }
 
   const list = thread.comments;
-  const hidden = folded ? list.length - 1 : 0;
+  // folded: the last comment someone wrote, and the board's lines after it
+  let lastSpoken = list.length - 1;
+  while (lastSpoken > 0 && isBoardLine(list[lastSpoken])) lastSpoken--;
+  const tail = folded ? list.slice(Math.max(lastSpoken, 0)) : list;
+  const hidden = folded ? spoken(list.slice(0, Math.max(lastSpoken, 0))).length : 0;
   const aiRuns = folded ? [] : aiReplyRuns(list, members, me);
   const runOf = new Map<string, string[]>();
   for (const r of aiRuns) for (const id of r) runOf.set(id, r);
@@ -628,7 +660,7 @@ export function ThreadCard({
           {hidden === 1 ? 'reply' : 'replies'}
         </button>
       )}
-      {folded ? list.slice(-1).map((c) => renderComment(c, c.id === list[0].id)) : renderList(list)}
+      {folded ? tail.map((c) => renderComment(c, c.id === list[0].id)) : renderList(list)}
       {working.map((w) => (
         <div key={w.name + w.kind} className="dc-comment dc-ai-thinking" data-testid="ai-thinking" aria-live="polite">
           <Avatar p={{ name: w.name, initials: '✦', bg: '#F1ECFB', color: '#6B4FBB', ai: true }} />
@@ -658,6 +690,11 @@ export function ThreadCard({
             ) : null}
             . The thread is kept here, not in the page.
           </p>
+          {sectionName && (
+            <p className="dc-where-section" data-testid="thread-section">
+              It was in <b>{sectionName}</b>.
+            </p>
+          )}
           {reattaching ? (
             <div className="dc-reattach" data-testid="reattach-hint">
               Select the new text on the page…
@@ -666,7 +703,22 @@ export function ThreadCard({
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {canShowWhere && (
+                <button
+                  type="button"
+                  className="dc-plain dc-bordered"
+                  data-testid="thread-show-where"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const el = whereTarget(thread, place);
+                    if (el) revealWhere(el);
+                    else setError('That spot is not on the page any more.');
+                  }}
+                >
+                  Show where it was
+                </button>
+              )}
               {thread.canResolve && (
                 <button
                   type="button"

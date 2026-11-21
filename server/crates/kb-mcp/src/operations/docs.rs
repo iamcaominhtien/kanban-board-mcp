@@ -668,7 +668,8 @@ pub async fn unlink_ticket_doc(ticket_id: &str, page_id: &str) -> ToolResult {
     .await
 }
 
-/// `_thread_brief`: a thread without the UI-only fields (permissions, unread dot, anchor position).
+/// `_thread_brief`: a thread without the UI-only fields (permissions, unread dot, anchor position) and without the
+/// board's lines about its text changing.
 fn thread_brief(t: &Map<String, Value>) -> Value {
     let get = |key: &str| t.get(key).cloned().unwrap_or(Value::Null);
     let comments: Vec<Value> = t
@@ -676,6 +677,9 @@ fn thread_brief(t: &Map<String, Value>) -> Value {
         .and_then(Value::as_array)
         .map(|list| {
             list.iter()
+                // the line a publish writes when it changed the thread's text ("Text rewritten in v4") is the
+                // board's, not something a person said
+                .filter(|c| c["ai"]["kind"].as_str() != Some("anchor"))
                 .map(|c| {
                     json!({
                         "id": c["id"],

@@ -303,7 +303,14 @@ export interface DocsCommentAi {
   sources?: { pageId: string; title: string; heading: string | null }[];
   /** `note` (the team is paused), `error` (couldn't answer). */
   /** `sent`: the board's line that the thread was sent to an AI on a ticket (not a comment of the person's). */
-  kind?: 'note' | 'error' | 'sent' | 'ticket';
+  /** `anchor`: the line a publish wrote when it changed the text the thread is on ("Text rewritten in v4"). */
+  kind?: 'note' | 'error' | 'sent' | 'ticket' | 'anchor';
+  /** `anchor`: what the publish did to the text. */
+  change?: 'edited' | 'rewritten' | 'removed' | 'back';
+  /** `anchor`: the version that changed it. */
+  version?: number;
+  /** `anchor`: the text the thread was on before. */
+  quote?: string;
   /** `ticket`/`sent`: the ticket whose conversation the AI answers from. */
   ticketId?: string;
   code?: string;

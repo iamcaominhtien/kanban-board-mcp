@@ -82,9 +82,12 @@ export function serverIntent(intent: 'ask' | 'work' | 'suggest' | 'notify'): Doc
   return intent === 'work' ? 'suggest' : intent;
 }
 
-/** What an AI reply is: an answer, a note (the team is paused), an error, the board's "sent to" line, or a ticket's reply. */
+/**
+ * What an AI reply is: an answer, a note (the team is paused), an error, the board's "sent to" line, or a ticket's
+ * reply. Null for a person's comment and for the line a publish writes when it changed the thread's text (`anchor`).
+ */
 export function aiReplyKind(c: DocsCommentItem): 'answer' | 'note' | 'error' | 'sent' | 'ticket' | null {
-  if (!c.ai) return null;
+  if (!c.ai || c.ai.kind === 'anchor') return null;
   return c.ai.kind ?? 'answer';
 }
 

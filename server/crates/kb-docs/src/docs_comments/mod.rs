@@ -21,11 +21,10 @@ use kb_db::Session;
 use kb_db::entities::{docs_comment, docs_comment_event, docs_comment_read, docs_comment_thread, docs_page, member};
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect};
 use kb_doctext::docs_access;
-use kb_doctext::docs_anchors as anchors;
 use regex::Regex;
 use serde_json::{Map, Value, json};
 
-use crate::docs::{get_page, latest_version};
+use crate::docs::get_page;
 use crate::util::casefold;
 use crate::{Result, docs_err};
 
@@ -218,12 +217,6 @@ pub(crate) async fn comments_of(session: &Session, thread_id: &str) -> Result<Ve
         .await?)
 }
 
-/// `_page_blocks`: the blocks of the page's latest published text.
-pub(crate) async fn page_blocks(session: &Session, page: &docs_page::Model) -> Result<Vec<anchors::Block>> {
-    let latest = latest_version(session, page).await?;
-    Ok(anchors::blocks_of(latest.as_ref().map(|v| v.markdown.as_str()).unwrap_or("")))
-}
-
 // --- serialization -----------------------------------------------------------
 
 /// `_comment_out`.
@@ -249,6 +242,11 @@ fn comment_out(c: &docs_comment::Model, members: &[member::Model], actor: &str, 
         "can_edit": mine && role != "viewer" && !has_ai,
         "can_delete": role != "viewer" && (mine || role == "admin"),
     })
+}
+
+/// Whether a comment is the line a publish wrote when it moved the thread's text (`ai.kind` `anchor`).
+pub(crate) fn is_anchor_line(c: &docs_comment::Model) -> bool {
+    json_obj(c.ai.as_deref()).is_some_and(|a| a.get("kind").and_then(Value::as_str) == Some("anchor"))
 }
 
 /// `_read_marks`: when `reader` last read each thread.
@@ -308,7 +306,9 @@ async fn serialize(
     for t in threads {
         let cs = &comments[t.id.as_str()];
         let seen = marks.get(&t.id);
-        let unread = cs.iter().any(|c| c.author != actor && seen.is_none_or(|s| c.created_at > *s));
+        // the line a publish writes when it moved the thread's text is not news to read
+        let unread =
+            cs.iter().any(|c| c.author != actor && !is_anchor_line(c) && seen.is_none_or(|s| c.created_at > *s));
         let anchor = if t.kind == "inline" {
             json!({
                 "quote": t.anchor_quote,
@@ -464,7 +464,9 @@ pub(crate) async fn record_event(
     if notify_thread {
         people.push(thread.created_by.clone());
         for c in comments_of(session, &thread.id).await? {
-            people.push(c.author);
+            if !is_anchor_line(&c) {
+                people.push(c.author);
+            }
         }
     }
     let mut recipients: Vec<String> = Vec::new();

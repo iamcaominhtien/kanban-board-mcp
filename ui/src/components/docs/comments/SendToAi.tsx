@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { isAnchorLine, spoken } from './boardLines';
 import { usePageSettled } from '../pageSettled';
 import {
   sendErrorCode,
@@ -32,7 +33,9 @@ function plain(body: string): string {
  */
 export function waitsForAnswer(t: DocsCommentThread): boolean {
   if (t.status !== 'open') return false;
-  const last = t.comments[t.comments.length - 1];
+  // the line a publish writes is not news: the last line that matters is a comment or "Sent to ..."
+  const lines = t.comments.filter((c) => !isAnchorLine(c));
+  const last = lines[lines.length - 1];
   if (t.kind === 'inline') return !last || last.ai?.kind !== 'sent';
   return !!last && !last.ai;
 }
@@ -295,7 +298,7 @@ export function SendToAiBox({ pageId, data }: BoxProps) {
       </div>
       <ul className="dc-sendai-list">
         {open.map((t) => {
-          const last = t.comments.filter((c) => c.ai?.kind !== 'sent').slice(-1)[0];
+          const last = spoken(t.comments).slice(-1)[0];
           const lastBy = last ? personOf(last.author, data.members, data.me).name : null;
           return (
             <li key={t.id}>
