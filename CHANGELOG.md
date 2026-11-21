@@ -8,6 +8,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [5.3.0] - 2026-11-21
+
+**Docs comments and highlights follow their text when a page is published.** Before, each publish searched the page again for the words a thread was on: the first exact copy won, a rewritten sentence lost its thread ("Block deleted"), and a page published from Markdown (an AI's edit through MCP gives every block a new id) turned every shared highlight into "Passage changed". Now the old and new text are compared, block by block and then word by word, and each comment and highlight moves with the edit that touched its words.
+
+### Added
+- **"Show where it was"** on a comment whose text was removed: the page scrolls to the spot the text stood and marks it for a moment. The card also names the section the text was in ("It was in 2.11 Pha chế khi thiếu thuốc").
+- **A short history line in the thread** when a publish changes the text it is on: "Text edited in v4", "Text rewritten in v4 · was “…”", "Text removed in v4", "Text back in v5". The line is written by the person who published. It is not counted as unread, does not make that person a thread participant, does not close their mentions, does not make a thread long enough to fold, and is not shown to AI teams.
+
+### Changed
+- **A comment follows its text through a publish.** Unchanged text keeps it, including when the text moved or when there is an identical copy elsewhere (it stays on its own copy). Edited text keeps it on the edited words. Rewritten text hands it to the text that replaced it. Only removed text orphans it. So the "Publish with N orphaned comments" warning now appears only when the text is really deleted.
+- **When there is no earlier text to compare** (an old thread, a restored version), the page is searched with every candidate weighed together: how much of the quote is there, the text around it, its section and its distance from where it was. An exact copy elsewhere no longer wins over a lightly edited quote in place.
+- **A shared highlight follows its words** the same way: across a Markdown publish, into another block, or onto its own copy of identical words. A highlight whose words were edited is still "Passage changed" (never drawn on other words), and "Use the new quote" now offers the words that stand in their place.
+- **MCP:** `docs_read(comments)` leaves out the history lines. A section edit through `docs_write(edit)` keeps the threads on the edited or rewritten text.
+
+### Fixed
+- **A comment on the second of two identical paragraphs was drawn on the first**, both while reading and in the editor, although it was stored on the second. Comments are now drawn in the block they are on.
+- **On rich pages, a thread's block followed its text only by chance.** After a publish that gave the blocks new ids, a thread could show "Block deleted" while its text was still on the page. The thread's block now follows its text on every publish, and a re-attached thread takes the block of its new selection.
+- **A new comment on one of two identical paragraphs** is now stored on the paragraph it was made on.
+
 ## [5.2.3] - 2026-11-21
 
 ### Fixed
