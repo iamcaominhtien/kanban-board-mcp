@@ -641,5 +641,29 @@ export default {
         await p.setViewportSize({ width: 1440, height: 900 });
       }
     });
+
+    await s.step('a Markdown publish (how an AI edits a page) gives every block a new id: the highlights stay on their words', async () => {
+      const before = (await list()).filter((x) => x.state !== 'changed');
+      if (!before.length) throw new Error('no highlight to follow');
+      const pg = await api('GET', `/docs/pages/${pageId}`);
+      // the same text with one line added on top: every block gets a new id
+      await api('POST', `/docs/pages/${pageId}/publish`, { base_version: pg.version, markdown: `A line added on top.\n\n${pg.markdown}` });
+      const now = await api('GET', `/docs/pages/${pageId}`);
+      const ids = JSON.stringify(now.content);
+      if (ids.includes('"b-000001"')) throw new Error('the blocks kept their ids: this step does not test anything');
+      const after = await list();
+      for (const h of before) {
+        const x = after.find((y) => y.id === h.id);
+        if (!x || x.state === 'changed') throw new Error(`"${h.quote}" is ${x ? 'Passage changed' : 'gone'} after the publish`);
+        if (!ids.includes(`"${x.block_id}"`)) throw new Error(`"${h.quote}" points at a block that is not on the page`);
+      }
+      await p.reload();
+      await openDocs(s);
+      await p.getByRole('tree').getByRole('treeitem', { name: /^Field notes/ }).first().click();
+      await p.getByTestId('page-body').getByText('A line added on top.').waitFor();
+      await p.getByTestId('highlights-button').click();
+      if (await p.getByTestId('hl-changed').count()) throw new Error('a highlight shows Passage changed');
+      s.note('highlights drawn after the publish', String((await registered()).length));
+    });
   },
 };

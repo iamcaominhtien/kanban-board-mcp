@@ -303,7 +303,7 @@ pub async fn commit_version(
         body.content.as_ref(),
     )
     .await?;
-    crate::docs_highlights::rematch(session, page).await?;
+    crate::docs_highlights::rematch(session, page, previous.as_ref()).await?;
     if !commit {
         return Ok(Map::new());
     }
