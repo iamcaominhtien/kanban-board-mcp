@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [5.2.2] - 2026-11-21
+
+### Fixed
+- **A code like `MH-005` in a Docs page was drawn as a red "Ticket not found" chip.** Screen ids, spec numbers and other codes shaped like a ticket key (`MH-005`, `SCR-12`) were all read as tickets. A key written in plain text now becomes a chip only when it is a real ticket, or when its prefix belongs to one of your projects (a deleted or mistyped `KAN-999` still shows "Ticket not found"); any other code stays plain text. A ticket reference you placed yourself keeps its chip as before. This holds in pages, in the Markdown view and in ticket descriptions and comments.
+
 ## [5.2.1] - 2026-11-20
 
 ### Fixed

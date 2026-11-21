@@ -1093,7 +1093,7 @@ dependencies = [
 
 [[package]]
 name = "fake-claude"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "nix 0.31.3",
  "regex",
@@ -1863,7 +1863,7 @@ dependencies = [
 
 [[package]]
 name = "kanban-mcp-stdio"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "serde_json",
  "tempfile",
@@ -1872,7 +1872,7 @@ dependencies = [
 
 [[package]]
 name = "kanban-server"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "kb-app",
  "kb-base",
@@ -1886,7 +1886,7 @@ dependencies = [
 
 [[package]]
 name = "kb-ai"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -1914,7 +1914,7 @@ dependencies = [
 
 [[package]]
 name = "kb-ai-api"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -1942,7 +1942,7 @@ dependencies = [
 
 [[package]]
 name = "kb-ai-know"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "fancy-regex",
  "kb-ai",
@@ -1965,7 +1965,7 @@ dependencies = [
 
 [[package]]
 name = "kb-ai-run"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -1998,7 +1998,7 @@ dependencies = [
 
 [[package]]
 name = "kb-ai-scan"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2021,7 +2021,7 @@ dependencies = [
 
 [[package]]
 name = "kb-ai-work"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2041,7 +2041,7 @@ dependencies = [
 
 [[package]]
 name = "kb-app"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -2080,7 +2080,7 @@ dependencies = [
 
 [[package]]
 name = "kb-assist"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -2116,7 +2116,7 @@ dependencies = [
 
 [[package]]
 name = "kb-base"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "axum",
  "chrono",
@@ -2139,7 +2139,7 @@ dependencies = [
 
 [[package]]
 name = "kb-board"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -2168,7 +2168,7 @@ dependencies = [
 
 [[package]]
 name = "kb-db"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2187,7 +2187,7 @@ dependencies = [
 
 [[package]]
 name = "kb-dbkit"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -2209,7 +2209,7 @@ dependencies = [
 
 [[package]]
 name = "kb-docexport"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "base64 0.22.1",
  "docx-rs",
@@ -2224,7 +2224,7 @@ dependencies = [
 
 [[package]]
 name = "kb-docs"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -2260,7 +2260,7 @@ dependencies = [
 
 [[package]]
 name = "kb-doctext"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "caseless",
  "chrono",
@@ -2273,7 +2273,7 @@ dependencies = [
 
 [[package]]
 name = "kb-draw"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -2303,7 +2303,7 @@ dependencies = [
 
 [[package]]
 name = "kb-files"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "axum",
  "bytes",
@@ -2322,7 +2322,7 @@ dependencies = [
 
 [[package]]
 name = "kb-fuzzy"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -2330,7 +2330,7 @@ dependencies = [
 
 [[package]]
 name = "kb-ideas"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -2352,7 +2352,7 @@ dependencies = [
 
 [[package]]
 name = "kb-log"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "chrono",
  "kb-base",
@@ -2364,7 +2364,7 @@ dependencies = [
 
 [[package]]
 name = "kb-mcp"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -2404,7 +2404,7 @@ dependencies = [
 
 [[package]]
 name = "kb-notify"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "axum",
  "chrono",
@@ -2423,7 +2423,7 @@ dependencies = [
 
 [[package]]
 name = "kb-richdoc"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "regex",
  "serde",
@@ -2434,7 +2434,7 @@ dependencies = [
 
 [[package]]
 name = "kb-skills"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -4253,7 +4253,7 @@ dependencies = [
 
 [[package]]
 name = "testkit"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "bytes",
  "futures",
