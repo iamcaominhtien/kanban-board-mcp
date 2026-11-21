@@ -10,9 +10,10 @@
 use chrono::Utc;
 use kb_base::{activity, events, time};
 use kb_db::Session;
-use kb_db::entities::{docs_highlight, docs_page};
+use kb_db::entities::{docs_highlight, docs_page, docs_version};
 use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use kb_doctext::docs_access;
+use kb_doctext::docs_anchors::{self as anchors, Block, Carried, Change};
 use serde_json::{Map, Value, json};
 
 use crate::docs::settings::read_settings;
@@ -373,15 +374,177 @@ fn block_texts(doc: &Value) -> std::collections::HashMap<String, String> {
     out
 }
 
-/// Re-anchors a page's highlights after a publish: one whose words are still at its offsets stays; one whose words
-/// moved inside its block follows them (`moved`); one whose words are gone is `changed` ("Passage changed").
+/// The innermost blocks of a rich page (blocks with an id and no block with an id inside), in page order: their ids
+/// and their text as anchor blocks (`textContent`, offsets counting characters, blocks joined by one separator).
+struct Leaves {
+    ids: Vec<String>,
+    blocks: Vec<Block>,
+}
+
+fn leaves(doc: &Value) -> Leaves {
+    fn has_block_inside(node: &Value) -> bool {
+        node.get("content").and_then(Value::as_array).into_iter().flatten().any(|c| {
+            c.get("attrs").and_then(|a| a.get("blockId")).and_then(Value::as_str).is_some() || has_block_inside(c)
+        })
+    }
+    fn text_of(node: &Value, buf: &mut String) {
+        if let Some(t) = node.get("text").and_then(Value::as_str) {
+            buf.push_str(t);
+        }
+        for child in node.get("content").and_then(Value::as_array).into_iter().flatten() {
+            text_of(child, buf);
+        }
+    }
+    fn walk(node: &Value, out: &mut Leaves, pos: &mut usize) {
+        let id = node.get("attrs").and_then(|a| a.get("blockId")).and_then(Value::as_str);
+        if let Some(id) = id.filter(|_| !has_block_inside(node)) {
+            let mut text = String::new();
+            text_of(node, &mut text);
+            let n = text.chars().count();
+            out.ids.push(id.to_string());
+            out.blocks.push(Block { text, section: None, start: *pos });
+            *pos += n + 1;
+            return;
+        }
+        for child in node.get("content").and_then(Value::as_array).into_iter().flatten() {
+            walk(child, out, pos);
+        }
+    }
+    let mut out = Leaves { ids: Vec::new(), blocks: Vec::new() };
+    walk(doc, &mut out, &mut 0);
+    out
+}
+
+impl Leaves {
+    /// The block holding offset `pos` of the joined text, with the offset inside it.
+    fn at(&self, pos: usize) -> Option<(usize, usize)> {
+        let n = self.blocks.iter().rposition(|b| b.start <= pos)?;
+        Some((n, pos - self.blocks[n].start))
+    }
+}
+
+/// Where a highlight is after a publish: its state, the block it starts in, its offsets and the block it ends in.
+#[derive(Debug, Clone, PartialEq)]
+struct Placed {
+    state: String,
+    block_id: String,
+    start: i32,
+    end: i32,
+    end_block_id: Option<String>,
+}
+
+/// A passage of `len` characters at offset `pos` of the new joined text, as block ids and offsets.
+fn passage_at(new: &Leaves, pos: usize, len: usize) -> Option<(String, i32, i32, Option<String>)> {
+    let (sb, so) = new.at(pos)?;
+    let end = pos + len;
+    let (eb, eo) = new.at(end.saturating_sub(1)).map(|(b, o)| (b, o + 1))?;
+    let i = |n: usize| i32::try_from(n).ok();
+    if sb == eb {
+        return Some((new.ids[sb].clone(), i(so)?, i(eo)?, None));
+    }
+    Some((new.ids[sb].clone(), i(so)?, i(eo)?, Some(new.ids[eb].clone())))
+}
+
+/// Where a highlight goes in the new text of its page.
+///
+/// Its words still at their offsets keep it. Otherwise it is carried through the diff of the previous and the new
+/// text, as comment anchors are ([`anchors::carry_anchor`]): unchanged words keep it wherever they went (another
+/// block, a block with a new id, the second of two identical paragraphs), so a Markdown publish that gives every
+/// block a new id no longer turns every highlight into "Passage changed". Edited or rewritten words make it `changed`
+/// but point it at the words now in their place, so "Use the new quote" offers them; removed words make it `changed`
+/// where it was. Without a previous text, the same words are looked for, weighing the text around them and the
+/// distance from where they were ([`anchors::relocate`]); only an exact copy counts, so a highlight is never drawn on
+/// other words.
+///
+/// `texts` is the text of every block of the new page by id (nested ones too), for the words-in-place check.
+fn place(
+    h: &docs_highlight::Model,
+    old: Option<&Leaves>,
+    new: &Leaves,
+    texts: &std::collections::HashMap<String, String>,
+) -> Placed {
+    let here = |state: &str| Placed {
+        state: state.to_string(),
+        block_id: h.block_id.clone(),
+        start: h.start_offset,
+        end: h.end_offset,
+        end_block_id: h.end_block_id.clone(),
+    };
+    let kept_state = if h.state == "changed" { "ok" } else { h.state.as_str() };
+    let (s, e) = (h.start_offset.max(0) as usize, h.end_offset.max(0) as usize);
+    let new_at = |id: &str| new.ids.iter().position(|x| x == id);
+    let whole = h.end_block_id.is_none();
+    if let Some(text) = texts.get(&h.block_id) {
+        let chars: Vec<char> = text.chars().collect();
+        if whole && e <= chars.len() && s < e && chars[s..e].iter().collect::<String>() == h.quote {
+            return here(kept_state);
+        }
+        if !whole && h.end_block_id.as_ref().is_some_and(|id| texts.contains_key(id)) {
+            // a passage across blocks whose blocks are both still there stays (the reader checks its first word)
+            return here(kept_state);
+        }
+    }
+    let moved = |m: &anchors::Match, state: &str| {
+        passage_at(new, m.pos, m.quote.chars().count()).map(|(block_id, start, end, end_block_id)| {
+            let state = if state == "kept" {
+                let same = block_id == h.block_id && start == h.start_offset && end_block_id == h.end_block_id;
+                if same { kept_state.to_string() } else { "moved".to_string() }
+            } else {
+                state.to_string()
+            };
+            Placed { state, block_id, start, end, end_block_id }
+        })
+    };
+    if let Some(old) = old {
+        if let Some(n) = old.ids.iter().position(|x| *x == h.block_id) {
+            match anchors::carry_anchor(&old.blocks, &new.blocks, old.blocks[n].start + s, &h.quote) {
+                Some(Carried::Attached(Change::Kept, m)) => {
+                    if let Some(p) = moved(&m, "kept") {
+                        return p;
+                    }
+                }
+                Some(Carried::Attached(_, m)) => {
+                    // its words were edited: "Passage changed", pointing at the words now in their place
+                    return moved(&m, "changed")
+                        .filter(|p| p.end_block_id.is_none())
+                        .unwrap_or_else(|| here("changed"));
+                }
+                Some(Carried::Removed { .. }) => return here("changed"),
+                None => {}
+            }
+        }
+    }
+    if whole {
+        let near = new_at(&h.block_id).map(|n| new.blocks[n].start + s);
+        let hit = anchors::relocate(
+            &new.blocks,
+            &h.quote,
+            h.prefix.as_deref().unwrap_or(""),
+            h.suffix.as_deref().unwrap_or(""),
+            None,
+            near,
+        );
+        if let Some(p) = hit.filter(|m| m.exact).and_then(|m| moved(&m, "kept")) {
+            if p.end_block_id.is_none() {
+                return p;
+            }
+        }
+    }
+    here("changed")
+}
+
+/// Re-anchors a page's highlights after a publish (see [`place`]): one whose words are unchanged follows them
+/// (`moved` when they went somewhere else); one whose words were edited, rewritten or removed is `changed`
+/// ("Passage changed"). `previous` is the version before the one just published (`None` for a first publish).
 ///
 /// # Errors
 /// A database error.
-pub async fn rematch(session: &Session, page: &docs_page::Model) -> Result<()> {
+pub async fn rematch(session: &Session, page: &docs_page::Model, previous: Option<&docs_version::Model>) -> Result<()> {
     let Some(latest) = latest_version(session, page).await? else { return Ok(()) };
     let Some(doc) = PageBody::of_version(&latest).content else { return Ok(()) };
+    let new = leaves(&doc);
     let texts = block_texts(&doc);
+    let old = previous.and_then(|v| PageBody::of_version(v).content).map(|d| leaves(&d));
     let me = activity::current_actor();
     for h in live(session, &page.id).await? {
         if h.state == "becoming" {
@@ -394,26 +557,19 @@ pub async fn rematch(session: &Session, page: &docs_page::Model) -> Result<()> {
             }
             continue;
         }
-        let text = texts.get(&h.block_id);
-        let chars: Vec<char> = text.map(|t| t.chars().collect()).unwrap_or_default();
-        let (s, e) = (h.start_offset.max(0) as usize, h.end_offset.max(0) as usize);
-        let whole = h.end_block_id.is_none();
-        let at_place = whole && e <= chars.len() && s < e && chars[s..e].iter().collect::<String>() == h.quote;
-        let (state, start, end) = if text.is_none() {
-            ("changed".to_string(), h.start_offset, h.end_offset)
-        } else if at_place || !whole {
-            (if h.state == "changed" { "ok".to_string() } else { h.state.clone() }, h.start_offset, h.end_offset)
-        } else if let Some(byte) = text.and_then(|t| t.find(&h.quote)) {
-            let start = text.map(|t| t[..byte].chars().count()).unwrap_or(0) as i32;
-            ("moved".to_string(), start, start + h.quote.chars().count() as i32)
-        } else {
-            ("changed".to_string(), h.start_offset, h.end_offset)
-        };
-        if state != h.state || start != h.start_offset || end != h.end_offset {
+        let p = place(&h, old.as_ref(), &new, &texts);
+        let same = p.state == h.state
+            && p.block_id == h.block_id
+            && p.start == h.start_offset
+            && p.end == h.end_offset
+            && p.end_block_id == h.end_block_id;
+        if !same {
             let mut row = kb_db::edit(h);
-            row.state = Set(state);
-            row.start_offset = Set(start);
-            row.end_offset = Set(end);
+            row.state = Set(p.state);
+            row.block_id = Set(p.block_id);
+            row.start_offset = Set(p.start);
+            row.end_offset = Set(p.end);
+            row.end_block_id = Set(p.end_block_id);
             row.update(session).await?;
         }
     }

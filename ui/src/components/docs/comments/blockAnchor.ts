@@ -169,12 +169,60 @@ export interface ThreadPlace {
   quoteAt: number;
   /** "Image · Float right" for a comment on a whole block. */
   label: string | null;
+  /** An orphaned thread: the block now where its text was (the server keeps it), to show that spot. */
+  whereBlockId?: string | null;
+  /** An orphaned thread: the title of the section its text was in. */
+  sectionTitle?: string | null;
+}
+
+/** The text of the heading whose slug is `slug`, or null. */
+export function sectionTitle(doc: RichDoc | null | undefined, slug: string | null | undefined): string | null {
+  if (!doc || !slug) return null;
+  const want = slug.replace(/-\d+$/, '');
+  const h = topLevelBlocks(doc).find((b) => b.type === 'heading' && slugify(textOf(b)) === want);
+  return h ? textOf(h) : null;
+}
+
+/** How many characters `a` and `b` share at their ends (`fromEnd`) or starts. */
+function shared(a: string, b: string, fromEnd: boolean): number {
+  let n = 0;
+  while (n < a.length && n < b.length) {
+    const x = fromEnd ? a[a.length - 1 - n] : a[n];
+    const y = fromEnd ? b[b.length - 1 - n] : b[n];
+    if (x !== y) break;
+    n++;
+  }
+  return n;
+}
+
+/**
+ * The block a quote is in when its block id does not say: of the blocks holding it, the one whose text around it
+ * matches the anchor's prefix and suffix best (ties: the first), not simply the first block holding it.
+ */
+function blockByQuote(all: RichDoc[], quote: string, prefix: string, suffix: string): number {
+  let best = -1;
+  let bestScore = -1;
+  all.forEach((b, i) => {
+    const text = textOf(b);
+    let at = text.indexOf(quote);
+    if (at < 0 && blockQuote(b) === quote) at = 0;
+    while (at >= 0) {
+      const sc = shared(text.slice(0, at), prefix, true) + shared(text.slice(at + quote.length), suffix, false);
+      if (sc > bestScore) {
+        best = i;
+        bestScore = sc;
+      }
+      at = text.indexOf(quote, at + 1);
+    }
+  });
+  return best;
 }
 
 /**
  * Where a thread stands on a page: on its block with its quote (open), on its block whose text changed (quote
- * edited: the thread follows its block), its block gone (block deleted), or its text gone (orphaned). Threads
- * without a block id (from before the rich format) are found by their quote.
+ * edited: the thread follows its block), its block gone (block deleted), or its text gone (orphaned). The server
+ * carries every anchor across a publish and says when its text was removed; an orphaned thread then names the block
+ * now where its text was. Threads without a block id (from before the rich format) are found by their quote.
  * @param t - The thread.
  * @param doc - The published page (null for a Markdown page: the server's state is all there is).
  */
@@ -187,20 +235,15 @@ export function threadPlace(t: DocsCommentThread, doc: RichDoc | null | undefine
   const base = (state: ThreadState): ThreadPlace => ({ state, blockIndex: null, quoteAt: -1, label: null });
   if (!doc) return base(resolved ? 'resolved' : orphaned ? 'orphaned' : 'open');
   const all = topLevelBlocks(doc);
-  const byQuote = () => (quote ? all.findIndex((b) => textOf(b).includes(quote) || blockQuote(b) === quote) : -1);
-  if (blockId) {
-    const hit = findBlock(doc, blockId);
-    if (!hit) {
-      // the server found the quote in another block: it follows the quote there
-      const at = orphaned ? -1 : byQuote();
-      if (at < 0) return { ...base(resolved ? 'resolved' : 'blockDeleted') };
-      return {
-        state: resolved ? 'resolved' : 'open',
-        blockIndex: at,
-        quoteAt: textOf(all[at]).indexOf(quote),
-        label: null,
-      };
-    }
+  const hit = blockId ? findBlock(doc, blockId) : null;
+  if (orphaned) {
+    // its text is gone; a block id that is still on the page is where that text was
+    const title = sectionTitle(doc, a?.section);
+    if (hit) return { ...base(resolved ? 'resolved' : 'orphaned'), whereBlockId: blockId, sectionTitle: title };
+    return { ...base(resolved ? 'resolved' : blockId ? 'blockDeleted' : 'orphaned'), sectionTitle: title };
+  }
+  const byQuote = () => (quote ? blockByQuote(all, quote, a?.prefix ?? '', a?.suffix ?? '') : -1);
+  if (blockId && hit) {
     const label = blockLabel(hit.node);
     const text = textOf(hit.node);
     const inside = !quote || text.includes(quote) || blockQuote(hit.node) === quote || !!label;
@@ -211,8 +254,9 @@ export function threadPlace(t: DocsCommentThread, doc: RichDoc | null | undefine
       label,
     };
   }
-  if (orphaned) return base(resolved ? 'resolved' : 'orphaned');
+  // no block id, or one from before the page's ids changed: the server found the quote, so follow it
   const at = byQuote();
+  if (at < 0 && blockId) return base(resolved ? 'resolved' : 'blockDeleted');
   return {
     state: resolved ? 'resolved' : 'open',
     blockIndex: at < 0 ? null : at,

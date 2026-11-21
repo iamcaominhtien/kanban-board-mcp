@@ -14,6 +14,10 @@ export interface HighlightThread {
   prefix: string;
   suffix: string;
   section: string | null;
+  /** The block the server keeps the thread on (rich pages). */
+  blockId?: string | null;
+  /** Where the quote starts in the server's page text (blocks joined by one separator). */
+  pos?: number | null;
 }
 
 interface HighlightState {
@@ -38,6 +42,8 @@ interface TextBlock {
   section: string | null;
   /** Start of the textblock's content in the document. */
   start: number;
+  /** The id of the block it is in (itself or the nearest block around it that has one). */
+  blockId: string | null;
 }
 
 /** Plain text of every textblock with a position for each character (chips count as their label). */
@@ -85,7 +91,15 @@ export function textBlocks(doc: PMNode): TextBlock[] {
       text = text.slice(0, -1);
       at.pop();
     }
-    if (text) out.push({ text, at, section, start: pos + 1 });
+    if (text) {
+      const $pos = doc.resolve(pos + 1);
+      let blockId: string | null = null;
+      for (let d = $pos.depth; d > 0 && !blockId; d--) {
+        const id = $pos.node(d).attrs.blockId;
+        if (typeof id === 'string' && id) blockId = id;
+      }
+      out.push({ text, at, section, start: pos + 1, blockId });
+    }
     return false;
   });
   return out;
@@ -108,41 +122,71 @@ interface DocText {
   /** Document range of each character; null for the space between two blocks. */
   at: ({ from: number; to: number } | null)[];
   sections: (string | null)[];
+  /** The block id of each character. */
+  ids: (string | null)[];
 }
 
 function docText(blocks: TextBlock[]): DocText {
   let text = '';
   const at: DocText['at'] = [];
   const sections: DocText['sections'] = [];
+  const ids: DocText['ids'] = [];
   blocks.forEach((b, i) => {
     if (i > 0) {
       text += ' ';
       at.push(null);
       sections.push(b.section);
+      ids.push(null);
     }
     text += b.text;
     at.push(...b.at);
-    for (let k = 0; k < b.text.length; k++) sections.push(b.section);
+    for (let k = 0; k < b.text.length; k++) {
+      sections.push(b.section);
+      ids.push(b.blockId);
+    }
   });
-  return { text, at, sections };
+  return { text, at, sections, ids };
+}
+
+/**
+ * Where a thread's quote is in a document: in the block the server keeps the thread on when it is there, else the
+ * copy with the most matching text around it, else the one nearest the server's position (two identical paragraphs
+ * have no text around them to tell them apart).
+ * @param blocks - From {@link textBlocks}.
+ * @param t - The thread.
+ * @returns The document range of the quote, or null when its text is not in the document.
+ */
+export function placeQuote(blocks: TextBlock[], t: HighlightThread): { from: number; to: number } | null {
+  return placeIn(docText(blocks), t);
+}
+
+function placeIn(page: DocText, t: HighlightThread): { from: number; to: number } | null {
+  const quote = norm(t.quote);
+  const distance = (x: number) => (t.pos == null ? 0 : Math.abs(x - t.pos));
+  let best: { score: number; at: number } | null = null;
+  let at = page.text.indexOf(quote);
+  while (at !== -1) {
+    const end = at + quote.length;
+    let score = commonSuffix(page.text.slice(Math.max(0, at - CONTEXT), at), t.prefix);
+    score += commonPrefix(page.text.slice(end, end + CONTEXT), t.suffix);
+    if (t.section && page.sections[at] === t.section) score += 0.5;
+    if (t.blockId && page.ids[at] === t.blockId) score += 1000;
+    if (!best || score > best.score || (score === best.score && distance(at) < distance(best.at))) best = { score, at };
+    at = page.text.indexOf(quote, at + 1);
+  }
+  if (!best) return null;
+  const first = page.at[best.at];
+  const last = page.at[best.at + quote.length - 1];
+  return first && last ? { from: first.from, to: last.to } : null;
 }
 
 function build(doc: PMNode, threads: HighlightThread[], activeId: string | null, prev: DecorationSet): DecorationSet {
   const page = docText(textBlocks(doc));
   const decos: Decoration[] = [];
   for (const t of threads) {
-    const quote = norm(t.quote);
-    let best: { score: number; at: number } | null = null;
-    let at = page.text.indexOf(quote);
-    while (at !== -1) {
-      const end = at + quote.length;
-      let score = commonSuffix(page.text.slice(Math.max(0, at - CONTEXT), at), t.prefix);
-      score += commonPrefix(page.text.slice(end, end + CONTEXT), t.suffix);
-      if (t.section && page.sections[at] === t.section) score += 0.5;
-      if (!best || score > best.score) best = { score, at };
-      at = page.text.indexOf(quote, at + 1);
-    }
-    if (!best) {
+    const hit = placeIn(page, t);
+    if (!hit) {
+      if (page.text.includes(norm(t.quote))) continue;
       // text typed inside a highlight no longer equals the stored quote: keep following the old range
       const old = prev.find().filter((d) => (d.spec as { threadId?: string }).threadId === t.id);
       if (old.length)
@@ -151,9 +195,7 @@ function build(doc: PMNode, threads: HighlightThread[], activeId: string | null,
         );
       continue;
     }
-    const first = page.at[best.at];
-    const last = page.at[best.at + quote.length - 1];
-    if (first && last) decos.push(...highlight(doc, first.from, last.to, t, activeId));
+    decos.push(...highlight(doc, hit.from, hit.to, t, activeId));
   }
   return DecorationSet.create(doc, decos);
 }

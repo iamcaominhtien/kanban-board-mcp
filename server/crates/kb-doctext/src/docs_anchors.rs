@@ -12,6 +12,9 @@ use serde::{Deserialize, Serialize};
 use crate::docs_text::{self, heading_anchors, is_fence, strip_block_prefix};
 use crate::pystr::{self, is_decimal, is_space, is_word};
 
+mod carry;
+pub use carry::{Carried, Change, carry_anchor, relocate};
+
 /// Characters of prefix and suffix kept around a quote.
 pub const CONTEXT: usize = 32;
 /// Least share of a quote that must still be in place for a fuzzy match.
@@ -451,8 +454,8 @@ fn find_across(
 
 /// `difflib.SequenceMatcher(None, a, b, autojunk=False).get_matching_blocks()` without the closing sentinel:
 /// `(i, j, size)` triples of the non-empty matching blocks, in order.
-fn matching_blocks(a: &[char], b: &[char]) -> Vec<(usize, usize, usize)> {
-    let mut b2j: HashMap<char, Vec<usize>> = HashMap::new();
+fn matching_blocks<T: Eq + std::hash::Hash + Copy>(a: &[T], b: &[T]) -> Vec<(usize, usize, usize)> {
+    let mut b2j: HashMap<T, Vec<usize>> = HashMap::new();
     for (j, &c) in b.iter().enumerate() {
         b2j.entry(c).or_default().push(j);
     }

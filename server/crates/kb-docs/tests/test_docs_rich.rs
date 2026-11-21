@@ -361,3 +361,84 @@ async fn the_recycle_bin_shows_a_page_icon_only_when_the_page_has_one() {
     // a page without an icon answers as before: no key at all
     assert!(row(&plain).get("icon").is_none());
 }
+
+/// The highlights of a page, by quote.
+async fn highlight_rows(c: &Client, page_id: &str) -> Vec<Value> {
+    c.get(&format!("/docs/pages/{page_id}/highlights")).await.json()["highlights"].as_array().unwrap().clone()
+}
+
+/// The id of the `nth` top-level block whose text holds `needle`, in the published page.
+async fn block_with(c: &Client, page_id: &str, needle: &str, nth: usize) -> Value {
+    let page = c.get(&format!("/docs/pages/{page_id}")).await.json();
+    page["content"]["content"].as_array().unwrap().iter().filter(|b| b.to_string().contains(needle)).nth(nth).unwrap()
+        ["attrs"]["blockId"]
+        .clone()
+}
+
+async fn publish_markdown(c: &Client, page_id: &str, md: &str) {
+    let cur = c.get(&format!("/docs/pages/{page_id}")).await.json();
+    let r = c
+        .post(&format!("/docs/pages/{page_id}/publish"), json!({"base_version": cur["version"], "markdown": md}))
+        .await;
+    assert_eq!(r.status, 200, "{:?}", r.json());
+}
+
+#[tokio::test]
+async fn highlights_survive_new_block_ids_and_keep_their_copy() {
+    if !skip_unless_available("highlights_survive_new_block_ids_and_keep_their_copy") {
+        return;
+    }
+    let s = Server::start().await;
+    let c = s.client();
+    let (_pid, page_id) = rich_page(
+        &c,
+        doc(json!([
+            para("b-000001", "Intro line."),
+            para("b-000002", "Same words here."),
+            para("b-000003", "Middle line."),
+            para("b-000004", "Same words here."),
+        ])),
+    )
+    .await;
+    let body = json!({"block_id": "b-000004", "start": 0, "end": 10, "quote": "Same words", "color": "yellow"});
+    let r = c.post(&format!("/docs/pages/{page_id}/highlights"), body).await;
+    assert_eq!(r.status, 201, "{:?}", r.json());
+    // a Markdown publish (as an AI's edit is) gives every block a new id; the middle line is rewritten as well
+    publish_markdown(&c, &page_id, "Intro line.\n\nSame words here.\n\nA different middle.\n\nSame words here.\n")
+        .await;
+    let h = highlight_rows(&c, &page_id).await[0].clone();
+    assert_eq!(h["state"], "moved", "{h:?}");
+    assert_eq!(h["block_id"], block_with(&c, &page_id, "Same words here.", 1).await, "still the second copy");
+    assert_eq!((h["start"].clone(), h["end"].clone()), (json!(0), json!(10)));
+    // a publish that leaves its words alone keeps it as it is
+    publish_markdown(
+        &c,
+        &page_id,
+        "Intro line, longer.\n\nSame words here.\n\nA different middle.\n\nSame words here.\n",
+    )
+    .await;
+    let again = highlight_rows(&c, &page_id).await[0].clone();
+    assert_eq!(again["block_id"], block_with(&c, &page_id, "Same words here.", 1).await);
+    assert_eq!(again["state"], "moved");
+}
+
+#[tokio::test]
+async fn an_edited_highlight_is_changed_and_points_at_the_new_words() {
+    if !skip_unless_available("an_edited_highlight_is_changed_and_points_at_the_new_words") {
+        return;
+    }
+    let s = Server::start().await;
+    let c = s.client();
+    let (_pid, page_id) = rich_page(&c, doc(json!([para("b-000001", "The retry budget is five per hour.")]))).await;
+    let body = json!({"block_id": "b-000001", "start": 4, "end": 24, "quote": "retry budget is five", "color": "pink"});
+    assert_eq!(c.post(&format!("/docs/pages/{page_id}/highlights"), body).await.status, 201);
+    publish_markdown(&c, &page_id, "Intro.\n\nThe retry budget is six per hour.\n").await;
+    let h = highlight_rows(&c, &page_id).await[0].clone();
+    assert_eq!(h["state"], "changed", "the reader's words are not there: never drawn on other words");
+    assert_eq!(h["block_id"], block_with(&c, &page_id, "retry budget", 0).await, "but it points where they stood");
+    assert_eq!((h["start"].clone(), h["end"].clone()), (json!(4), json!(23)));
+    assert_eq!(h["quote"], "retry budget is five");
+    // removed altogether: changed, where it was
+    publish_markdown(&c, &page_id, "Intro.\n").await;
+    assert_eq!(highlight_rows(&c, &page_id).await[0]["state"], "changed");
+}

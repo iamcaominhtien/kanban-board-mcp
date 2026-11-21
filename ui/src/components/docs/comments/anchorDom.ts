@@ -158,8 +158,8 @@ function pageText(blocks: BlockText[]): PageText {
 }
 
 /**
- * Find the DOM range of a comment's quote in the rendered page (exact text; the best match by context). The quote
- * may run over several blocks.
+ * Find the DOM range of a comment's quote in the rendered page (exact text): in the thread's block when it is there,
+ * else the best match by context, else the one nearest the server's position. The quote may run over several blocks.
  * @param blocks - Output of `collectBlocks`.
  * @param t - Thread whose anchor is looked up.
  * @returns The range, or null when the text is not on the page.
@@ -168,11 +168,23 @@ export function rangeForThread(blocks: BlockText[], t: DocsCommentThread): Range
   const a = t.anchor;
   if (!a?.quote) return null;
   const page = pageText(blocks);
+  // the block the server keeps the thread on wins; then the text around the quote; then the place nearest the
+  // server's position (two identical paragraphs have no text around them to tell them apart)
+  const inBlock = (at: number) => {
+    const m = page.map[at];
+    return (
+      !!a.blockId &&
+      !!m &&
+      m.node.parentElement?.closest('[data-block-id]')?.getAttribute('data-block-id') === a.blockId
+    );
+  };
+  const distance = (at: number) => (a.pos == null ? 0 : Math.abs(at - a.pos));
   let best: { score: number; at: number } | null = null;
   let at = page.text.indexOf(a.quote);
   while (at !== -1) {
-    const score = scoreMatch(page.text, at, at + a.quote.length, a, page.sections[at], a.section);
-    if (!best || score > best.score) best = { score, at };
+    const score =
+      scoreMatch(page.text, at, at + a.quote.length, a, page.sections[at], a.section) + (inBlock(at) ? 1000 : 0);
+    if (!best || score > best.score || (score === best.score && distance(at) < distance(best.at))) best = { score, at };
     at = page.text.indexOf(a.quote, at + 1);
   }
   if (!best) return null;

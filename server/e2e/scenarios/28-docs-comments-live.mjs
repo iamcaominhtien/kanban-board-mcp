@@ -290,13 +290,43 @@ export default {
       await a.getByRole('textbox', { name: 'Markdown source' }).waitFor({ state: 'detached' });
     });
 
-    await s.step('removing the commented text and publishing warns about the orphaned comment', async () => {
+    // Publishes from the editor through the Publish page dialog (no orphan warning on the way)
+    const publishNow = async (note) => {
+      await a.getByTestId('publish').click();
+      const d = a.getByRole('dialog', { name: 'Publish page' });
+      await d.getByRole('textbox', { name: 'Version note' }).fill(note);
+      await d.getByRole('button', { name: /^Publish v\d+/ }).click();
+      await d.waitFor({ state: 'detached' });
+      await a.getByRole('button', { name: 'Edit', exact: true }).waitFor();
+    };
+
+    await s.step('rewriting the commented paragraph publishes without a warning; the thread follows the new text', async () => {
       await setMd(a, `# ${PAGE}\n\nFresh opening line.\n\n${SECOND}\n\n${THIRD}\n`);
+      await publishNow('rewrote the first paragraph');
+      await openPanel();
+      const c = thread(a, 'deploy checklist now');
+      await c.getByTestId('thread-quote').getByText('Fresh opening line.').waitFor();
+      if (await c.getByTestId('orphan-notice').count()) throw new Error('a rewritten paragraph orphaned its thread');
+      if ((await c.getAttribute('data-state')) !== 'open') throw new Error(`state ${await c.getAttribute('data-state')}`);
+    });
+
+    await s.step('the thread keeps one quiet line of what happened: Text rewritten, and the words it was on', async () => {
+      const line = thread(a, 'deploy checklist now').getByTestId('anchor-line');
+      await line.waitFor();
+      const text = await line.innerText();
+      if (!/Text rewritten in v\d+/.test(text) || !text.includes(`was “${FIRST}”`)) throw new Error(`anchor line: ${text}`);
+      s.note('anchor line', text);
+    });
+
+    await s.step('removing the commented text and publishing warns about the orphaned comment', async () => {
+      await a.getByRole('button', { name: /^(Edit|Continue editing)$/ }).click();
+      await a.getByRole('textbox', { name: 'Page title' }).waitFor();
+      await setMd(a, `# ${PAGE}\n\n${SECOND}\n\n${THIRD}\n`);
       await a.getByTestId('publish').click();
       const w = a.getByRole('alertdialog', { name: 'Publish with orphaned comments' });
       await w.waitFor();
       await w.getByText(/Publish with 1 orphaned comment\?/).waitFor();
-      await w.getByText(`“${FIRST}”`).waitFor();
+      await w.getByText('“Fresh opening line.”').waitFor();
     });
 
     await s.step('Review comments closes the warning and opens the comments panel', async () => {
@@ -311,17 +341,30 @@ export default {
       const w = a.getByRole('alertdialog', { name: 'Publish with orphaned comments' });
       await w.getByRole('button', { name: 'Publish anyway' }).click();
       const d = a.getByRole('dialog', { name: 'Publish page' });
-      await d.getByRole('textbox', { name: 'Version note' }).fill('rewrote the first paragraph');
+      await d.getByRole('textbox', { name: 'Version note' }).fill('removed the first paragraph');
       await d.getByRole('button', { name: /^Publish v\d+/ }).click();
       await d.waitFor({ state: 'detached' });
       await a.getByRole('button', { name: 'Edit', exact: true }).waitFor();
     });
 
-    await s.step('the thread now says its text was removed; Re-attach to selection waits for a selection', async () => {
+    await s.step('the thread now says its text was removed, with a Text removed line', async () => {
       await openPanel();
       const c = thread(a, 'deploy checklist now');
-      await c.getByText(/Text removed|Block deleted/).waitFor(); // comments follow blocks now: a replaced paragraph is a deleted block
+      await c.getByText('Text removed', { exact: true }).waitFor();
       await c.getByTestId('orphan-notice').waitFor();
+      await c.locator('[data-testid="anchor-line"][data-change="removed"]').waitFor();
+    });
+
+    await s.step('Show where it was scrolls to the spot the text stood and marks it for a moment', async () => {
+      const c = thread(a, 'deploy checklist now');
+      const spot = a.locator('[data-block-id]').filter({ hasText: SECOND }).first();
+      await c.getByTestId('thread-show-where').click();
+      await spot.and(a.locator('.dc-where-flash')).waitFor();
+      await a.locator('.dc-where-flash').waitFor({ state: 'detached' });
+    });
+
+    await s.step('Re-attach to selection waits for a selection; Cancel stops waiting', async () => {
+      const c = thread(a, 'deploy checklist now');
       await c.getByTestId('thread-reattach').click();
       await c.getByTestId('reattach-hint').waitFor();
       await c.getByTestId('reattach-hint').getByRole('button', { name: 'Cancel' }).click();
@@ -331,9 +374,9 @@ export default {
     await s.step('Re-attach: selecting new text and Attach here moves the thread onto it', async () => {
       const c = thread(a, 'deploy checklist now');
       await c.getByTestId('thread-reattach').click();
-      await selectParagraph(a, 'Fresh opening line.');
+      await selectParagraph(a, SECOND);
       await Promise.all([posted(a, 'POST', /\/reattach$/), a.getByTestId('selection-comment').click()]);
-      await c.getByTestId('thread-quote').getByText('Fresh opening line.').waitFor();
+      await c.getByTestId('thread-quote').getByText(SECOND).waitFor();
       await c.getByTestId('orphan-notice').waitFor({ state: 'detached' });
     });
 
@@ -473,6 +516,27 @@ export default {
       await Promise.all([w.waitForEvent('close'), a.getByTestId('docs-dock-here').click()]);
       await a.getByTestId('docs-popped-out').waitFor({ state: 'detached' });
       await a.getByRole('heading', { name: PAGE, level: 1 }).first().waitFor();
+    });
+
+    await s.step('two identical paragraphs: the thread is drawn on the copy it was made on, not the first one', async () => {
+      const call = async (method, url, body) => {
+        const r = await fetch(`${s.server.base}${url}`, { method, headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+        if (!r.ok) throw new Error(`${method} ${url}: ${r.status} ${await r.text()}`);
+        return r.json();
+      };
+      const projects = await call('GET', '/projects');
+      const pid = (Array.isArray(projects) ? projects : projects.projects)[0].id;
+      const pg = await call('POST', `/projects/${pid}/docs/pages`, { title: 'Twins' });
+      const para = (id, text) => ({ type: 'paragraph', attrs: { blockId: id }, content: [{ type: 'text', text }] });
+      const SAME = 'Check it on a real machine first.';
+      await call('PUT', `/docs/pages/${pg.id}/draft`, { content: { type: 'doc', content: [para('b-000001', SAME), para('b-000002', 'Between.'), para('b-000003', SAME)] } });
+      await call('POST', `/docs/pages/${pg.id}/publish`, { base_version: 0 });
+      const t = await call('POST', `/docs/pages/${pg.id}/comments`, { kind: 'inline', body: 'The second one', anchor: { quote: SAME, block_id: 'b-000003' } });
+      await openTreePage(a, 'Twins');
+      const badge = a.locator(`[data-testid="comment-badge"][data-thread="${t.id}"]`);
+      await badge.waitFor();
+      const block = await badge.evaluate((el) => el.closest('[data-block-id]')?.getAttribute('data-block-id'));
+      if (block !== 'b-000003') throw new Error(`the thread is drawn on ${block}, it was made on b-000003`);
     });
   },
 };

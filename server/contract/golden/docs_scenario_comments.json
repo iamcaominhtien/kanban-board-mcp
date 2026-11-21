@@ -46,6 +46,16 @@
       "created_at": "<time>",
       "edited_at": null,
       "ai": null
+    },
+    {
+      "id": "<id>",
+      "thread_id": "<uuid>",
+      "author": "user",
+      "body": "Text rewritten in v2",
+      "mentions": "[]",
+      "created_at": "<time>",
+      "edited_at": null,
+      "ai": "{\"kind\": \"anchor\", \"change\": \"rewritten\", \"version\": 2, \"quote\": \"Tracked in KAN-12\"}"
     }
   ],
   "docs_comment_event": [
@@ -204,7 +214,7 @@
       "created_at": "<time>",
       "resolved_by": null,
       "resolved_at": null,
-      "anchor_block_id": null
+      "anchor_block_id": "<bid>"
     },
     {
       "id": "<id>",
@@ -221,7 +231,7 @@
       "created_at": "<time>",
       "resolved_by": null,
       "resolved_at": null,
-      "anchor_block_id": null
+      "anchor_block_id": "<bid>"
     },
     {
       "id": "<id>",

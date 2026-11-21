@@ -133,6 +133,29 @@ describe('threadPlace: the states of a thread', () => {
     });
   });
 
+  it("names the block now where an orphaned thread's text was, and its section", () => {
+    const t = thread('t', { quote: 'gone words', blockId: 'b-1', state: 'orphaned', section: 'why-we-moved' });
+    expect(threadPlace(t, page)).toMatchObject({
+      state: 'orphaned',
+      blockIndex: null,
+      whereBlockId: 'b-1',
+      sectionTitle: 'Why we moved',
+    });
+  });
+
+  it('says "block deleted" for an orphaned thread whose block is gone', () => {
+    const t = thread('t', { quote: 'gone words', blockId: 'b-gone', state: 'orphaned' });
+    const place = threadPlace(t, page);
+    expect(place.state).toBe('blockDeleted');
+    expect(place.whereBlockId).toBeUndefined();
+  });
+
+  it('picks, of two blocks with the same words, the one whose surrounding text matches', () => {
+    const twin = doc(p('b-a', 'Intro: Same words here.'), p('b-b', 'Later on: Same words here.'));
+    const t = thread('t', { quote: 'Same words here.', prefix: 'Later on: ', blockId: 'b-old' });
+    expect(threadPlace(t, twin).blockIndex).toBe(1);
+  });
+
   it('keeps the server state on a Markdown page', () => {
     expect(threadPlace(thread('t', { quote: 'x', state: 'orphaned' }), null).state).toBe('orphaned');
   });

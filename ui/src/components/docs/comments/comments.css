@@ -1053,6 +1053,40 @@ kbd {
   color: #9aa69d;
   white-space: nowrap;
 }
+/* a publish changed the thread's text: the same quiet line, a touch smaller, the old text in italics */
+.dc-anchor-line {
+  margin: 0 0 6px;
+  padding: 3px 8px;
+  background: transparent;
+  border-left: 2px solid #e3e9e5;
+  border-radius: 0;
+  font-size: 11.5px;
+}
+.dc-anchor-line[data-change='removed'] {
+  border-left-color: #f0d9a8;
+}
+.dc-anchor-was {
+  font-style: italic;
+  color: #7d8b81;
+}
+.dc-where-section {
+  color: #5b6b60;
+}
+.dc-where-section b {
+  font-weight: 600;
+}
+/* "Show where it was": the spot the thread's text stood, marked for a moment */
+.dc-where-flash {
+  outline: 2px dashed #e2b04a;
+  outline-offset: 4px;
+  border-radius: 4px;
+  transition: outline-color 0.4s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dc-where-flash {
+    transition: none;
+  }
+}
 .dc-sendai-count {
   display: flex;
   align-items: center;

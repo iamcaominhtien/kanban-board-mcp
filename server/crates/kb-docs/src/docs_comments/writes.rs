@@ -11,8 +11,8 @@ use serde::Deserialize;
 use serde_json::{Map, Value};
 
 use super::{
-    announce, clean_body, comments_of, delete_threads, members_of, mentions_in, need_member, one, page_blocks,
-    record_event, role_in, thread, thread_page,
+    announce, clean_body, comments_of, delete_threads, members_of, mentions_in, need_member, one, record_event,
+    role_in, thread, thread_page,
 };
 use crate::docs::get_page;
 use crate::{Result, docs_err};
@@ -75,14 +75,14 @@ pub async fn create_thread(
         let section = anchor.and_then(|a| a.section.clone()).filter(|s| !s.is_empty());
         // Text typed in a draft may not be published yet: it stays attached, without a position, until the next
         // publish re-matches it.
-        let hit =
-            anchors::find_anchor(&page_blocks(session, &page).await?, &quote, &prefix, &suffix, section.as_deref());
+        let block_id = anchor.and_then(|a| a.block_id.clone()).filter(|b| !b.is_empty());
+        let hit = locate(session, &page, &quote, &prefix, &suffix, section.as_deref(), block_id.as_deref()).await?;
         row.anchor_quote = Set(Some(quote));
         row.anchor_prefix = Set(prefix);
         row.anchor_suffix = Set(suffix);
         row.anchor_section = Set(section);
         row.anchor_pos = Set(hit.map(|h| h.pos as i32));
-        row.anchor_block_id = Set(anchor.and_then(|a| a.block_id.clone()).filter(|b| !b.is_empty()));
+        row.anchor_block_id = Set(block_id);
     }
     let created = row.insert(session).await?;
     let comment = insert_comment(session, &created.id, &actor, &text, &members, ai).await?;
@@ -276,14 +276,13 @@ pub async fn reattach(session: &Session, thread_id: &str, anchor: &Anchor) -> Re
         return docs_err(422, "no_selection", "Select some text to attach the thread to");
     }
     let section = anchor.section.clone().filter(|s| !s.is_empty());
-    let hit = anchors::find_anchor(
-        &page_blocks(session, &page).await?,
-        &quote,
-        &anchor.prefix,
-        &anchor.suffix,
-        section.as_deref(),
-    );
+    let block_id = anchor.block_id.clone().filter(|b| !b.is_empty());
+    let hit =
+        locate(session, &page, &quote, &anchor.prefix, &anchor.suffix, section.as_deref(), block_id.as_deref()).await?;
     let mut update = kb_db::edit(row);
+    if block_id.is_some() {
+        update.anchor_block_id = Set(block_id);
+    }
     update.anchor_quote = Set(Some(quote));
     update.anchor_prefix = Set(anchor.prefix.clone());
     update.anchor_suffix = Set(anchor.suffix.clone());
@@ -293,6 +292,28 @@ pub async fn reattach(session: &Session, thread_id: &str, anchor: &Anchor) -> Re
     let row = update.update(session).await?;
     session.commit().await?;
     one(session, &row).await
+}
+
+/// Find a new selection in the page's latest published text. `block_id` is the rich block it was made in, which
+/// tells two identical copies apart. `None` when the text is not published yet.
+async fn locate(
+    session: &Session,
+    page: &kb_db::entities::docs_page::Model,
+    quote: &str,
+    prefix: &str,
+    suffix: &str,
+    section: Option<&str>,
+    block_id: Option<&str>,
+) -> Result<Option<anchors::Match>> {
+    let latest = crate::docs::latest_version(session, page).await?;
+    let blocks = anchors::blocks_of(latest.as_ref().map(|v| v.markdown.as_str()).unwrap_or(""));
+    let content: Option<Value> =
+        latest.as_ref().and_then(|v| v.content.as_deref()).and_then(|c| serde_json::from_str(c).ok());
+    let near = match (&content, block_id) {
+        (Some(content), Some(id)) => super::anchors_across::near_block(content, &blocks, id, quote),
+        _ => None,
+    };
+    Ok(anchors::relocate(&blocks, quote, prefix, suffix, section, near))
 }
 
 /// `_mark_read`: remember that `reader` has seen the thread now (the caller commits).

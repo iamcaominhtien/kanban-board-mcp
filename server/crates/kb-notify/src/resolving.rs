@@ -282,7 +282,13 @@ pub async fn why_thread_closed(session: &Session, r: &notification::Model) -> Re
         .filter(docs_comment::Column::CreatedAt.gt(r.created_at.clone()))
         .all(session)
         .await?;
-    if replies.iter().any(|c| person_key(Some(&c.author)) == r.recipient) {
+    // the line a publish writes in a thread ("Text rewritten in v4") is not a reply
+    let anchor_line = |c: &docs_comment::Model| {
+        c.ai.as_deref()
+            .and_then(kb_base::pyjson::loads)
+            .is_some_and(|v| v.get("kind").and_then(serde_json::Value::as_str) == Some("anchor"))
+    };
+    if replies.iter().any(|c| !anchor_line(c) && person_key(Some(&c.author)) == r.recipient) {
         return Ok(Some(("{who} replied".into(), Some(r.recipient.clone()), false)));
     }
     Ok(None)

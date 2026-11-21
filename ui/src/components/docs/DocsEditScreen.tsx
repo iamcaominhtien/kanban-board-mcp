@@ -197,6 +197,8 @@ export function DocsEditScreen({
                 prefix: t.anchor.prefix,
                 suffix: t.anchor.suffix,
                 section: t.anchor.section,
+                blockId: t.anchor.blockId ?? null,
+                pos: t.anchor.pos,
               },
             ]
           : [],

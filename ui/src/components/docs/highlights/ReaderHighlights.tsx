@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { spoken } from '../comments/boardLines';
 import type { DocsCommentsResult, DocsPage } from '../../../types/docs';
 import type { DocsLayout } from '../../../hooks/useDocsLayout';
 import { pickFromSelection, type Pick } from '../comments/SelectionComment';
@@ -191,7 +192,7 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
       if (!h.threadId) return null;
       const t = comments?.threads.find((x) => x.id === h.threadId);
       if (!t) return null;
-      return { count: t.comments.length, first: t.comments[0]?.body ?? '' };
+      return { count: spoken(t.comments).length, first: t.comments[0]?.body ?? '' };
     },
     [comments],
   );

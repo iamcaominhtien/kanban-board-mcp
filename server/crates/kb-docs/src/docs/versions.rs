@@ -295,8 +295,15 @@ pub async fn commit_version(
     }
     docs_search::reindex(session, std::slice::from_ref(&page.id)).await?;
     // late import in Python: docs_comments builds on this module
-    docs_comments::rematch_page(session, page, markdown).await?;
-    crate::docs_highlights::rematch(session, page).await?;
+    docs_comments::rematch_page(
+        session,
+        page,
+        previous.as_ref().map(|p| p.markdown.as_str()),
+        markdown,
+        body.content.as_ref(),
+    )
+    .await?;
+    crate::docs_highlights::rematch(session, page, previous.as_ref()).await?;
     if !commit {
         return Ok(Map::new());
     }

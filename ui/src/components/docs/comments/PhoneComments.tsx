@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { spoken } from './boardLines';
 import type { useCommentActions } from '../../../api/docsComments';
 import type { DocsCommentsResult, RichDoc } from '../../../types/docs';
 import { BottomSheet } from '../DocsSheets';
@@ -136,7 +137,7 @@ export function PhoneComments({
         {data &&
           shown.map((t) => {
             const place = doc ? threadPlace(t, doc) : undefined;
-            const last = t.comments[t.comments.length - 1];
+            const last = spoken(t.comments).slice(-1)[0] ?? t.comments[t.comments.length - 1];
             return (
               <button
                 key={t.id}

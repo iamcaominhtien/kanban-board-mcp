@@ -358,10 +358,142 @@ async fn test_publish_keeps_moves_and_orphans() {
     assert_eq!(by(&attached)["anchor"]["state"], "attached");
     assert!(by(&attached)["anchor"]["pos"].as_i64() > attached["anchor"]["pos"].as_i64()); // moved down
     assert_eq!(by(&moved)["anchor"]["state"], "attached"); // slightly edited: kept
-    assert_eq!(by(&gone)["anchor"]["state"], "orphaned");
-    assert!(by(&gone)["number"].is_null());
+    // "Tracked in KAN-12." was replaced by "Nothing else.": the thread follows the sentence that took its place
+    assert_eq!(by(&gone)["anchor"]["state"], "attached");
+    assert_eq!(by(&gone)["anchor"]["quote"], "Nothing else.");
+    let line = by(&gone)["comments"].as_array().unwrap().last().unwrap().clone();
+    assert_eq!(line["body"], "Text rewritten in v2");
+    assert_eq!(line["ai"]["kind"], "anchor");
+    assert_eq!(line["ai"]["quote"], "Tracked in KAN-12");
     let counts = comments(&c, &page).await["counts"].clone();
-    assert!(counts["orphaned"] == 1 && counts["open"] == 3);
+    assert!(counts["orphaned"] == 0 && counts["open"] == 3);
+}
+
+#[tokio::test]
+async fn test_rewritten_text_keeps_its_thread_and_records_the_change() {
+    let (_s, c, pid, page) = setup!("test_rewritten_text_keeps_its_thread_and_records_the_change");
+    member(&c, &pid, "Mia", "member").await;
+    publish(&c, &page, "# API\n\n## Scan\n\nBefore.\n\nInferred from the menu, not checked.\n\nAfter.\n", None).await;
+    let t = inline(&c, &page, "Inferred from the menu, not checked.", "Why not check?", "user").await;
+    assert_eq!(t["anchor"]["state"], "attached");
+    publish(&c, &page, "# API\n\n## Scan\n\nBefore.\n\nChecked on all three lines today.\n\nAfter.\n", None).await;
+    let listed = comments(&c, &page).await;
+    let thread = listed["threads"][0].clone();
+    assert_eq!(thread["anchor"]["state"], "attached");
+    assert_eq!(thread["anchor"]["quote"], "Checked on all three lines today.");
+    assert_eq!(thread["anchor"]["section"], "scan");
+    assert_eq!(thread["number"], 1);
+    let line = thread["comments"][1].clone();
+    assert_eq!(line["body"], "Text rewritten in v3");
+    assert_eq!(
+        line["ai"],
+        json!({"kind": "anchor", "change": "rewritten", "version": 3, "quote": "Inferred from the menu, not checked."})
+    );
+    // the line is written by the publisher but is not news to read for anyone else
+    assert_eq!(
+        as_(&c, "Mia").get(&format!("/docs/pages/{}/comments", id(&page))).await.json()["threads"][0]["unread"],
+        true
+    );
+    as_(&c, "Mia").post_empty(&format!("/docs/comments/threads/{}/read", id(&t))).await;
+    publish(&c, &page, "# API\n\n## Scan\n\nBefore.\n\nChecked on all four lines today.\n\nAfter.\n", None).await;
+    let mia = as_(&c, "Mia").get(&format!("/docs/pages/{}/comments", id(&page))).await.json();
+    assert_eq!(mia["threads"][0]["comments"].as_array().unwrap().len(), 3, "an edited line was added");
+    assert_eq!(mia["threads"][0]["unread"], false);
+}
+
+#[tokio::test]
+async fn test_identical_paragraphs_keep_the_thread_on_its_own_copy() {
+    let (_s, c, _pid, page) = setup!("test_identical_paragraphs_keep_the_thread_on_its_own_copy");
+    publish(&c, &page, "# API\n\nFirst part.\n\nSame words here.\n\nSecond part.\n\nSame words here.\n", None).await;
+    // the selection is made in the second copy (the UI sends the block it was made in)
+    let detail = c.get(&format!("/docs/pages/{}", id(&page))).await.json();
+    let second = detail["content"]["content"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|b| b.to_string().contains("Same words here."))
+        .nth(1)
+        .unwrap()["attrs"]["blockId"]
+        .clone();
+    let r = c
+        .post(
+            &format!("/docs/pages/{}/comments", id(&page)),
+            json!({"kind": "inline", "body": "This one", "anchor": {"quote": "Same words here.", "block_id": second}}),
+        )
+        .await;
+    let t = r.json();
+    let before = t["anchor"]["pos"].as_i64().unwrap();
+    // the paragraph before the second copy is rewritten, so the context the anchor stored no longer matches
+    publish(&c, &page, "# API\n\nFirst part.\n\nSame words here.\n\nA different middle.\n\nSame words here.\n", None)
+        .await;
+    let thread = comments(&c, &page).await["threads"][0].clone();
+    assert_eq!(thread["anchor"]["state"], "attached");
+    assert!(before > 20, "made on the second copy");
+    assert!(thread["anchor"]["pos"].as_i64().unwrap() > 20, "still on the second copy");
+    let detail = c.get(&format!("/docs/pages/{}", id(&page))).await.json();
+    let copies: Vec<Value> = detail["content"]["content"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|b| b.to_string().contains("Same words here."))
+        .map(|b| b["attrs"]["blockId"].clone())
+        .collect();
+    assert_eq!(thread["anchor"]["block_id"], copies[1]);
+    assert_eq!(thread["comments"].as_array().unwrap().len(), 1, "nothing changed in its text");
+}
+
+#[tokio::test]
+async fn test_removed_text_remembers_where_it_was() {
+    let (_s, c, _pid, page) = setup!("test_removed_text_remembers_where_it_was");
+    publish(&c, &page, "# API\n\n## One\n\nKeep this.\n\nDrop this sentence.\n\n## Two\n\nLater.\n", None).await;
+    let r = c
+        .post(
+            &format!("/docs/pages/{}/comments", id(&page)),
+            json!({"kind": "inline", "body": "Hmm", "anchor": {"quote": "Drop this sentence."}}),
+        )
+        .await;
+    assert_eq!(r.status, 201);
+    publish(&c, &page, "# API\n\n## One\n\nKeep this.\n\n## Two\n\nLater.\n", None).await;
+    let detail = c.get(&format!("/docs/pages/{}", id(&page))).await.json();
+    let thread = comments(&c, &page).await["threads"][0].clone();
+    assert_eq!(thread["anchor"]["state"], "orphaned");
+    assert_eq!(thread["anchor"]["section"], "one");
+    assert!(!thread["anchor"]["pos"].is_null());
+    // on a rich page, the block now at that spot: the "Two" heading
+    let two =
+        detail["content"]["content"].as_array().unwrap().iter().find(|b| b["content"][0]["text"] == "Two").unwrap();
+    assert_eq!(thread["anchor"]["block_id"], two["attrs"]["blockId"]);
+    assert_eq!(thread["comments"][1]["body"], "Text removed in v3");
+    assert_eq!(thread["comments"][1]["ai"]["change"], "removed");
+}
+
+#[tokio::test]
+async fn test_block_id_follows_the_text_when_ids_are_new() {
+    let (_s, c, _pid, page) = setup!("test_block_id_follows_the_text_when_ids_are_new");
+    let t = inline_default(&c, &page).await;
+    let r = c
+        .post(
+            &format!("/docs/pages/{}/comments", id(&page)),
+            json!({"kind": "inline", "body": "x", "anchor": {"quote": "Rate limits", "block_id": "b-gone00"}}),
+        )
+        .await;
+    assert_eq!(r.status, 201);
+    // a Markdown publish gives every block a new id: the threads take the id of the block their text is in
+    publish(&c, &page, &format!("Intro.\n\n{DOC}"), None).await;
+    let detail = c.get(&format!("/docs/pages/{}", id(&page))).await.json();
+    let block_of = |needle: &str| {
+        detail["content"]["content"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|b| b.to_string().contains(needle))
+            .unwrap()["attrs"]["blockId"]
+            .clone()
+    };
+    let listed = comments(&c, &page).await["threads"].clone();
+    let by = |tid: &Value| listed.as_array().unwrap().iter().find(|x| &x["id"] == tid).unwrap().clone();
+    assert_eq!(by(&t["id"])["anchor"]["block_id"], block_of("bearer token"));
+    assert_eq!(by(&r.json()["id"])["anchor"]["block_id"], block_of("Rate limits"));
 }
 
 #[tokio::test]

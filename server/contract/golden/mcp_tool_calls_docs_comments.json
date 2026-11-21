@@ -552,7 +552,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"threads\":[{\"id\":\"<uuid:20>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:21>\",\"author\":\"agent\",\"body\":\"a\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Rollback\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"before deploying. Check the queue\",\"anchor_state\":\"orphaned\"},{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:19>\",\"author\":\"agent\",\"body\":\"Late reply\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"Restart the worker\",\"anchor_state\":\"orphaned\"},{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"resolved\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:24>\",\"author\":\"agent\",\"body\":\"ok\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"Owner\",\"anchor_state\":\"orphaned\",\"resolved_by\":\"agent\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:25>\",\"author\":\"agent\",\"body\":\"own text\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:22>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:23>\",\"author\":\"agent\",\"body\":\"b\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":3,\"resolved\":1,\"orphaned\":2,\"page\":3}}"
+        "text": "{\"threads\":[{\"id\":\"<uuid:7>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:8>\",\"author\":\"agent\",\"body\":\"Which worker?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:17>\",\"author\":\"user\",\"body\":\"The queue worker.\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:19>\",\"author\":\"agent\",\"body\":\"Late reply\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":1,\"quote\":\"Restart nothing\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:5>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:6>\",\"author\":\"agent\",\"body\":\"x\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":2,\"quote\":\"nothing.\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:20>\",\"kind\":\"inline\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:21>\",\"author\":\"agent\",\"body\":\"a\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":3,\"quote\":\"Rollback\",\"anchor_state\":\"attached\"},{\"id\":\"<uuid:11>\",\"kind\":\"inline\",\"status\":\"resolved\",\"comments\":[{\"id\":\"<uuid:12>\",\"author\":\"agent\",\"body\":\"Who is Ana?\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:24>\",\"author\":\"agent\",\"body\":\"ok\",\"created_at\":\"<time>\",\"edited_at\":null}],\"number\":null,\"quote\":\"Owner\",\"anchor_state\":\"orphaned\",\"resolved_by\":\"agent\"},{\"id\":\"<uuid:13>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:14>\",\"author\":\"agent\",\"body\":\"Needs an owner, @Bao please look\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:15>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"agent\",\"body\":\"Ask @Nobody and [[Other]] and NOT-1\",\"created_at\":\"<time>\",\"edited_at\":null},{\"id\":\"<uuid:25>\",\"author\":\"agent\",\"body\":\"own text\",\"created_at\":\"<time>\",\"edited_at\":null}]},{\"id\":\"<uuid:22>\",\"kind\":\"page\",\"status\":\"open\",\"comments\":[{\"id\":\"<uuid:23>\",\"author\":\"agent\",\"body\":\"b\",\"created_at\":\"<time>\",\"edited_at\":null}]}],\"counts\":{\"all\":4,\"open\":3,\"resolved\":1,\"orphaned\":0,\"page\":3}}"
       }
     ],
     "isError": false
@@ -685,97 +685,19 @@
     "body": {
       "threads": [
         {
-          "id": "<uuid:20>",
+          "id": "<uuid:7>",
           "page_id": "<uuid:3>",
           "kind": "inline",
           "status": "open",
           "number": 1,
           "anchor": {
-            "quote": "Rollback",
+            "quote": "Restart nothing",
             "prefix": "",
-            "suffix": "",
-            "section": "rollback",
+            "suffix": ".",
+            "section": "steps",
             "state": "attached",
-            "pos": 23,
-            "block_id": null
-          },
-          "created_by": "agent",
-          "created_at": "<time>",
-          "resolved_by": null,
-          "resolved_at": null,
-          "unread": true,
-          "comments": [
-            {
-              "id": "<uuid:21>",
-              "thread_id": "<uuid:20>",
-              "author": "agent",
-              "body": "a",
-              "mentions": [],
-              "created_at": "<time>",
-              "edited_at": null,
-              "ai": null,
-              "can_edit": false,
-              "can_delete": true
-            }
-          ],
-          "can_reply": true,
-          "can_resolve": true,
-          "ai_jobs": [],
-          "ai_summary": null
-        },
-        {
-          "id": "<uuid:5>",
-          "page_id": "<uuid:3>",
-          "kind": "inline",
-          "status": "open",
-          "number": null,
-          "anchor": {
-            "quote": "before deploying. Check the queue",
-            "prefix": "Steps Restart the worker ",
-            "suffix": " Drain it Name Role Ana Owner Ro",
-            "section": "steps",
-            "state": "orphaned",
-            "pos": null,
-            "block_id": null
-          },
-          "created_by": "agent",
-          "created_at": "<time>",
-          "resolved_by": null,
-          "resolved_at": null,
-          "unread": true,
-          "comments": [
-            {
-              "id": "<uuid:6>",
-              "thread_id": "<uuid:5>",
-              "author": "agent",
-              "body": "x",
-              "mentions": [],
-              "created_at": "<time>",
-              "edited_at": null,
-              "ai": null,
-              "can_edit": false,
-              "can_delete": true
-            }
-          ],
-          "can_reply": true,
-          "can_resolve": true,
-          "ai_jobs": [],
-          "ai_summary": null
-        },
-        {
-          "id": "<uuid:7>",
-          "page_id": "<uuid:3>",
-          "kind": "inline",
-          "status": "open",
-          "number": null,
-          "anchor": {
-            "quote": "Restart the worker",
-            "prefix": "",
-            "suffix": " before deploying.",
-            "section": "steps",
-            "state": "orphaned",
-            "pos": null,
-            "block_id": null
+            "pos": 6,
+            "block_id": "<bid:2>"
           },
           "created_by": "agent",
           "created_at": "<time>",
@@ -818,6 +740,118 @@
               "ai": null,
               "can_edit": false,
               "can_delete": true
+            },
+            {
+              "id": "<uuid:33>",
+              "thread_id": "<uuid:7>",
+              "author": "agent",
+              "body": "Text edited in v2",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": {
+                "kind": "anchor",
+                "change": "edited",
+                "version": 2,
+                "quote": "Restart the worker"
+              },
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:5>",
+          "page_id": "<uuid:3>",
+          "kind": "inline",
+          "status": "open",
+          "number": 2,
+          "anchor": {
+            "quote": "nothing.",
+            "prefix": "Restart ",
+            "suffix": "",
+            "section": "steps",
+            "state": "attached",
+            "pos": 14,
+            "block_id": "<bid:2>"
+          },
+          "created_by": "agent",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:6>",
+              "thread_id": "<uuid:5>",
+              "author": "agent",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            },
+            {
+              "id": "<uuid:34>",
+              "thread_id": "<uuid:5>",
+              "author": "agent",
+              "body": "Text rewritten in v2",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": {
+                "kind": "anchor",
+                "change": "rewritten",
+                "version": 2,
+                "quote": "before deploying. Check the queue"
+              },
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:20>",
+          "page_id": "<uuid:3>",
+          "kind": "inline",
+          "status": "open",
+          "number": 3,
+          "anchor": {
+            "quote": "Rollback",
+            "prefix": "",
+            "suffix": "",
+            "section": "rollback",
+            "state": "attached",
+            "pos": 23,
+            "block_id": "<bid:3>"
+          },
+          "created_by": "agent",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:21>",
+              "thread_id": "<uuid:20>",
+              "author": "agent",
+              "body": "a",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
             }
           ],
           "can_reply": true,
@@ -837,8 +871,8 @@
             "suffix": "",
             "section": "steps",
             "state": "orphaned",
-            "pos": null,
-            "block_id": null
+            "pos": 6,
+            "block_id": "<bid:2>"
           },
           "created_by": "agent",
           "created_at": "<time>",
@@ -867,6 +901,23 @@
               "created_at": "<time>",
               "edited_at": null,
               "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            },
+            {
+              "id": "<uuid:35>",
+              "thread_id": "<uuid:11>",
+              "author": "agent",
+              "body": "Text removed in v2",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": {
+                "kind": "anchor",
+                "change": "removed",
+                "version": 2,
+                "quote": "Owner"
+              },
               "can_edit": false,
               "can_delete": true
             }
@@ -991,14 +1042,14 @@
         "all": 4,
         "open": 3,
         "resolved": 1,
-        "orphaned": 2,
+        "orphaned": 0,
         "page": 3
       },
       "role": "admin",
       "me": "user",
       "members": [
         {
-          "id": "<uuid:33>",
+          "id": "<uuid:36>",
           "name": "Admin",
           "color": "#3B82F6",
           "role": "member",
