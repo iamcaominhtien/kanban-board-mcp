@@ -280,6 +280,9 @@ function MarkdownRendererImpl({ children, docs: docsProp, plain, inline }: Markd
           }
           if (docs && href?.startsWith(TICKET_SCHEME)) {
             const key = href.slice(TICKET_SCHEME.length);
+            // a key found in plain text (`dockey:` is only written by linkifyDocs) that is not a ticket of the
+            // project, like a screen id `MH-005`, stays text instead of a "not found" chip
+            if (resolvedTickets.get(key)?.status !== 'ok') return <>{children}</>;
             return (
               <RefChip
                 kind="ticket"

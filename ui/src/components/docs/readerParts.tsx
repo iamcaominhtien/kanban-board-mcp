@@ -65,11 +65,19 @@ function PlainRef({ label }: { label: string }) {
   return <span className="dk-ref-plain">{label}</span>;
 }
 
-/** A ticket key drawn as a chip, resolved through {@link ChipCtx}. */
-export function TicketRefChip({ ticketKey }: { ticketKey: string }) {
+/**
+ * A ticket key drawn as a chip, resolved through {@link ChipCtx}.
+ * @param props.ticketKey - The key, e.g. `KAN-12`.
+ * @param props.detected - True when the key was found in plain text rather than placed as a ticket reference. Text
+ *   like `MH-005` (a screen id, a spec number) has the shape of a key but is not a ticket, so such a key becomes a
+ *   chip only once the server confirms the ticket; until then, and when it is not one, it stays text. A key the
+ *   author placed as a reference keeps the "not found" chip, which is how a broken reference is told.
+ */
+export function TicketRefChip({ ticketKey, detected = false }: { ticketKey: string; detected?: boolean }) {
   const c = useContext(ChipCtx)!;
   const plain = useContext(PlainRefsCtx);
   if (plain) return <PlainRef label={ticketKey} />;
+  if (detected && c.tickets.get(ticketKey)?.status !== 'ok') return <>{ticketKey}</>;
   return (
     <RefChip
       kind="ticket"

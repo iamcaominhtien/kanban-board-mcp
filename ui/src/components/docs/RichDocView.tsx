@@ -269,7 +269,7 @@ function richText(text: string, key: string): ReactNode[] {
     for (const m of part.matchAll(KEY_RE)) {
       const at = m.index ?? 0;
       if (at > last) out.push(part.slice(last, at));
-      out.push(<TicketRefChip key={`${key}-k${i}-${at}`} ticketKey={m[1]} />);
+      out.push(<TicketRefChip key={`${key}-k${i}-${at}`} ticketKey={m[1]} detected />);
       last = at + m[0].length;
     }
     if (last < part.length) out.push(part.slice(last));
